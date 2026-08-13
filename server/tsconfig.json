@@ -1,0 +1,11 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"tsBuildInfoFile": "../builds/server.tsconfig.tsbuildinfo",
+		"module": "esnext",
+		"rootDir": "../",
+		"paths": {},
+		"types": ["bun"]
+	},
+	"include": ["src/**/*", "types/**/*", "../shared/**/*"]
+}

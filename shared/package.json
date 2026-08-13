@@ -1,0 +1,15 @@
+{
+	"type": "module",
+	"name": "phoenix.engine.shared",
+	"version": "0.9.3",
+	"private": true,
+	"description": "Shared code between client and server",
+	"scripts": {
+		"build": "tsc",
+		"types:check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"earcut": "^3.2.3",
+		"@types/earcut": "^3.0.0"
+	}
+}

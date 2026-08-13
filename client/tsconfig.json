@@ -1,0 +1,12 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"moduleResolution": "bundler",
+		"tsBuildInfoFile": "../builds/client.tsconfig.tsbuildinfo",
+		"rootDir": "../",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"experimentalDecorators": true,
+		"types": ["vite/client", "cloudflare-turnstile"]
+	},
+	"include": ["src/**/*", "types/**/*", "../shared/**/*"]
+}

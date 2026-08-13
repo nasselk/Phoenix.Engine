@@ -1,0 +1,36 @@
+{
+	"compilerOptions": {
+		"strict": true,
+		"target": "es2020",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"incremental": true,
+		"noEmitOnError": false,
+		"skipLibCheck": true,
+		"noImplicitReturns": true,
+		"skipDefaultLibCheck": true,
+		"noFallthroughCasesInSwitch": true,
+		"forceConsistentCasingInFileNames": true,
+		"useUnknownInCatchVariables": true,
+		"noImplicitOverride": true,
+		"noUnusedLocals": true,
+		"esModuleInterop": true,
+		"removeComments": true,
+		"declaration": true,
+		"tsBuildInfoFile": "../builds/tsconfig.tsbuildinfo",
+		"lib": ["ESNext"],
+		"rootDir": "./",
+		"outDir": "./dist/",
+		"paths": {
+			"@libs/*": ["./shared/libs/*"],
+			"@math/*": ["./shared/libs/math/*"],
+			"@buffer/*": ["./shared/libs/buffer/*"],
+			"@utils/*": ["./shared/utils/*"],
+			"@client/*": ["./client/*"],
+			"@server/*": ["./server/*"],
+			"@shared/*": ["./shared/*"]
+		}
+	},
+	"exclude": ["node_modules"]
+}

@@ -1,0 +1,10 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"sourceMap": true,
+		"lib": ["DOM", "ESNext"],
+		"tsBuildInfoFile": "../builds/shared.tsconfig.tsbuildinfo",
+		"rootDir": "../"
+	},
+	"include": ["**/*"]
+}

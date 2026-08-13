@@ -1,0 +1,9 @@
+.*
+!.vscode/
+!.husky/
+!.gitignore
+!.gitattributes
+!.editorconfig
+
+tsconfig.tsbuildinfo
+**/node_modules/

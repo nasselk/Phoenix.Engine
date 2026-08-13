@@ -1,0 +1,12 @@
+{
+	"type": "module",
+	"name": "phoenix.engine.server",
+	"version": "0.9.3",
+	"main": "index.ts",
+	"private": true,
+	"description": "Typescript multiplayer game server",
+	"scripts": {
+		"build": "tsc",
+		"types:check": "tsc --noEmit"
+	}
+}
