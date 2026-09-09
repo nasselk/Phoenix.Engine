@@ -33,6 +33,6 @@
 		}
 	},
 	"files": {
-		"includes": ["**/*.*", "!node_modules/**/*", "!builds/**/*", "!**/*.svelte"]
+		"includes": ["**/*.*", "!node_modules/**/*", "!dist/**/*", "!**/*.svelte"]
 	}
 }

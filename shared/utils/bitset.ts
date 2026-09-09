@@ -1,4 +1,4 @@
-import { createBuffer, type Buffers } from "../libs/buffer/buffer.js";
+import { createBuffer, type Buffers } from "@nasselk/binarypack";
 
 export class BitSet {
 	private readonly resizable: boolean;

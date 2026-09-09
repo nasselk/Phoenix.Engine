@@ -1,0 +1,51 @@
+import { PerspectiveCamera } from "three";
+export type OrbitTarget = {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+};
+export type OrbitCameraOptions = Partial<{
+    fov: number;
+    near: number;
+    far: number;
+    yaw: number;
+    pitch: number;
+    distance: number;
+    minPitch: number;
+    maxPitch: number;
+    minDistance: number;
+    maxDistance: number;
+    rotateSpeed: number;
+    zoomSpeed: number;
+    dragging: boolean;
+    zooming: boolean;
+    button: number;
+}>;
+export declare class OrbitCamera extends PerspectiveCamera {
+    target?: OrbitTarget;
+    yaw: number;
+    pitch: number;
+    distance: number;
+    minPitch: number;
+    maxPitch: number;
+    minDistance: number;
+    maxDistance: number;
+    rotateSpeed: number;
+    zoomSpeed: number;
+    dragging: boolean;
+    zooming: boolean;
+    button: number;
+    private element?;
+    private pointer;
+    private readonly onPointerDown;
+    private readonly onPointerMove;
+    private readonly onPointerUp;
+    private readonly onWheel;
+    constructor(options?: OrbitCameraOptions);
+    get isOrbiting(): boolean;
+    rotate(yaw: number, pitch: number): this;
+    zoomBy(amount: number): this;
+    connect(element?: HTMLElement | Window): this;
+    destroy(): this;
+    update(): this;
+}

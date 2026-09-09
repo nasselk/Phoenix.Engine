@@ -1,0 +1,50 @@
+import { EventEmitter } from "../../../shared/utils/EventEmitter";
+type InputEvents = {
+    init: [];
+    pointermove: [event: PointerEvent];
+    destroy: [];
+};
+export type ActionCallback = (event: KeyboardEvent) => void;
+export type InputSystemOptions<Actions extends readonly string[] = []> = {
+    readonly actions?: Actions;
+    readonly contexts?: Readonly<Record<string, readonly Actions[number][]>>;
+};
+export declare class InputSystem<const Actions extends readonly string[] = []> extends EventEmitter<InputEvents> {
+    private readonly pressedCodes;
+    private readonly actions;
+    private readonly bindings;
+    private readonly held;
+    private readonly actionListeners;
+    private readonly contexts;
+    private readonly stack;
+    private readonly handlers;
+    private initialized;
+    constructor(options?: InputSystemOptions<Actions>);
+    init(): void;
+    mapKeyToAction(action: Actions[number], code: string): this;
+    unmapKeyFromAction(action: Actions[number], code: string): boolean;
+    keysForAction(action: Actions[number]): readonly string[];
+    onActionStart(action: Actions[number], cb: ActionCallback): () => void;
+    onActionStop(action: Actions[number], cb: ActionCallback): () => void;
+    private subscribe;
+    isRunningAction(action: Actions[number]): boolean;
+    isKeyPressed(code: string): boolean;
+    isPrintableKey(event: KeyboardEvent): boolean;
+    get context(): string | undefined;
+    isActionEnabled(action: Actions[number]): boolean;
+    pushContext(name: string): this;
+    popContext(): string | undefined;
+    setContext(name: string): this;
+    private keyDown;
+    private keyUp;
+    private press;
+    private release;
+    private dispatch;
+    private releaseAll;
+    private pointerDown;
+    private pointerUp;
+    private pointerMove;
+    private syntheticEvent;
+    destroy(): void;
+}
+export {};

@@ -36,7 +36,7 @@ function isRetriable(status: number): boolean {
 
 /** Merge header sets left to right, later sources winning per key. `Headers` handles the
  *  case-insensitivity, so `content-type` correctly overrides `Content-Type`. */
-function mergeHeaders(...sources: (HeadersInit | undefined)[]): Headers {
+function mergeHeaders(...sources: (RequestInit["headers"] | undefined)[]): Headers {
 	const merged = new Headers();
 
 	for (const source of sources) {

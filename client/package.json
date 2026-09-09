@@ -16,6 +16,11 @@
 		"@sveltejs/vite-plugin-svelte": "^7.2.0",
 		"@types/cloudflare-turnstile": "^0.2.2",
 		"@types/stats.js": "^0.17.4",
-		"stats.js": "^0.17.0"
+		"stats.js": "^0.17.0",
+		"pixi.js": "^8.20.1",
+		"three": "^0.185.1",
+		"svelte": "^5.56.4",
+		"howler": "^2.2.4",
+		"@types/howler": "^2.2.13"
 	}
 }

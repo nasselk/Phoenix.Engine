@@ -18,19 +18,10 @@
 		"esModuleInterop": true,
 		"removeComments": true,
 		"declaration": true,
-		"tsBuildInfoFile": "../builds/tsconfig.tsbuildinfo",
+		"tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
 		"lib": ["ESNext"],
 		"rootDir": "./",
-		"outDir": "./dist/",
-		"paths": {
-			"@libs/*": ["./shared/libs/*"],
-			"@math/*": ["./shared/libs/math/*"],
-			"@buffer/*": ["./shared/libs/buffer/*"],
-			"@utils/*": ["./shared/utils/*"],
-			"@client/*": ["./client/*"],
-			"@server/*": ["./server/*"],
-			"@shared/*": ["./shared/*"]
-		}
+		"outDir": "./dist/"
 	},
-	"exclude": ["node_modules"]
+	"exclude": ["node_modules", "dist"]
 }

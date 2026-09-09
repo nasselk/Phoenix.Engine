@@ -29,6 +29,16 @@ export class EventEmitter<Events extends Record<string, any[]>> {
 	}
 
 	/**
+	 * Drop every subscriber at once.
+	 *
+	 * Meant for a system's `destroy()`, called after its final event has been emitted: a listener
+	 * left here keeps whatever it closes over alive for as long as the emitter is reachable.
+	 */
+	public removeAllListeners(): void {
+		this.listeners.clear();
+	}
+
+	/**
 	 * Emit an event, invoking all subscribed callbacks with the provided arguments.
 	 * @param event The event name to emit.
 	 * @param args The arguments to pass to the subscribed callbacks.

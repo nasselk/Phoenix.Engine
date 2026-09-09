@@ -1,11 +1,12 @@
 const ticks = new Map<number, () => void>();
 
 const channel = new MessageChannel();
-channel.port1.start();
 
 let count = 0;
 
-channel.port1.addEventListener("message", function (event: MessageEvent) {
+// `onmessage` rather than addEventListener: it starts the port implicitly and is typed the same
+// way under the DOM and Bun lib sets, where the listener overloads disagree.
+channel.port1.onmessage = (event): void => {
 	const action = ticks.get(event.data);
 
 	if (action) {
@@ -13,7 +14,7 @@ channel.port1.addEventListener("message", function (event: MessageEvent) {
 
 		ticks.delete(event.data);
 	}
-});
+};
 
 export function nextTick(callback: () => void) {
 	const id = ++count % Number.MAX_SAFE_INTEGER; // Ensure the ID wraps around safely

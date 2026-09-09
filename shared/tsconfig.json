@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"sourceMap": true,
 		"lib": ["DOM", "ESNext"],
-		"tsBuildInfoFile": "../builds/shared.tsconfig.tsbuildinfo",
+		"tsBuildInfoFile": "../dist/shared.tsconfig.tsbuildinfo",
 		"rootDir": "../"
 	},
 	"include": ["**/*"]
