@@ -20,6 +20,10 @@ export type OrbitCameraOptions = Partial<{
     dragging: boolean;
     zooming: boolean;
     button: number;
+    flySpeed: number;
+    boost: number;
+    minZoom: number;
+    maxZoom: number;
 }>;
 export declare class OrbitCamera extends PerspectiveCamera {
     target?: OrbitTarget;
@@ -35,17 +39,35 @@ export declare class OrbitCamera extends PerspectiveCamera {
     dragging: boolean;
     zooming: boolean;
     button: number;
+    flySpeed: number;
+    boost: number;
+    minZoom: number;
+    maxZoom: number;
     private element?;
     private pointer;
+    private free;
+    private readonly held;
+    private lastUpdate;
+    private readonly forward;
+    private readonly right;
+    private readonly step;
     private readonly onPointerDown;
     private readonly onPointerMove;
+    private readonly onKeyDown;
+    private readonly onKeyUp;
+    private readonly onBlur;
     private readonly onPointerUp;
     private readonly onWheel;
     constructor(options?: OrbitCameraOptions);
+    get detached(): boolean;
+    setDetached(detached: boolean): this;
+    setZoom(zoom: number): this;
+    toggleDetached(): this;
     get isOrbiting(): boolean;
     rotate(yaw: number, pitch: number): this;
     zoomBy(amount: number): this;
     connect(element?: HTMLElement | Window): this;
     destroy(): this;
     update(): this;
+    private fly;
 }

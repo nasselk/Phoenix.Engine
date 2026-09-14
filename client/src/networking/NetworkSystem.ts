@@ -317,10 +317,17 @@ export class NetworkSystem<
 		this.manuallyDisconnected = false;
 	}
 
+	public destroy(): void {
+		this.disconnect();
+		this.reconnectTimeout?.clear();
+
+		this.removeAllListeners();
+	}
+
 	/**
 	 * Returns the current state of the WebSocket connection.
 	 *
-	 * @see NetworkState
+	 * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
 	 */
 	public get readyState(): NetworkState {
 		return this.socket?.readyState ?? NetworkState.CLOSED;

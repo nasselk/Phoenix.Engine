@@ -51,12 +51,6 @@ export class EntityRegistry {
         }
         return undefined;
     }
-    create(name, ...args) {
-        return new (this.class(name))(...args);
-    }
-    instantiate(name) {
-        return new (this.class(name))();
-    }
     describe() {
         return this.names.map((name, code) => `${code}: ${name}`).join(", ");
     }

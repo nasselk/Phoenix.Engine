@@ -1,19 +1,17 @@
 import { IDAllocator } from "../../shared/utils/IDAllocator";
 import { credit, log } from "../../shared/utils/logger";
-import { MAX_ENTITIES } from "../../shared/world/world";
 import { GameLoop } from "./GameLoop";
-import { GameRoom } from "./room";
+import { World } from "./world/world";
 import { randomUUID } from "crypto";
 import { NetworkSystem } from "./networking/NetworkSystem";
 import { EventEmitter } from "../../shared/utils/EventEmitter";
 export * from "../../shared/index";
 export { Entity } from "./world/entity";
-export { MovingEntity } from "./world/moving";
-export { POSITION_EPSILON, PositionEntity } from "./world/position";
-export { ROTATION_EPSILON, RotationEntity } from "./world/rotation";
+export { MovingEntity, MIN_SPEED as STOP_SPEED } from "./world/moving";
+export { BoxCollider, Collider, collide, collideBoxBox, collideBoxPlane, DEFAULT_MASS, inverseMass, MIN_SLIDE, PlaneCollider, RESTITUTION_THRESHOLD, resolve, SLOP } from "./world/collision/index";
+export { POSITION_EPSILON, PositionEntity, ROTATION_EPSILON } from "./world/position";
 export { World } from "./world/world";
 export { GameLoop } from "./GameLoop";
-export { GameRoom } from "./room";
 export { DEFAULT_NETWORK_SETTINGS, NetworkSystem } from "./networking/NetworkSystem";
 export { Socket } from "./networking/socket";
 export { setExitListeners } from "./utils/utils";
@@ -22,13 +20,11 @@ export class Engine extends EventEmitter {
     constructor(options = {}) {
         super();
         const capacity = options.capacity ?? DEFAULT_ROOM_CAPACITY;
-        if (capacity < 1 || capacity > MAX_ENTITIES) {
-            throw new Error(`Room capacity must be between 1 and ${MAX_ENTITIES}, got ${capacity}`);
-        }
         this.capacity = capacity;
         this.entities = options.entities;
+        this.context = (options.context ?? this);
         this.network = new NetworkSystem(options.network);
-        this.loop = new GameLoop();
+        this.loop = new GameLoop(options.loop);
         this.rooms = new Map();
         this.roomIDs = new IDAllocator();
         this.roomsByInviteCode = new Map();
@@ -37,7 +33,7 @@ export class Engine extends EventEmitter {
         if (this.roomsByInviteCode.has(inviteCode)) {
             throw new Error(`A room with invite code "${inviteCode}" already exists`);
         }
-        const room = new GameRoom(this.roomIDs.allocate(), inviteCode, { capacity: this.capacity, entities: this.entities });
+        const room = new World({ id: this.roomIDs.allocate(), inviteCode, capacity: this.capacity, entities: this.entities, context: this.context });
         this.rooms.set(room.id, room);
         this.roomsByInviteCode.set(inviteCode, room);
         return room;

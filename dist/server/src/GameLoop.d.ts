@@ -5,7 +5,7 @@ type GameLoopEvents = {
     pause: [];
     destroy: [];
 };
-type GameLoopParams = {
+export type GameLoopParams = {
     TPS: number;
     turbo: boolean;
     speed: number;
@@ -13,17 +13,17 @@ type GameLoopParams = {
 export declare class GameLoop extends EventEmitter<GameLoopEvents> {
     lastTickTime: number;
     speed: number;
-    tickID: number;
-    TPS: number;
+    maxTickRate: number;
     turbo: boolean;
-    private paused;
+    tickID: number;
     private ticks;
     private mspt;
     private next?;
     constructor(config?: Partial<GameLoopParams>);
     resume(): this;
     pause(): this;
-    private update;
+    private tick;
     destroy(): void;
+    get paused(): boolean;
 }
 export {};

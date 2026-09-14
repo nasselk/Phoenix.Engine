@@ -84,14 +84,6 @@ export class EntityRegistry<D extends EntityDefinitions = EntityDefinitions> {
 		return undefined;
 	}
 
-	public create<K extends Extract<keyof D, string>>(name: K, ...args: ConstructorParameters<D[K]>): InstanceType<D[K]> {
-		return new (this.class(name))(...args) as InstanceType<D[K]>;
-	}
-
-	public instantiate(name: Extract<keyof D, string>): Entity {
-		return new (this.class(name))();
-	}
-
 	public describe(): string {
 		return this.names.map((name, code) => `${code}: ${name}`).join(", ");
 	}

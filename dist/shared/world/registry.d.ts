@@ -14,8 +14,6 @@ export declare class EntityRegistry<D extends EntityDefinitions = EntityDefiniti
     name(code: number): Extract<keyof D, string> | undefined;
     class<K extends Extract<keyof D, string>>(name: K): D[K];
     kindOf(entity: Entity): Extract<keyof D, string> | undefined;
-    create<K extends Extract<keyof D, string>>(name: K, ...args: ConstructorParameters<D[K]>): InstanceType<D[K]>;
-    instantiate(name: Extract<keyof D, string>): Entity;
     describe(): string;
 }
 export declare function defineEntities<const D extends EntityDefinitions>(definitions: D): EntityRegistry<D>;

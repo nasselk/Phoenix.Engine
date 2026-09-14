@@ -2,33 +2,33 @@ import { EventEmitter } from "../utils/EventEmitter";
 import { IDAllocator } from "../utils/IDAllocator";
 import { warn } from "../utils/logger";
 import type { Entity, EntityClass } from "./entity";
-import { Phase, type UpdateCallback, type UpdateOptions } from "./phase";
 import type { EntityDefinitions, EntityRegistry } from "./registry";
-
-export const MAX_ENTITIES = 65_535;
 
 export type WorldEvents = {
 	spawn: [entity: Entity];
 	destroy: [entity: Entity];
+	update: [deltaTime: number];
 };
 
 export type WorldRole = "local" | "authority" | "mirror";
 
-export type WorldOptions<D extends EntityDefinitions = EntityDefinitions> = {
+export type WorldOptions<D extends EntityDefinitions = EntityDefinitions, C = unknown> = {
 	readonly capacity?: number;
-
 	readonly entities?: EntityRegistry<D>;
-
 	readonly role?: WorldRole;
+	readonly idReuseDelay?: number;
+	readonly context?: C;
 };
 
-interface Subscription {
-	callback: UpdateCallback;
-	phase: number;
-	priority: number;
-}
+type KindName<D extends EntityDefinitions> = Extract<keyof D, string>;
+type KindInstance<D extends EntityDefinitions, K extends KindName<D>> = InstanceType<D[K]>;
+type KindQuery = string | EntityClass<Entity>;
 
-export class World<E extends Entity = Entity, D extends EntityDefinitions = EntityDefinitions> extends EventEmitter<WorldEvents> {
+/**
+ * `E` is what the map holds: each side's own Entity, with this world's context, so the side that
+ * subclasses this can call its own methods on what it iterates without casting.
+ */
+export class World<D extends EntityDefinitions = EntityDefinitions, C = unknown, E extends Entity<C> = Entity<C>> extends EventEmitter<WorldEvents> {
 	public readonly entities = new Map<number, E>();
 
 	public time = 0;
@@ -39,89 +39,57 @@ export class World<E extends Entity = Entity, D extends EntityDefinitions = Enti
 
 	public readonly role: WorldRole;
 
+	public readonly context: C;
+
 	private readonly ids = new IDAllocator();
 
-	protected readonly list: E[] = [];
-	private buried = 0;
+	private readonly idReuseDelay: number;
 
-	private readonly subscriptions: Subscription[] = [];
+	private living = 0;
 
-	private ordered: UpdateCallback[] = [];
-	private dirty = false;
-
-	public constructor(options: WorldOptions<D> = {}) {
+	public constructor(options: WorldOptions<D, C> = {}) {
 		super();
 
-		const capacity = options.capacity ?? MAX_ENTITIES;
+		const capacity = options.capacity ?? Infinity;
 
-		if (capacity < 1 || capacity > MAX_ENTITIES) {
-			throw new Error(`World capacity must be between 1 and ${MAX_ENTITIES}, got ${capacity}`);
+		if (capacity < 1) {
+			throw new Error(`World capacity must be at least 1, got ${capacity}`);
 		}
 
 		this.capacity = capacity;
 		this.entityRegistry = options.entities;
 		this.role = options.role ?? "local";
-
-		this.onUpdate((deltaTime) => this.updateEntities(deltaTime), { phase: Phase.Update });
+		this.context = options.context as C;
+		this.idReuseDelay = options.idReuseDelay ?? 2500;
 	}
 
+	/** Live entities. Not `entities.size`: a destroyed entity stays in the map until the tick ends. */
 	public get size(): number {
-		return this.entities.size;
+		return this.living;
 	}
 
-	public onUpdate(callback: UpdateCallback, options: UpdateOptions = {}): () => void {
-		const subscription: Subscription = {
-			callback,
-			phase: options.phase ?? Phase.Update,
-			priority: options.priority ?? 0,
-		};
-
-		this.subscriptions.push(subscription);
-		this.dirty = true;
-
-		return () => {
-			const index = this.subscriptions.indexOf(subscription);
-
-			if (index !== -1) {
-				this.subscriptions.splice(index, 1);
-				this.dirty = true;
-			}
-		};
-	}
-
-	public spawn<T extends E>(entity: T, id?: number): T;
-	public spawn<K extends Extract<keyof D, string>>(kind: K, ...args: ConstructorParameters<D[K]>): InstanceType<D[K]>;
-	public spawn(entityOrKind: Entity | string, ...args: unknown[]): Entity {
-		if (typeof entityOrKind === "string") {
-			const registry = this.requireRegistry("spawn by name");
-
-			type Kind = Extract<keyof D, string>;
-
-			return this.insert(registry.create(entityOrKind as Kind, ...(args as ConstructorParameters<D[Kind]>)), undefined, entityOrKind);
-		}
-
-		return this.insert(entityOrKind, args[0] as number | undefined);
-	}
-
-	protected insert<T extends Entity>(entity: T, id: number | undefined, kind?: string): T {
+	/**
+	 * The shared half of each side's `spawn`: the entity is already built, with this world and context,
+	 * and this gives it an id, a kind and a place in the map.
+	 */
+	protected insert<T extends Entity<any>>(kind: string, entity: T, id: number | undefined): T {
 		if (entity.alive) {
 			warn("World", `Entity ${entity.id} (${entity.type}) is already spawned`);
 
 			return entity;
 		}
 
-		if (this.entities.size >= this.capacity) {
+		if (this.living >= this.capacity) {
 			throw new Error(`World is full (capacity ${this.capacity})`);
 		}
 
-		entity.id = id ?? (this.role === "mirror" ? this.ids.allocateNegative() : this.ids.allocate());
-		entity.world = this;
+		entity.id = id ?? this.allocateID();
 		entity.spawnTime = this.time;
 		entity.alive = true;
-		entity.kind = kind ?? this.entityRegistry?.kindOf(entity) ?? "";
+		entity.kind = kind;
 
 		this.entities.set(entity.id, entity as unknown as E);
-		this.list.push(entity as unknown as E);
+		this.living++;
 
 		entity.onSpawn();
 
@@ -130,33 +98,36 @@ export class World<E extends Entity = Entity, D extends EntityDefinitions = Enti
 		return entity;
 	}
 
-	public destroy(entity: E | number): boolean {
-		const target = typeof entity === "number" ? this.entities.get(entity) : entity;
+	public onEntityDestroy(entity: Entity): void {
+		const id = entity.id;
 
-		if (target === undefined || !target.alive) {
-			return false;
-		}
+		this.living--;
 
-		target.alive = false;
+		// Deferred to the end of the tick, so nothing iterating the map this tick has it shift under
+		// it. Until then the entity is still in the map but no longer alive, which is what every loop
+		// and query checks. Only removed if the slot still holds it.
+		queueMicrotask(() => {
+			if (this.entities.get(id) === entity) {
+				this.entities.delete(id);
+			}
+		});
 
-		this.entities.delete(target.id);
+		entity.onDestroy();
 
-		target.onDestroy();
+		this.emit("destroy", entity);
 
-		this.emit("destroy", target);
-
-		this.ids.free(target.id);
-		this.buried++;
-
-		return true;
+		// Held back rather than freed: a message about this id may still be on its way somewhere.
+		this.ids.freeWithTimeout(id, this.idReuseDelay);
 	}
 
 	public get(id: number): E | undefined;
+	public get<K extends KindName<D>>(id: number, kind: K): KindInstance<D, K> | undefined;
 	public get<T extends Entity>(id: number, Kind: EntityClass<T>): T | undefined;
-	public get(id: number, Kind?: EntityClass<Entity>): E | undefined {
+	public get(id: number, kind?: KindQuery): Entity | undefined {
 		const entity = this.entities.get(id);
 
-		if (Kind !== undefined && !(entity instanceof Kind)) {
+		// A destroyed entity waits in the map until the tick ends; it is gone as far as anyone asking is concerned.
+		if (entity === undefined || !entity.alive || (kind !== undefined && !this.matches(entity, kind as EntityClass<Entity>))) {
 			return undefined;
 		}
 
@@ -164,82 +135,105 @@ export class World<E extends Entity = Entity, D extends EntityDefinitions = Enti
 	}
 
 	public has(id: number): boolean {
-		return this.entities.has(id);
+		return this.entities.get(id)?.alive === true;
 	}
 
+	/** Advance the clock, update every entity, then tell `update` listeners the tick happened. */
 	public update(deltaTime: number): void {
 		this.time += deltaTime;
 
-		if (this.dirty) {
-			this.reorder();
-		}
+		// Ids whose reuse delay has run out go back in the pool, before anything this tick spawns.
+		this.ids.processTimeouts();
 
-		const ordered = this.ordered;
-
-		for (let i = 0; i < ordered.length; i++) {
-			ordered[i](deltaTime);
-		}
-	}
-
-	public updateEntities(deltaTime: number): void {
-		const list = this.list;
-		const count = list.length;
-
-		for (let i = 0; i < count; i++) {
-			const entity = list[i];
-
+		for (const entity of this.entities.values()) {
 			if (entity.alive) {
 				entity.update(deltaTime);
 			}
 		}
 
-		if (this.buried > 0) {
-			this.sweep();
-		}
+		this.emit("update", deltaTime);
 	}
 
-	public each<T extends Entity>(Kind: EntityClass<T>, callback: (entity: T) => void): void {
-		const list = this.list;
-
-		for (let i = 0; i < list.length; i++) {
-			const entity = list[i];
-
-			if (entity.alive && entity instanceof Kind) {
-				callback(entity as T);
+	/**
+	 * Call a function for each live entity of a certain type.
+	 *
+	 * @param type The type of entity to iterate over.
+	 * @param callback The function to call for each entity of that kind.
+	 */
+	public each<K extends KindName<D>>(type: K, callback: (entity: KindInstance<D, K>) => void): void;
+	/**
+	 * Call a function for each live entity of a certain class.
+	 *
+	 * @param kind  The class of the entity to iterate over.
+	 * @param callback The function to call for each entity of that kind and its subclasses.
+	 */
+	public each<T extends Entity>(kind: EntityClass<T>, callback: (entity: T) => void): void;
+	public each(kind: KindQuery, callback: (entity: any) => void): void {
+		for (const entity of this.entities.values()) {
+			if (entity.alive && this.matches(entity, kind as EntityClass<Entity>)) {
+				callback(entity);
 			}
 		}
 	}
 
-	public all<T extends Entity>(Kind: EntityClass<T>): T[] {
-		const found: T[] = [];
+	/**
+	 * @param type The type of entity to retrieve.
+	 * @returns An array of all live entities of that kind.
+	 */
+	public all<K extends KindName<D>>(kind: K): KindInstance<D, K>[];
+	/**
+	 * @param kind The class of the entity to retrieve.
+	 * @returns An array of all live entities of that kind and its subclasses.
+	 */
+	public all<T extends Entity>(kind: EntityClass<T>): T[];
+	public all(kind: KindQuery): Entity[] {
+		const found: Entity[] = [];
 
-		this.each(Kind, (entity) => found.push(entity));
+		this.each(kind as EntityClass<Entity>, (entity) => found.push(entity));
 
 		return found;
 	}
 
-	public first<T extends Entity>(Kind: EntityClass<T>): T | undefined {
-		const list = this.list;
-
-		for (let i = 0; i < list.length; i++) {
-			const entity = list[i];
-
-			if (entity.alive && entity instanceof Kind) {
-				return entity as T;
-			}
-		}
-
-		return undefined;
-	}
-
-	public count<T extends Entity>(Kind: EntityClass<T>): number {
+	/**
+	 * @param type The type of entity to count.
+	 * @returns The number of live entities of that kind.
+	 */
+	public count<K extends KindName<D>>(type: K): number;
+	/**
+	 *
+	 * @param kind The kind's class.
+	 * @returns The number of live entities of that kind and its subclasses.
+	 */
+	public count<T extends Entity>(kind: EntityClass<T>): number;
+	public count(kind: KindQuery): number {
 		let total = 0;
 
-		this.each(Kind, () => {
+		this.each(kind as EntityClass<Entity>, () => {
 			total++;
 		});
 
 		return total;
+	}
+
+	/** A name matches the kind the entity was registered under; a class matches it and its subclasses. */
+	public matches<K extends KindName<D>>(entity: Entity, type: K): entity is KindInstance<D, K>;
+	public matches<T extends Entity>(entity: Entity, kind: EntityClass<T>): entity is T;
+	public matches(entity: Entity, kind: KindQuery): boolean {
+		return typeof kind === "string" ? entity.kind === kind : entity instanceof kind;
+	}
+
+	/**
+	 * A fresh id: positive for anything that can go on the wire, negative for a mirror's local-only
+	 * entities so they never collide with the authority's.
+	 *
+	 * An id is two bytes on the wire, and ids held back for ID_REUSE_DELAY are not in the pool, so
+	 * the next id grows with recent deaths and not only with live entities. Past a uint16 it would
+	 * silently wrap on the wire and alias another entity — this refuses instead.
+	 */
+	protected allocateID(): number {
+		const id = this.role === "mirror" ? this.ids.allocateNegative() : this.ids.allocate();
+
+		return id;
 	}
 
 	protected requireRegistry(what: string): EntityRegistry<D> {
@@ -253,42 +247,15 @@ export class World<E extends Entity = Entity, D extends EntityDefinitions = Enti
 	}
 
 	public clear(): void {
-		for (const entity of [...this.list]) {
-			this.destroy(entity);
+		// A copy, so an onDestroy that spawns something does not have it destroyed in the same pass.
+		for (const entity of [...this.entities.values()]) {
+			entity.destroy();
 		}
-
-		this.sweep();
 	}
 
 	public dispose(): void {
 		this.clear();
 
-		this.subscriptions.length = 0;
-		this.ordered = [];
-		this.dirty = false;
-
 		this.removeAllListeners();
-	}
-
-	private sweep(): void {
-		const list = this.list;
-		let write = 0;
-
-		for (let read = 0; read < list.length; read++) {
-			const entity = list[read];
-
-			if (entity.alive) {
-				list[write++] = entity;
-			}
-		}
-
-		list.length = write;
-		this.buried = 0;
-	}
-
-	private reorder(): void {
-		this.subscriptions.sort((a, b) => a.phase - b.phase || a.priority - b.priority);
-		this.ordered = this.subscriptions.map((subscription) => subscription.callback);
-		this.dirty = false;
 	}
 }

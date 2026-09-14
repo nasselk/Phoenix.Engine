@@ -51,6 +51,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     simulate<K extends InboundEvent<C>>(event: K, data: MessagePayload<C, K>): void;
     private onConnect;
     private onDisconnect;
+    destroy(): void;
     get readyState(): NetworkState;
 }
 export {};

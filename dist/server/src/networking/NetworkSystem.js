@@ -37,7 +37,7 @@ export class NetworkSystem extends EventEmitter {
         this.tickets = new Map();
         this.sessions = new Map();
         this.origins = this.setAllowedOrigins(options?.origins ?? "*");
-        this.limits = this.protocol.in.events.map((event) => options?.limits?.[event]);
+        this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, options?.limits?.[event]));
         this.setTimedProtections();
         this.setupWebSocketServer();
     }
@@ -227,11 +227,22 @@ export class NetworkSystem extends EventEmitter {
             socket.disconnect(false, "Too many messages", 1008);
             return false;
         }
-        if ((limit.minByteLength !== undefined && byteLength < limit.minByteLength) || (limit.maxByteLength !== undefined && byteLength > limit.maxByteLength)) {
+        if (byteLength < limit.minBytes || byteLength > limit.maxBytes) {
             socket.disconnect(false, "Malformed message", 1003);
             return false;
         }
         return true;
+    }
+    static resolveLimit(event, limit) {
+        if (limit === undefined) {
+            return undefined;
+        }
+        const { byteLength } = limit;
+        const [minBytes, maxBytes] = byteLength === undefined ? [0, Infinity] : typeof byteLength === "number" ? [byteLength, byteLength] : byteLength;
+        if (!Number.isInteger(minBytes) || minBytes < 0 || !(Number.isInteger(maxBytes) || maxBytes === Infinity) || minBytes > maxBytes) {
+            throw new RangeError(`Invalid byteLength for "${event}": expected a non-negative integer or [min, max] with min <= max, got ${JSON.stringify(byteLength)}`);
+        }
+        return { maxRate: limit.maxRate, minBytes, maxBytes };
     }
     onMessage(event, callback) {
         this.messages[this.protocol.in.code(event)] = callback;

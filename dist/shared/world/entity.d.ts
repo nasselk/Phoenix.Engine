@@ -1,15 +1,20 @@
 import type { World } from "./world";
-export declare class Entity {
+export type EntityOptions = {
+    readonly id?: number;
+};
+export declare abstract class Entity<C = unknown> {
     id: number;
-    world: World<any, any>;
+    readonly world: World<any, any, any>;
+    readonly context: C;
     spawnTime: number;
     alive: boolean;
     kind: string;
-    get type(): string;
+    constructor(world: World<any, any, any>, context: C);
     get age(): number;
-    update(_deltaTime: number): void;
+    get type(): string;
+    abstract update(deltaTime: number): void;
     onSpawn(): void;
     onDestroy(): void;
-    destroy(): void;
+    destroy(): boolean;
 }
 export type EntityClass<T extends Entity = Entity> = abstract new (...args: never[]) => T;

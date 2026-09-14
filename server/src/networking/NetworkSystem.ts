@@ -21,9 +21,20 @@ type NetworkSystemEvents<C extends Contract> = {
 export type EventLimit = {
 	/** Max frames of this event per second. Over it, the connection is closed. */
 	readonly maxRate?: number;
-	/** Payload bounds in bytes, event code excluded. A frame outside them is malformed by definition. */
-	readonly minByteLength?: number;
-	readonly maxByteLength?: number;
+	/**
+	 * Payload size in bytes, event code excluded. A frame outside it is malformed by definition.
+	 *
+	 * A number is an exact size — `0` for an event that carries nothing — and `[min, max]` is a
+	 * range, both ends included.
+	 */
+	readonly byteLength?: number | readonly [min: number, max: number];
+};
+
+/** An EventLimit with its size already resolved to two bounds, so a frame is checked with two comparisons. */
+type ResolvedLimit = {
+	readonly maxRate?: number;
+	readonly minBytes: number;
+	readonly maxBytes: number;
 };
 
 export type EventLimits<E extends readonly string[]> = Partial<Record<E[number], EventLimit>>;
@@ -149,7 +160,7 @@ export class NetworkSystem<
 	private readonly requestsRate: CounterMap<string>;
 	private readonly origins: RegExp[];
 	/** Per-event limits by inbound wire code, so the hot path indexes an array instead of hashing a name. */
-	private readonly limits: Array<EventLimit | undefined>;
+	private readonly limits: Array<ResolvedLimit | undefined>;
 	/** Handlers registered through {@link onMessage}, indexed by inbound wire code. */
 	private readonly messages: Array<(socket: Socket<C>, data: any) => void>;
 	private readonly socketIDs: IDAllocator;
@@ -173,7 +184,7 @@ export class NetworkSystem<
 		this.tickets = new Map();
 		this.sessions = new Map();
 		this.origins = this.setAllowedOrigins(options?.origins ?? "*");
-		this.limits = this.protocol.in.events.map((event) => (options?.limits as Record<string, EventLimit> | undefined)?.[event]);
+		this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, (options?.limits as Record<string, EventLimit> | undefined)?.[event]));
 
 		this.setTimedProtections();
 		this.setupWebSocketServer();
@@ -305,7 +316,7 @@ export class NetworkSystem<
 				fetch: () => new Response("Not Found", { status: 404 }),
 
 				websocket: {
-					idleTimeout: settings.ws.idleTimeout, // seconds
+					idleTimeout: settings.ws.idleTimeout,
 					maxPayloadLength: settings.ws.maxMessageSize,
 					backpressureLimit: settings.ws.maxBackPressure,
 					closeOnBackpressureLimit: true,
@@ -437,20 +448,39 @@ export class NetworkSystem<
 	}
 
 	/** Per-event rate and size checks. Disconnects and returns false when the frame is out of bounds. */
-	private withinLimits(socket: Socket<C>, code: number, limit: EventLimit, byteLength: number): boolean {
+	private withinLimits(socket: Socket<C>, code: number, limit: ResolvedLimit, byteLength: number): boolean {
 		if (limit.maxRate !== undefined && socket.rates.increment(code) > limit.maxRate) {
 			socket.disconnect(false, "Too many messages", 1008);
 
 			return false;
 		}
 
-		if ((limit.minByteLength !== undefined && byteLength < limit.minByteLength) || (limit.maxByteLength !== undefined && byteLength > limit.maxByteLength)) {
+		if (byteLength < limit.minBytes || byteLength > limit.maxBytes) {
 			socket.disconnect(false, "Malformed message", 1003);
 
 			return false;
 		}
 
 		return true;
+	}
+
+	/**
+	 * Turn a declared limit into the two bounds the hot path compares against, rejecting a size that
+	 * could never match a frame — better a crash at startup than a server that drops every message.
+	 */
+	private static resolveLimit(event: string, limit: EventLimit | undefined): ResolvedLimit | undefined {
+		if (limit === undefined) {
+			return undefined;
+		}
+
+		const { byteLength } = limit;
+		const [minBytes, maxBytes] = byteLength === undefined ? [0, Infinity] : typeof byteLength === "number" ? [byteLength, byteLength] : byteLength;
+
+		if (!Number.isInteger(minBytes) || minBytes < 0 || !(Number.isInteger(maxBytes) || maxBytes === Infinity) || minBytes > maxBytes) {
+			throw new RangeError(`Invalid byteLength for "${event}": expected a non-negative integer or [min, max] with min <= max, got ${JSON.stringify(byteLength)}`);
+		}
+
+		return { maxRate: limit.maxRate, minBytes, maxBytes };
 	}
 
 	/**

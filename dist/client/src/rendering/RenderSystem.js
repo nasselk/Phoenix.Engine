@@ -87,7 +87,7 @@ export class RenderSystem extends EventEmitter {
         canvas.style.left = "0";
         canvas.style.width = width;
         canvas.style.height = height;
-        canvas.style.zIndex = "-1";
+        canvas.style.zIndex;
         return canvas;
     }
     resize(width = 0, height = width) {

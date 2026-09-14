@@ -1,24 +1,34 @@
 import { BufferWriter } from "@nasselk/binarypack";
 import { warn } from "../../../shared/utils/logger";
 import { World as BaseWorld } from "../../../shared/world/world";
+export const MAX_SERVER_WORLD_SIZE = 2 ** 16 - 1;
 export class World extends BaseWorld {
     constructor(options = {}) {
         super({ ...options, role: options.role ?? "authority" });
         this.pendingSpawns = [];
         this.pendingDespawns = [];
+        if (this.capacity > MAX_SERVER_WORLD_SIZE) {
+            throw new Error(`World capacity must be at most ${MAX_SERVER_WORLD_SIZE}, got ${this.capacity}`);
+        }
+        this.id = options.id ?? 0;
+        this.inviteCode = options.inviteCode ?? "";
         if (this.role !== "authority") {
             return;
         }
         this.on("spawn", (entity) => this.pendingSpawns.push(entity));
         this.on("destroy", (entity) => this.pendingDespawns.push(entity.id));
     }
+    spawn(kind, ...args) {
+        const Kind = this.requireRegistry("spawn").class(kind);
+        const options = (args[0] ?? {});
+        const entity = new Kind(this, this.context, options);
+        return this.insert(kind, entity, options.id);
+    }
     serialize(writer = new BufferWriter()) {
         const registry = this.requireRegistry("serialize");
-        const list = this.list;
         const countOffset = writer.advanceBytes(2);
         let count = 0;
-        for (let i = 0; i < list.length; i++) {
-            const entity = list[i];
+        for (const entity of this.entities.values()) {
             if (entity.alive && this.writeSpawn(writer, registry, entity)) {
                 count++;
             }
@@ -28,11 +38,17 @@ export class World extends BaseWorld {
         writer.writeUint16(0);
         return writer;
     }
+    allocateID() {
+        const id = super.allocateID();
+        if (id > MAX_SERVER_WORLD_SIZE) {
+            throw new Error(`World id allocation exceeded ${MAX_SERVER_WORLD_SIZE}`);
+        }
+        return id;
+    }
     serializeSync(writer) {
         const registry = this.requireRegistry("serializeSync");
         const spawns = this.pendingSpawns;
         const despawns = this.pendingDespawns;
-        const list = this.list;
         const start = writer.offset;
         const spawnCountOffset = writer.advanceBytes(2);
         let spawnCount = 0;
@@ -47,8 +63,7 @@ export class World extends BaseWorld {
         spawns.length = 0;
         const updateCountOffset = writer.advanceBytes(2);
         let updateCount = 0;
-        for (let i = 0; i < list.length; i++) {
-            const entity = list[i];
+        for (const entity of this.entities.values()) {
             if (!entity.alive || !entity.isDirty) {
                 continue;
             }

@@ -1,12 +1,43 @@
 import type { BufferReader } from "@nasselk/binarypack";
 import { warn } from "../../../shared/utils/logger";
 import type { EntityDefinitions } from "../../../shared/world/registry";
+import type { EntityOptions } from "../../../shared/world/entity";
+import type { OptionsOf, SpawnArguments } from "../../../shared/world/options";
 import { World as BaseWorld, type WorldOptions } from "../../../shared/world/world";
-import { Entity } from "./entity";
+import type { Entity } from "./entity";
 
-export type WorldRoleless<D extends EntityDefinitions = EntityDefinitions> = Omit<WorldOptions<D>, "role">;
+export type ClientWorldOptions<D extends EntityDefinitions = EntityDefinitions, C = unknown, G = unknown> = WorldOptions<D, C> & {
+	/** The scene container every entity in this world draws into, handed to each as `entity.group`. */
+	readonly group?: G;
+};
 
-export class World<D extends EntityDefinitions = EntityDefinitions> extends BaseWorld<Entity, D> {
+export type WorldRoleless<D extends EntityDefinitions = EntityDefinitions, C = unknown, G = unknown> = Omit<ClientWorldOptions<D, C, G>, "role">;
+
+export class World<D extends EntityDefinitions = EntityDefinitions, C = unknown, G = unknown> extends BaseWorld<D, C, Entity<C, G>> {
+	public readonly group: G;
+
+	public constructor(options: ClientWorldOptions<D, C, G> = {}) {
+		super(options);
+
+		this.group = options.group as G;
+	}
+
+	/**
+	 * Build an entity of a registered kind and put it in this world, drawing into the world's group:
+	 *
+	 *   world.spawn("crate", { x: 4, z: -2 });
+	 *
+	 * The options are that kind's own, typed from its constructor. `id` spawns under a specific id.
+	 */
+	public spawn<K extends Extract<keyof D, string>>(kind: K, ...args: SpawnArguments<D[K], 3>): InstanceType<D[K]> {
+		const Kind = this.requireRegistry("spawn").class(kind);
+		const options = (args[0] ?? {}) as OptionsOf<D[K], 3> & EntityOptions;
+
+		const entity = new Kind(this, this.context, this.group, options) as InstanceType<D[K]>;
+
+		return this.insert(kind, entity, options.id);
+	}
+
 	public sync(reader: BufferReader): void {
 		const registry = this.requireRegistry("sync");
 		const spawns = reader.readUint16();
@@ -27,13 +58,14 @@ export class World<D extends EntityDefinitions = EntityDefinitions> extends Base
 					existing.deserialize(reader);
 				} else {
 					if (existing !== undefined) {
-						this.destroy(existing);
+						existing.destroy();
 					}
 
-					const entity = registry.instantiate(kind) as Entity;
+					// Off the wire there are no options but the id: the entity's state arrives in deserialize.
+					const entity = new (registry.class(kind))(this, this.context, this.group, { id }) as Entity<any, any>;
 
 					entity.deserialize(reader);
-					this.insert(entity, id, kind);
+					this.insert(kind, entity, id);
 				}
 			}
 
@@ -57,7 +89,7 @@ export class World<D extends EntityDefinitions = EntityDefinitions> extends Base
 		const despawns = reader.readUint16();
 
 		for (let i = 0; i < despawns; i++) {
-			this.destroy(reader.readUint16());
+			this.entities.get(reader.readUint16())?.destroy();
 		}
 	}
 }

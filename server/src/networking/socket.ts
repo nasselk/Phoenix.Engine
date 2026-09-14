@@ -26,14 +26,6 @@ export const enum SocketState {
 	CLOSED,
 }
 
-/**
- * One connected client.
- *
- * The protocol type flows down from the NetworkSystem that owns the socket, so `send` and
- * `broadcast` are typed by the server's outbound direction while the per-socket `message` event is
- * typed by its inbound one — an unknown event name, a name used in the wrong direction, or a
- * payload that does not match its schema is a compile error, not a runtime surprise.
- */
 export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEvents<C>> {
 	public readonly id: number;
 	public readonly ip: string;
@@ -136,8 +128,22 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 		this.rates.clear();
 	}
 
+	/**
+	 * Disconnects the socket. If the socket is already closed, this does nothing.
+	 *
+	 * @param forcefully If true, the socket is terminated abruptly without sending a close frame
+	 */
 	public disconnect(forcefully?: true): void;
+
+	/**
+	 * Disconnects the socket. If the socket is already closed, this does nothing.
+	 *
+	 * @param forcefully If false, a close frame is sent with the provided reason and code.
+	 * @param reason The reason for disconnection.
+	 * @param code The close code for disconnection.
+	 */
 	public disconnect(forcefully?: false, reason?: string, code?: number): void;
+
 	public disconnect(forcefully?: boolean, reason: string = "", code: number = 1000): void {
 		if (code !== 1000) {
 			warn("Game Server", `Disconnecting ${this.ip} with code ${code} - ${reason}`);
@@ -165,7 +171,7 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 	/**
 	 * Returns the current state of the WebSocket connection.
 	 *
-	 * @see NetworkState
+	 * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/readyState
 	 */
 	public get readyState(): SocketState {
 		return this.socket?.readyState ?? SocketState.CLOSED;

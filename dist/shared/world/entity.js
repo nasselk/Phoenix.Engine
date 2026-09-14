@@ -1,20 +1,26 @@
 export class Entity {
-    constructor() {
+    constructor(world, context) {
         this.id = 0;
         this.spawnTime = 0;
         this.alive = false;
         this.kind = "";
-    }
-    get type() {
-        return this.constructor.name;
+        this.world = world;
+        this.context = context;
     }
     get age() {
         return this.world.time - this.spawnTime;
     }
-    update(_deltaTime) { }
+    get type() {
+        return this.constructor.name;
+    }
     onSpawn() { }
     onDestroy() { }
     destroy() {
-        this.world?.destroy(this);
+        if (!this.alive) {
+            return false;
+        }
+        this.alive = false;
+        this.world.onEntityDestroy(this);
+        return true;
     }
 }

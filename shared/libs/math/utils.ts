@@ -31,7 +31,7 @@ export function clamp(value: number, minimum: number, maximum: number): number {
  * @param value - The value to wrap.
  * @param minimum - The minimum value of the range.
  * @param maximum - The maximum value of the range.
- * @returns The wrapped value within [min, max).
+ * @returns The wrapped value within [min, max].
  *
  * @example
  * wrap(5, 0, 10) // 5
@@ -40,6 +40,10 @@ export function clamp(value: number, minimum: number, maximum: number): number {
  * wrap(370, 0, 360) // 10 (angle wrapping)
  */
 export function wrap(value: number, minimum: number, maximum: number): number {
+	if (minimum > maximum) {
+		throw new RangeError("Invalid range");
+	}
+
 	const range = maximum - minimum;
 
 	return ((((value - minimum) % range) + range) % range) + minimum;

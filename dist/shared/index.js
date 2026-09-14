@@ -1,4 +1,4 @@
-export { defineEntities, Entity, EntityRegistry, GRAVITY, MAX_ENTITIES, MAX_ENTITY_KINDS, Phase, World, } from "./world/index";
+export { defineEntities, Entity, EntityRegistry, AIR_DENSITY, GRAVITY, MAX_ENTITY_KINDS, World, } from "./world/index";
 export { BufferReader, BufferWriter } from "@nasselk/binarypack";
 export { MAX_EVENTS, Protocol, ProtocolChannel } from "./networking/protocol";
 export { SESSION_ROUTE, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, WS_ROUTE } from "./networking/session";
@@ -11,4 +11,5 @@ export { wait } from "./utils/timers/wait";
 export { Interpolator } from "./libs/math/interpolation";
 export { ObservableVector3, Vector3 } from "./libs/math/vector3D";
 export { clamp, wrap } from "./libs/math/utils";
+export { censorText, default as validateText } from "./utils/validation/text";
 export { randomElement, randomFloat, randomInt } from "./libs/math/random";

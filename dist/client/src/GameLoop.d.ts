@@ -5,16 +5,23 @@ type GameLoopEvents = {
     pause: [];
     destroy: [];
 };
+export type GameLoopParams = {
+    FPS: number;
+    speed: number;
+};
 export declare class GameLoop extends EventEmitter<GameLoopEvents> {
-    protected lastFrameTime: number;
-    targetFrameRate: number;
-    paused: boolean;
-    protected frames: number;
-    protected loop?: number;
-    constructor();
+    maxFrameRate: number;
+    frameID: number;
+    speed: number;
+    private lastFrameTime;
+    private frames;
+    private next?;
+    private mspf;
+    constructor(config?: Partial<GameLoopParams>);
     resume(): this;
     pause(): this;
     protected frame(now?: number): number;
     destroy(): void;
+    get paused(): boolean;
 }
 export {};

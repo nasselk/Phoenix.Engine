@@ -36,11 +36,11 @@ export class DefaultAnimatedSprite extends AnimatedSprite {
             ...options,
         });
     }
-    static updateAll(deltaMs) {
+    static updateAll(deltaTime) {
         if (DefaultAnimatedSprite.list.size === 0) {
             return;
         }
-        DefaultAnimatedSprite.tickerArg.deltaTime = deltaMs / (1000 / 60);
+        DefaultAnimatedSprite.tickerArg.deltaTime = deltaTime * 60;
         for (const sprite of DefaultAnimatedSprite.list) {
             sprite.update(DefaultAnimatedSprite.tickerArg);
         }

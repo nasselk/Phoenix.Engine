@@ -7,6 +7,9 @@ export function clamp(value, minimum, maximum) {
     return Math.min(Math.max(value, minimum), maximum);
 }
 export function wrap(value, minimum, maximum) {
+    if (minimum > maximum) {
+        throw new RangeError("Invalid range");
+    }
     const range = maximum - minimum;
     return ((((value - minimum) % range) + range) % range) + minimum;
 }

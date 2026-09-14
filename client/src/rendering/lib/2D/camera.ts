@@ -1,13 +1,5 @@
 import type { Container } from "pixi.js";
 
-/**
- * A 2D camera: where the view is centred, how far it is zoomed and how it is rotated.
- *
- * It holds no game state and knows nothing about entities — a game moves it (`move`, `zoom`,
- * `angle`) and the renderer applies it to the world container once per frame with `transform`.
- * Interpolation, following a target and screen-space queries belong to the game's own systems,
- * which is also where they can read the game's settings.
- */
 export class Camera {
 	public x: number;
 	public y: number;

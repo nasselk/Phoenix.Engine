@@ -9,7 +9,7 @@ export declare class DefaultAnimatedSprite extends AnimatedSprite {
     private static readonly list;
     private static readonly tickerArg;
     constructor(options?: Partial<AnimatedSpriteOptions>);
-    static updateAll(deltaMs: number): void;
+    static updateAll(deltaTime: number): void;
     play(): void;
     stop(): void;
     destroy(options?: DestroyOptions): void;

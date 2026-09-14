@@ -1,8 +1,7 @@
 import { IDAllocator } from "../../shared/utils/IDAllocator";
 import { credit, log } from "../../shared/utils/logger";
-import { MAX_ENTITIES } from "../../shared/world/world";
-import { GameLoop } from "./GameLoop";
-import { GameRoom } from "./room";
+import { GameLoop, type GameLoopParams } from "./GameLoop";
+import { World } from "./world/world";
 import { randomUUID } from "crypto";
 import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
 import type { SchemasFor } from "../../shared/networking/protocol";
@@ -14,13 +13,12 @@ export * from "../../shared/index";
 // The server's own object model, exported over the shared one: an entity that can write itself and
 // a world that can write a frame. `import { Entity } from "phoenix.engine/server"` is this one.
 export { Entity } from "./world/entity";
-export { MovingEntity } from "./world/moving";
-export { POSITION_EPSILON, PositionEntity } from "./world/position";
-export { ROTATION_EPSILON, RotationEntity } from "./world/rotation";
-export { World } from "./world/world";
+export { MovingEntity, MIN_SPEED as STOP_SPEED } from "./world/moving";
+export { BoxCollider, Collider, ColliderKind, collide, collideBoxBox, collideBoxPlane, DEFAULT_MASS, inverseMass, MIN_SLIDE, PlaneCollider, RESTITUTION_THRESHOLD, resolve, SLOP, type Collision, type ResolveOptions } from "./world/collision/index";
+export { POSITION_EPSILON, PositionEntity, ROTATION_EPSILON, type PositionEntityOptions } from "./world/position";
+export { World, type ServerWorldOptions } from "./world/world";
 // Server-only pieces a game builds on.
-export { GameLoop } from "./GameLoop";
-export { GameRoom } from "./room";
+export { GameLoop, type GameLoopParams } from "./GameLoop";
 export { DEFAULT_NETWORK_SETTINGS, NetworkSystem, type EventLimit, type EventLimits, type NetworkSettings, type NetworkSystemOptions } from "./networking/NetworkSystem";
 export { Socket, SocketState, type SocketUserData } from "./networking/socket";
 export { setExitListeners } from "./utils/utils";
@@ -38,10 +36,13 @@ type EngineEvents = {
 export const DEFAULT_ROOM_CAPACITY = 5_000;
 
 /** Everything the engine is handed: the room capacity, and optionally the networking to bring up with it. */
-export type EngineOptions<In extends readonly string[] = [], Out extends readonly string[] = [], InSchemas = {}, OutSchemas = {}, D extends EntityDefinitions = EntityDefinitions> = {
+export type EngineOptions<In extends readonly string[] = [], Out extends readonly string[] = [], InSchemas = {}, OutSchemas = {}, D extends EntityDefinitions = EntityDefinitions, C = unknown> = {
 	readonly capacity?: number;
 	readonly entities?: EntityRegistry<D>;
+	/** What every entity in every room sees as `this.context`; left out, it is the engine. */
+	readonly context?: C;
 	readonly network?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>;
+	readonly loop?: Partial<GameLoopParams>;
 };
 
 /**
@@ -53,10 +54,17 @@ export type EngineOptions<In extends readonly string[] = [], Out extends readonl
  * fanning out over the rooms ticks them in a deterministic order and gives you
  * one place to measure the whole process's tick budget.
  */
-export class Engine<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, const D extends EntityDefinitions = EntityDefinitions> extends EventEmitter<EngineEvents> {
+export class Engine<
+	const In extends readonly string[] = [],
+	const Out extends readonly string[] = [],
+	const InSchemas extends SchemasFor<InSchemas, In> = {},
+	const OutSchemas extends SchemasFor<OutSchemas, Out> = {},
+	const D extends EntityDefinitions = EntityDefinitions,
+	C = unknown,
+> extends EventEmitter<EngineEvents> {
 	public readonly network: NetworkSystem<In, Out, InSchemas, OutSchemas>;
 	public readonly loop: GameLoop;
-	public readonly rooms: Map<number, GameRoom<D>>;
+	public readonly rooms: Map<number, World<D, C>>;
 
 	/**
 	 * The game's entity kinds. Held here, next to `capacity`, because it is what every room this
@@ -72,22 +80,22 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	private readonly entities?: EntityRegistry<D>;
 	private readonly capacity: number;
 	private readonly roomIDs: IDAllocator;
-	private readonly roomsByInviteCode: Map<string, GameRoom<D>>;
+	private readonly roomsByInviteCode: Map<string, World<D, C>>;
 
-	public constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D> = {}) {
+	/** Handed to every room this engine opens. */
+	private readonly context: C;
+
+	public constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D, C> = {}) {
 		super();
 
 		const capacity = options.capacity ?? DEFAULT_ROOM_CAPACITY;
 
-		if (capacity < 1 || capacity > MAX_ENTITIES) {
-			throw new Error(`Room capacity must be between 1 and ${MAX_ENTITIES}, got ${capacity}`);
-		}
-
 		this.capacity = capacity;
 		this.entities = options.entities;
+		this.context = (options.context ?? this) as C;
 
 		this.network = new NetworkSystem<In, Out, InSchemas, OutSchemas>(options.network);
-		this.loop = new GameLoop();
+		this.loop = new GameLoop(options.loop);
 		this.rooms = new Map();
 		this.roomIDs = new IDAllocator();
 		this.roomsByInviteCode = new Map();
@@ -95,14 +103,14 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 
 	/**
 	 * Open a match. Whatever it needs beyond entities — a sync loop, a round timer — is built by
-	 * the caller against the room it just got, and subscribes itself with `room.onUpdate`.
+	 * the caller against the room it just got, and listens for `room.on("update")`.
 	 */
-	public createRoom(inviteCode: string = randomUUID()): GameRoom<D> {
+	public createRoom(inviteCode: string = randomUUID()): World<D, C> {
 		if (this.roomsByInviteCode.has(inviteCode)) {
 			throw new Error(`A room with invite code "${inviteCode}" already exists`);
 		}
 
-		const room = new GameRoom<D>(this.roomIDs.allocate(), inviteCode, { capacity: this.capacity, entities: this.entities });
+		const room = new World<D, C>({ id: this.roomIDs.allocate(), inviteCode, capacity: this.capacity, entities: this.entities, context: this.context });
 
 		this.rooms.set(room.id, room);
 		this.roomsByInviteCode.set(inviteCode, room);
@@ -110,11 +118,11 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		return room;
 	}
 
-	public getRoom(id: number): GameRoom<D> | undefined {
+	public getRoom(id: number): World<D, C> | undefined {
 		return this.rooms.get(id);
 	}
 
-	public getRoomByInviteCode(inviteCode: string): GameRoom<D> | undefined {
+	public getRoomByInviteCode(inviteCode: string): World<D, C> | undefined {
 		return this.roomsByInviteCode.get(inviteCode);
 	}
 

@@ -8,11 +8,13 @@
         "@nasselk/binarypack": "github:nasselk/BinaryPack",
         "@nasselk/binaryschema": "github:nasselk/BinarySchema",
         "howler": "^2.2.4",
+        "stats.js": "^0.17.0",
       },
       "devDependencies": {
         "@biomejs/biome": "2.5.3",
         "@types/bun": "^1.4.0",
         "@types/howler": "^2.2.13",
+        "@types/stats.js": "^0.17.4",
         "@types/three": "^0.185.4",
         "husky": "^9.1.7",
         "typescript": "^7.0.2",
@@ -104,7 +106,7 @@
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.6", "", { "dependencies": { "@tybys/wasm-util": "^0.10.3" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-ZLv/JdUfkvOy9eCnnBaGfiO+XimbjebAeO+MRQqD/B+FR1tnRN0tpKSJHRbE8sFfS6aqsXZ67TQjfwfsxULVbg=="],
 
-    "@nasselk/binarypack": ["@nasselk/binarypack@github:nasselk/BinaryPack#5690e1c", {}, "nasselk-BinaryPack-5690e1c", "sha512-m/5I9yjf0mfW0g3B/I9wfsle5+y9wwcKBltZsZ9BveqWwSbCOn6b9W6keX7k1zxXjCfXAPZzv/aMj1D5wiynMA=="],
+    "@nasselk/binarypack": ["@nasselk/binarypack@github:nasselk/BinaryPack#8886e61", {}, "nasselk-BinaryPack-8886e61", "sha512-pMG1QzvxURbwCaxV/5t57dux+NMDykuNeFVWqLUBgWWJF3xDf0HQYYCBxJ4n9diU31N0X24PW5TApdx47hVsEw=="],
 
     "@nasselk/binaryschema": ["@nasselk/binaryschema@github:nasselk/BinarySchema#1e38326", { "dependencies": { "@nasselk/binarypack": "github:nasselk/BinaryPack" } }, "nasselk-BinarySchema-1e38326", "sha512-md81GT5lGdgY2MgpLwuf5YR2QA3AEnZTPRUdY6CMY4g2GzuRvmhT/fBcr1OYzgUN/6uHjJURzzZ7DAWRMZz0QQ=="],
 

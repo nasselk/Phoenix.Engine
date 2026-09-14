@@ -163,6 +163,11 @@ export class NetworkSystem extends EventEmitter {
         this.emit("disconnection", code, reason, this.manuallyDisconnected);
         this.manuallyDisconnected = false;
     }
+    destroy() {
+        this.disconnect();
+        this.reconnectTimeout?.clear();
+        this.removeAllListeners();
+    }
     get readyState() {
         return this.socket?.readyState ?? NetworkState.CLOSED;
     }

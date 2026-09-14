@@ -3,6 +3,7 @@ import { waitForUserGesture } from "../utils/gesture";
 
 type RenderSystemEvents = {
 	init: [renderer: HTMLCanvasElement];
+	/** `deltaTime` is in seconds; `now` is a millisecond timestamp. */
 	render: [deltaTime: number, now: number];
 	resize: [width: number, height: number];
 	load: [id: string];
@@ -52,7 +53,6 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 	/** Loads still in flight, so a second `load()` of the same id joins the first instead of racing it. */
 	private readonly loading: Map<string, Promise<Asset>>;
 
-	/** Watches the canvas box so the backend follows window resizes and CSS layout changes. */
 	private observer?: ResizeObserver;
 
 	protected abstract runInternalRenderer(): void;
@@ -223,7 +223,7 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 		canvas.style.left = "0";
 		canvas.style.width = width;
 		canvas.style.height = height;
-		canvas.style.zIndex = "-1";
+		canvas.style.zIndex;
 
 		return canvas;
 	}

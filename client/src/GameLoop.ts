@@ -11,25 +11,31 @@ type GameLoopEvents = {
 	destroy: [];
 };
 
+export type GameLoopParams = {
+	FPS: number;
+	speed: number;
+};
+
 export class GameLoop extends EventEmitter<GameLoopEvents> {
-	protected lastFrameTime: number;
-
 	/** The maximum frame rate for the rendering loop. */
-	public targetFrameRate: number;
+	public maxFrameRate: number;
+	public frameID: number;
+	public speed: number;
 
-	/** Indicates whether the rendering loop is currently paused. */
-	public paused: boolean;
+	private lastFrameTime: number;
+	private frames: number;
+	private next?: number;
+	private mspf: number;
 
-	protected frames: number;
-	protected loop?: number;
-
-	public constructor() {
+	public constructor(config?: Partial<GameLoopParams>) {
 		super();
 
-		this.paused = true;
-		this.targetFrameRate = Infinity;
+		this.maxFrameRate = config?.FPS ?? Infinity;
 		this.lastFrameTime = 0;
+		this.speed = config?.speed ?? 1;
+		this.frameID = 0;
 		this.frames = 0;
+		this.mspf = 0;
 	}
 
 	/**
@@ -38,12 +44,10 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 	 *
 	 * @returns The current instance of the RenderSystem for method chaining.
 	 *
-	 * @throws Error if the renderer is not initialized. Call init() before resuming the rendering loop.
 	 */
 	public resume(): this {
 		if (this.paused) {
-			this.loop = requestAnimationFrame((now) => this.frame(now));
-			this.paused = false;
+			this.next = requestAnimationFrame((now) => this.frame(now));
 
 			log("Renderer", "The rendering loop has started");
 
@@ -59,15 +63,14 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 	 *
 	 * @returns The current instance of the RenderSystem for method chaining.
 	 *
-	 * @throws Error if the renderer is not initialized. Call init() before pausing the rendering loop.
 	 */
 	public pause(): this {
 		if (!this.paused) {
-			if (this.loop) {
-				cancelAnimationFrame(this.loop);
+			if (this.next) {
+				cancelAnimationFrame(this.next);
 			}
 
-			this.paused = true;
+			this.next = undefined;
 
 			log("Renderer", "The rendering loop has stopped");
 
@@ -77,29 +80,30 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 		return this;
 	}
 
-	/**
-	 * The main rendering function that is called on each animation frame. It calculates the time delta since the last frame, runs any registered timers, and renders the scene using the renderer.
-	 *
-	 * @param now Optional current timestamp in milliseconds, typically provided by requestAnimationFrame.
-	 * @returns The time taken to execute the rendering function in milliseconds.
-	 * @throws Error if the renderer is not initialized. Call init() before starting the rendering loop.
-	 */
 	protected frame(now: number = performance.now()): number {
-		this.loop = requestAnimationFrame((now) => this.frame(now));
+		this.next = requestAnimationFrame((now) => this.frame(now));
 
-		const minDeltaTime = 1000 / this.targetFrameRate;
-		const deltaTime = now - this.lastFrameTime;
+		const deltaTimeCap = (1000 / (this.maxFrameRate || Infinity)) * this.speed;
+		const deltaTime = Math.min(now - this.lastFrameTime, 100) * this.speed;
 
 		// Account of the FPS cap
-		if (deltaTime >= minDeltaTime && !document.hidden) {
-			// Run timers registered in "precise" mode
-			Timer.runAll(now);
-
+		if (deltaTime >= deltaTimeCap) {
 			this.lastFrameTime = now;
-			this.frames++;
+
+			// Run timers registered in "precise" mode
+			Timer.runAll(now, this.speed);
+
+			if (this.frameID === Number.MAX_SAFE_INTEGER) {
+				this.frameID = 0;
+			} else {
+				this.frameID++;
+			}
 
 			// Emit the render event, allowing external listeners to perform actions before the scene is rendered.
-			this.emit("frame", deltaTime, now);
+			this.emit("frame", deltaTime / 1000, now);
+
+			this.frames++;
+			this.mspf += performance.now() - now;
 		}
 
 		return performance.now() - now;
@@ -111,5 +115,10 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 		this.emit("destroy");
 
 		this.removeAllListeners();
+	}
+
+	/** Indicates whether the rendering loop is currently paused. */
+	public get paused(): boolean {
+		return this.next === undefined;
 	}
 }

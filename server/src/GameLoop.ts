@@ -11,7 +11,7 @@ type GameLoopEvents = {
 	destroy: [];
 };
 
-type GameLoopParams = {
+export type GameLoopParams = {
 	TPS: number;
 	turbo: boolean;
 	speed: number;
@@ -20,10 +20,10 @@ type GameLoopParams = {
 export class GameLoop extends EventEmitter<GameLoopEvents> {
 	public lastTickTime: number;
 	public speed: number;
-	public tickID: number;
-	public TPS: number;
+	public maxTickRate: number;
 	public turbo: boolean;
-	private paused: boolean;
+	public tickID: number;
+
 	private ticks: number;
 	private mspt: number;
 	private next?: any; // Timeout or Immediate
@@ -32,10 +32,9 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 		super();
 
 		this.speed = config?.speed ?? 1;
-		this.TPS = config?.TPS ?? 60;
+		this.maxTickRate = config?.TPS ?? 60;
 		this.turbo = config?.turbo ?? false;
 		this.lastTickTime = 0;
-		this.paused = true; // Start paused until resume() is called
 		this.tickID = 0;
 		this.ticks = 0;
 		this.mspt = 0;
@@ -49,9 +48,7 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 	 */
 	public resume(): this {
 		if (this.paused) {
-			this.update();
-
-			this.paused = false;
+			this.tick();
 
 			log("Game Loop", "The game loop has started");
 		}
@@ -77,33 +74,30 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 				this.next = undefined;
 			}
 
-			this.paused = true;
-
 			log("Game Loop", "The game loop has stopped");
 		}
 
 		return this;
 	}
 
-	private update(): void {
+	private tick(): void {
 		if (this.turbo) {
-			this.next = setImmediate(() => this.update());
+			this.next = setImmediate(() => this.tick());
 		} else {
 			// 1 bcs setTimeout is not accurate anyways
-			this.next = setTimeout(() => this.update(), 1);
+			this.next = setTimeout(() => this.tick(), 1);
 		}
 
 		const now = performance.now();
-		const deltaTimeCap = (1000 / (this.TPS ?? Infinity)) * this.speed;
+
+		const deltaTimeCap = (1000 / (this.maxTickRate || Infinity)) * this.speed;
 		const deltaTime = Math.min(now - this.lastTickTime, 100) * this.speed;
 
 		// If deltaTime is greater or equal to the server maximum tick rate then update the game state
 		if (deltaTime >= deltaTimeCap) {
 			this.lastTickTime = now;
 
-			if (this.paused) {
-				return;
-			} else if (this.tickID === Number.MAX_SAFE_INTEGER) {
+			if (this.tickID === Number.MAX_SAFE_INTEGER) {
 				this.tickID = 0;
 			} else {
 				this.tickID++;
@@ -112,25 +106,23 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 			// Run timers registered in "eventLoop" mode
 			Timer.runAll(now, this.speed);
 
-			this.emit("tick", deltaTime, now);
+			this.emit("tick", deltaTime / 1000, now);
 
 			this.ticks++;
 			this.mspt += performance.now() - now;
 		}
 	}
 
-	/**
-	 * Destroys the game loop, stopping any further updates and cleaning up resources.
-	 * After calling this method, the game loop cannot be resumed or used again.
-	 * This method is automatically called on engine destroy
-	 *
-	 * @returns void
-	 */
 	public destroy(): void {
 		this.pause();
 
 		this.emit("destroy");
 
 		this.removeAllListeners();
+	}
+
+	/** Indicates whether the rendering loop is currently paused. */
+	public get paused(): boolean {
+		return this.next === undefined;
 	}
 }

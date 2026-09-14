@@ -1,57 +1,118 @@
 import type { BufferReader } from "@nasselk/binarypack";
 import { Interpolator } from "../../../shared/libs/math/interpolation";
-import { ObservableVector3, Vector3 } from "../../../shared/libs/math/vector3D";
+import { Vector3 } from "../../../shared/libs/math/vector3D";
+import type { Engine } from "..";
+import type { EntityOptions } from "../../../shared/world/entity";
 import { Entity } from "./entity";
+import type { World } from "./world";
 
-export const FRAME = 1000 / 60;
+export type PositionEntityOptions = EntityOptions & {
+	readonly x?: number;
+	readonly y?: number;
+	readonly z?: number;
+	readonly pitch?: number;
+	readonly yaw?: number;
+	readonly roll?: number;
+};
 
-export const DEFAULT_SMOOTHING = 0.25;
+export abstract class PositionEntity<C = Engine, G = unknown> extends Entity<C, G> {
+	private static readonly FRAMES_PER_SECOND = 60;
+	private static readonly DEFAULT_SMOOTHING = 0.25;
+	private static readonly SNAP_DISTANCE = 0.001;
+	private static readonly SNAP_ANGLE = 0.0005;
 
-export const SNAP_DISTANCE = 0.001;
-
-export class PositionEntity extends Entity {
-	public readonly position: ObservableVector3;
+	public readonly position: Vector3;
 	public readonly targetPosition: Vector3;
 
-	public interpolation = true;
-	public smoothing = DEFAULT_SMOOTHING;
+	public readonly rotation: Vector3;
+	public readonly targetRotation: Vector3;
 
-	public constructor(x: number = 0, y: number = 0, z: number = 0) {
-		super();
+	public positionSmoothing = true;
+	public smoothing = PositionEntity.DEFAULT_SMOOTHING;
 
-		this.position = new ObservableVector3(x, y, z);
-		this.targetPosition = new Vector3(x, y, z);
-	}
+	public rotationInterpolation = true;
+	public rotationSmoothing = PositionEntity.DEFAULT_SMOOTHING;
 
-	public override deserialize(reader: BufferReader): void {
-		this.readPosition(reader);
-		this.position.set(this.targetPosition);
-	}
+	public constructor(world: World<any, any, any>, context: C, group: G, options: PositionEntityOptions = {}) {
+		super(world, context, group, options);
 
-	public override deserializeUpdate(reader: BufferReader): void {
-		this.readPosition(reader);
-
-		if (!this.interpolation) {
-			this.position.set(this.targetPosition);
-		}
+		this.position = new Vector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
+		this.targetPosition = this.position.clone();
+		this.rotation = new Vector3(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
+		this.targetRotation = this.rotation.clone();
 	}
 
 	public override update(deltaTime: number): void {
-		if (!this.interpolation) {
-			return;
+		const { FRAMES_PER_SECOND, SNAP_DISTANCE, SNAP_ANGLE } = PositionEntity;
+
+		const frames = deltaTime * FRAMES_PER_SECOND;
+
+		if (this.positionSmoothing) {
+			const { position, targetPosition, smoothing } = this;
+
+			position.set(Interpolator.lerp(position.x, targetPosition.x, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.y, targetPosition.y, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.z, targetPosition.z, smoothing, frames, SNAP_DISTANCE));
+		} else {
+			this.position.set(this.targetPosition);
 		}
 
-		const { position, targetPosition, smoothing } = this;
-		const frames = deltaTime / FRAME;
+		if (this.rotationInterpolation) {
+			const { rotation, targetRotation, rotationSmoothing } = this;
 
-		position.set(Interpolator.lerp(position.x, targetPosition.x, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.y, targetPosition.y, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.z, targetPosition.z, smoothing, frames, SNAP_DISTANCE));
+			rotation.set(Interpolator.lerpAngle(rotation.x, targetRotation.x, rotationSmoothing, frames, SNAP_ANGLE), Interpolator.lerpAngle(rotation.y, targetRotation.y, rotationSmoothing, frames, SNAP_ANGLE), Interpolator.lerpAngle(rotation.z, targetRotation.z, rotationSmoothing, frames, SNAP_ANGLE));
+		} else {
+			this.rotation.set(this.targetRotation);
+		}
 	}
 
-	protected readPosition(reader: BufferReader): void {
+	public override deserialize(reader: BufferReader): void {
 		const x = reader.readFloat32();
 		const y = reader.readFloat32();
 		const z = reader.readFloat32();
 
 		this.targetPosition.set(x, y, z);
+
+		const pitch = reader.readFloat32();
+		const yaw = reader.readFloat32();
+		const roll = reader.readFloat32();
+
+		this.targetRotation.set(pitch, yaw, roll);
+
+		this.position.set(this.targetPosition);
+		this.rotation.set(this.targetRotation);
+	}
+
+	public override deserializeUpdate(reader: BufferReader): void {
+		const px = reader.readBoolean();
+		const py = reader.readBoolean();
+		const pz = reader.readBoolean();
+		const rx = reader.readBoolean();
+		const ry = reader.readBoolean();
+		const rz = reader.readBoolean();
+
+		const { targetPosition, targetRotation } = this;
+
+		if (px) {
+			targetPosition.x = reader.readFloat32();
+		}
+
+		if (py) {
+			targetPosition.y = reader.readFloat32();
+		}
+
+		if (pz) {
+			targetPosition.z = reader.readFloat32();
+		}
+
+		if (rx) {
+			targetRotation.x = reader.readFloat32();
+		}
+
+		if (ry) {
+			targetRotation.y = reader.readFloat32();
+		}
+
+		if (rz) {
+			targetRotation.z = reader.readFloat32();
+		}
 	}
 }

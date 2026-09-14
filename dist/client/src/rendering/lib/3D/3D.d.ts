@@ -10,10 +10,10 @@ type RendererSettings = Partial<{
 export declare class ThreeRenderer extends RenderSystem<Object3D> {
     private three;
     private readonly gltf;
-    world: Group;
     scene: Scene;
+    world: Group;
     readonly camera: OrbitCamera;
-    constructor(view?: HTMLCanvasElement, scene?: Scene);
+    constructor(view?: HTMLCanvasElement);
     init(settings: RendererSettings): Promise<WebGLRenderer>;
     protected runInternalRenderer(): void;
     protected loadAsset(src: string): Promise<Object3D>;

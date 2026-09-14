@@ -11,8 +11,7 @@ type NetworkSystemEvents<C extends Contract> = {
 };
 export type EventLimit = {
     readonly maxRate?: number;
-    readonly minByteLength?: number;
-    readonly maxByteLength?: number;
+    readonly byteLength?: number | readonly [min: number, max: number];
 };
 export type EventLimits<E extends readonly string[]> = Partial<Record<E[number], EventLimit>>;
 export type NetworkSystemOptions<In extends readonly string[], Out extends readonly string[], InSchemas, OutSchemas> = {
@@ -88,6 +87,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private setupWebSocketServer;
     private handle;
     private withinLimits;
+    private static resolveLimit;
     onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): this;
     broadcast<K extends OutboundEvent<C>>(topic: string, event: K, ...[data]: SendPayload<C, K>): this;
     private handleUpgrade;

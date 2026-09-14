@@ -1,12 +1,12 @@
-import { Group, Scene, WebGLRenderer, PerspectiveCamera, Mesh } from "three";
+import { Group, Mesh, Scene, WebGLRenderer } from "three";
 import { OrbitCamera } from "./camera";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { log } from "../../../../../shared/utils/logger";
 import { RenderSystem } from "../../RenderSystem";
 export class ThreeRenderer extends RenderSystem {
-    constructor(view, scene = new Scene()) {
+    constructor(view) {
         super(view);
-        this.scene = scene;
+        this.scene = new Scene();
         this.camera = new OrbitCamera();
         this.camera.connect();
         this.world = new Group();
@@ -54,15 +54,14 @@ export class ThreeRenderer extends RenderSystem {
         }
         super.resize(width, height);
         this.three.setSize(width * this.resolution, height * this.resolution, false);
-        if (this.camera instanceof PerspectiveCamera) {
-            this.camera.aspect = width / height;
-            this.camera.updateProjectionMatrix();
-        }
+        this.camera.aspect = width / height;
+        this.camera.updateProjectionMatrix();
         return this;
     }
     destroy(view) {
         this.camera.destroy();
         this.three.dispose();
+        this.three.forceContextLoss();
         super.destroy(view);
     }
 }

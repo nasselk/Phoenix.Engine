@@ -5,18 +5,16 @@ export class GameLoop extends EventEmitter {
     constructor(config) {
         super();
         this.speed = config?.speed ?? 1;
-        this.TPS = config?.TPS ?? 60;
+        this.maxTickRate = config?.TPS ?? 60;
         this.turbo = config?.turbo ?? false;
         this.lastTickTime = 0;
-        this.paused = true;
         this.tickID = 0;
         this.ticks = 0;
         this.mspt = 0;
     }
     resume() {
         if (this.paused) {
-            this.update();
-            this.paused = false;
+            this.tick();
             log("Game Loop", "The game loop has started");
         }
         return this;
@@ -32,34 +30,30 @@ export class GameLoop extends EventEmitter {
                 }
                 this.next = undefined;
             }
-            this.paused = true;
             log("Game Loop", "The game loop has stopped");
         }
         return this;
     }
-    update() {
+    tick() {
         if (this.turbo) {
-            this.next = setImmediate(() => this.update());
+            this.next = setImmediate(() => this.tick());
         }
         else {
-            this.next = setTimeout(() => this.update(), 1);
+            this.next = setTimeout(() => this.tick(), 1);
         }
         const now = performance.now();
-        const deltaTimeCap = (1000 / (this.TPS ?? Infinity)) * this.speed;
+        const deltaTimeCap = (1000 / (this.maxTickRate || Infinity)) * this.speed;
         const deltaTime = Math.min(now - this.lastTickTime, 100) * this.speed;
         if (deltaTime >= deltaTimeCap) {
             this.lastTickTime = now;
-            if (this.paused) {
-                return;
-            }
-            else if (this.tickID === Number.MAX_SAFE_INTEGER) {
+            if (this.tickID === Number.MAX_SAFE_INTEGER) {
                 this.tickID = 0;
             }
             else {
                 this.tickID++;
             }
             Timer.runAll(now, this.speed);
-            this.emit("tick", deltaTime, now);
+            this.emit("tick", deltaTime / 1000, now);
             this.ticks++;
             this.mspt += performance.now() - now;
         }
@@ -68,5 +62,8 @@ export class GameLoop extends EventEmitter {
         this.pause();
         this.emit("destroy");
         this.removeAllListeners();
+    }
+    get paused() {
+        return this.next === undefined;
     }
 }

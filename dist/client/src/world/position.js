@@ -1,39 +1,77 @@
 import { Interpolator } from "../../../shared/libs/math/interpolation";
-import { ObservableVector3, Vector3 } from "../../../shared/libs/math/vector3D";
+import { Vector3 } from "../../../shared/libs/math/vector3D";
 import { Entity } from "./entity";
-export const FRAME = 1000 / 60;
-export const DEFAULT_SMOOTHING = 0.25;
-export const SNAP_DISTANCE = 0.001;
 export class PositionEntity extends Entity {
-    constructor(x = 0, y = 0, z = 0) {
-        super();
-        this.interpolation = true;
-        this.smoothing = DEFAULT_SMOOTHING;
-        this.position = new ObservableVector3(x, y, z);
-        this.targetPosition = new Vector3(x, y, z);
-    }
-    deserialize(reader) {
-        this.readPosition(reader);
-        this.position.set(this.targetPosition);
-    }
-    deserializeUpdate(reader) {
-        this.readPosition(reader);
-        if (!this.interpolation) {
-            this.position.set(this.targetPosition);
-        }
+    constructor(world, context, group, options = {}) {
+        super(world, context, group, options);
+        this.positionSmoothing = true;
+        this.smoothing = PositionEntity.DEFAULT_SMOOTHING;
+        this.rotationInterpolation = true;
+        this.rotationSmoothing = PositionEntity.DEFAULT_SMOOTHING;
+        this.position = new Vector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
+        this.targetPosition = this.position.clone();
+        this.rotation = new Vector3(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
+        this.targetRotation = this.rotation.clone();
     }
     update(deltaTime) {
-        if (!this.interpolation) {
-            return;
+        const { FRAMES_PER_SECOND, SNAP_DISTANCE, SNAP_ANGLE } = PositionEntity;
+        const frames = deltaTime * FRAMES_PER_SECOND;
+        if (this.positionSmoothing) {
+            const { position, targetPosition, smoothing } = this;
+            position.set(Interpolator.lerp(position.x, targetPosition.x, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.y, targetPosition.y, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.z, targetPosition.z, smoothing, frames, SNAP_DISTANCE));
         }
-        const { position, targetPosition, smoothing } = this;
-        const frames = deltaTime / FRAME;
-        position.set(Interpolator.lerp(position.x, targetPosition.x, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.y, targetPosition.y, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.z, targetPosition.z, smoothing, frames, SNAP_DISTANCE));
+        else {
+            this.position.set(this.targetPosition);
+        }
+        if (this.rotationInterpolation) {
+            const { rotation, targetRotation, rotationSmoothing } = this;
+            rotation.set(Interpolator.lerpAngle(rotation.x, targetRotation.x, rotationSmoothing, frames, SNAP_ANGLE), Interpolator.lerpAngle(rotation.y, targetRotation.y, rotationSmoothing, frames, SNAP_ANGLE), Interpolator.lerpAngle(rotation.z, targetRotation.z, rotationSmoothing, frames, SNAP_ANGLE));
+        }
+        else {
+            this.rotation.set(this.targetRotation);
+        }
     }
-    readPosition(reader) {
+    deserialize(reader) {
         const x = reader.readFloat32();
         const y = reader.readFloat32();
         const z = reader.readFloat32();
         this.targetPosition.set(x, y, z);
+        const pitch = reader.readFloat32();
+        const yaw = reader.readFloat32();
+        const roll = reader.readFloat32();
+        this.targetRotation.set(pitch, yaw, roll);
+        this.position.set(this.targetPosition);
+        this.rotation.set(this.targetRotation);
+    }
+    deserializeUpdate(reader) {
+        const px = reader.readBoolean();
+        const py = reader.readBoolean();
+        const pz = reader.readBoolean();
+        const rx = reader.readBoolean();
+        const ry = reader.readBoolean();
+        const rz = reader.readBoolean();
+        const { targetPosition, targetRotation } = this;
+        if (px) {
+            targetPosition.x = reader.readFloat32();
+        }
+        if (py) {
+            targetPosition.y = reader.readFloat32();
+        }
+        if (pz) {
+            targetPosition.z = reader.readFloat32();
+        }
+        if (rx) {
+            targetRotation.x = reader.readFloat32();
+        }
+        if (ry) {
+            targetRotation.y = reader.readFloat32();
+        }
+        if (rz) {
+            targetRotation.z = reader.readFloat32();
+        }
     }
 }
+PositionEntity.FRAMES_PER_SECOND = 60;
+PositionEntity.DEFAULT_SMOOTHING = 0.25;
+PositionEntity.SNAP_DISTANCE = 0.001;
+PositionEntity.SNAP_ANGLE = 0.0005;

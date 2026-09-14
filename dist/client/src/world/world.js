@@ -1,6 +1,16 @@
 import { warn } from "../../../shared/utils/logger";
 import { World as BaseWorld } from "../../../shared/world/world";
 export class World extends BaseWorld {
+    constructor(options = {}) {
+        super(options);
+        this.group = options.group;
+    }
+    spawn(kind, ...args) {
+        const Kind = this.requireRegistry("spawn").class(kind);
+        const options = (args[0] ?? {});
+        const entity = new Kind(this, this.context, this.group, options);
+        return this.insert(kind, entity, options.id);
+    }
     sync(reader) {
         const registry = this.requireRegistry("sync");
         const spawns = reader.readUint16();
@@ -20,11 +30,11 @@ export class World extends BaseWorld {
                 }
                 else {
                     if (existing !== undefined) {
-                        this.destroy(existing);
+                        existing.destroy();
                     }
-                    const entity = registry.instantiate(kind);
+                    const entity = new (registry.class(kind))(this, this.context, this.group, { id });
                     entity.deserialize(reader);
-                    this.insert(entity, id, kind);
+                    this.insert(kind, entity, id);
                 }
             }
             reader.offset = end;
@@ -41,7 +51,7 @@ export class World extends BaseWorld {
         }
         const despawns = reader.readUint16();
         for (let i = 0; i < despawns; i++) {
-            this.destroy(reader.readUint16());
+            this.entities.get(reader.readUint16())?.destroy();
         }
     }
 }

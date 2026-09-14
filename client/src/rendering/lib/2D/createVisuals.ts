@@ -65,14 +65,14 @@ export class DefaultAnimatedSprite extends AnimatedSprite {
 		});
 	}
 
-	/** Advance every playing sprite. `deltaMs` is milliseconds since the last frame. */
-	public static updateAll(deltaMs: number): void {
+	/** Advance every playing sprite. `deltaTime` is seconds since the last frame. */
+	public static updateAll(deltaTime: number): void {
 		if (DefaultAnimatedSprite.list.size === 0) {
 			return;
 		}
 
-		// Pixi counts in 60fps frames, not milliseconds.
-		DefaultAnimatedSprite.tickerArg.deltaTime = deltaMs / (1000 / 60);
+		// Pixi counts in 60fps frames, not seconds.
+		DefaultAnimatedSprite.tickerArg.deltaTime = deltaTime * 60;
 
 		for (const sprite of DefaultAnimatedSprite.list) {
 			sprite.update(DefaultAnimatedSprite.tickerArg);

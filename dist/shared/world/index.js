@@ -1,5 +1,4 @@
 export { Entity } from "./entity";
-export { GRAVITY } from "./physics";
-export { Phase } from "./phase";
+export { AIR_DENSITY, GRAVITY } from "./physics";
 export { defineEntities, EntityRegistry, MAX_ENTITY_KINDS } from "./registry";
-export { MAX_ENTITIES, World } from "./world";
+export { World } from "./world";
