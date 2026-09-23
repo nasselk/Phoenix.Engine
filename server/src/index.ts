@@ -6,7 +6,7 @@ export { Entity } from "./world/entities/entity";
 export { MovingEntity, type MovingEntityOptions } from "./world/entities/moving";
 export { POSITION_EPSILON, PositionEntity, ROTATION_EPSILON, type PositionEntityOptions } from "./world/entities/position";
 export { World, type ServerWorldOptions } from "./world/world";
-export { RAPIER, eulerToQuaternion, initPhysics, quaternionToEuler } from "../../shared/physics/rapier";
+export { eulerToQuaternion, initPhysics, quaternionToEuler } from "../../shared/physics/rapier";
 // Server-only pieces a game builds on.
 export { GameLoop, type GameLoopParams, type LoopStats } from "./GameLoop";
 export { DEFAULT_NETWORK_SETTINGS, NetworkSystem, type EventLimit, type EventLimits, type NetworkSettings, type NetworkSystemOptions } from "./networking/NetworkSystem";

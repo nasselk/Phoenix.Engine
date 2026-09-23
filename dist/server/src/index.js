@@ -3,7 +3,7 @@ export { Entity } from "./world/entities/entity";
 export { MovingEntity } from "./world/entities/moving";
 export { POSITION_EPSILON, PositionEntity, ROTATION_EPSILON } from "./world/entities/position";
 export { World } from "./world/world";
-export { RAPIER, eulerToQuaternion, initPhysics, quaternionToEuler } from "../../shared/physics/rapier";
+export { eulerToQuaternion, initPhysics, quaternionToEuler } from "../../shared/physics/rapier";
 export { GameLoop } from "./GameLoop";
 export { DEFAULT_NETWORK_SETTINGS, NetworkSystem } from "./networking/NetworkSystem";
 export { Socket } from "./networking/socket";
