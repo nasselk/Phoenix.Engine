@@ -1,5 +1,3 @@
-import { Vector } from "./vector.js";
-
 export const EPSILON = 1e-10;
 
 /**
@@ -111,28 +109,6 @@ export function normalizeArray(array: number[]): number[] {
 	}
 
 	return array;
-}
-
-/**
- * Calculates the axis-aligned bounding box dimensions for a rotated rectangle.
- * Returns the width and height needed to contain the rectangle after rotation.
- *
- * @param width - The width of the rectangle before rotation.
- * @param height - The height of the rectangle before rotation.
- * @param angle - The rotation angle in radians (defaults to 0).
- * @returns A Vector containing the bounding box width (x) and height (y).
- *
- * @example
- * getBoundingBox(100, 50, 0) // Vector(100, 50) - no rotation
- * getBoundingBox(100, 50, Math.PI / 4) // Vector(~106, ~106) - 45° rotation
- */
-export function getBoundingBox(width: number, height: number, angle: number = 0): Vector {
-	// Calculate the absolute values of the cosine and sine of the rotation angle
-	const cos = Math.abs(Math.cos(angle));
-	const sin = Math.abs(Math.sin(angle));
-
-	// Calculate the width and height of the bounding box
-	return new Vector(width * cos + height * sin, width * sin + height * cos);
 }
 
 /**

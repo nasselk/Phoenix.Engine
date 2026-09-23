@@ -1,6 +1,7 @@
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { warn } from "../../../shared/utils/logger";
+import { Seen } from "../world/replication";
 export class Socket extends EventEmitter {
     constructor(protocol, socket, id) {
         super();
@@ -14,6 +15,8 @@ export class Socket extends EventEmitter {
         this.messages = 0;
         this.rates = new CounterMap();
         this.manuallyDisconnected = false;
+        this.seen = new Seen();
+        this.data = {};
     }
     send(event, ...[data]) {
         if (this.readyState === 1) {

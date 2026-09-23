@@ -1,10 +1,16 @@
-import type { Entity } from "./entity";
+import type { Entity, EntityClass } from "./entity";
 
-export type EntityConstructor<T extends Entity = Entity> = new (...args: any[]) => T;
+export type EntityConstructor<T extends Entity<any> = Entity<any>> = new (...args: any[]) => T;
 
 export type EntityDefinitions = Record<string, EntityConstructor>;
 
-export const MAX_ENTITY_KINDS = 256;
+export type KindName<D extends EntityDefinitions> = Extract<keyof D, string>;
+
+export type KindInstance<D extends EntityDefinitions, K extends KindName<D>> = InstanceType<D[K]>;
+
+export type KindQuery = string | EntityClass<Entity<any>>;
+
+export const MAX_ENTITY_KINDS = 2 ** 8;
 
 export class EntityRegistry<D extends EntityDefinitions = EntityDefinitions> {
 	public readonly names: readonly Extract<keyof D, string>[];
@@ -54,7 +60,7 @@ export class EntityRegistry<D extends EntityDefinitions = EntityDefinitions> {
 		return code;
 	}
 
-	public name(code: number): Extract<keyof D, string> | undefined {
+	public kind(code: number): Extract<keyof D, string> | undefined {
 		return this.names[code];
 	}
 
@@ -68,7 +74,7 @@ export class EntityRegistry<D extends EntityDefinitions = EntityDefinitions> {
 		return Kind;
 	}
 
-	public kindOf(entity: Entity): Extract<keyof D, string> | undefined {
+	public kindOf(entity: Entity<any>): Extract<keyof D, string> | undefined {
 		let constructor = entity.constructor as EntityConstructor | null;
 
 		while (constructor !== null && constructor !== Function.prototype) {
@@ -82,6 +88,13 @@ export class EntityRegistry<D extends EntityDefinitions = EntityDefinitions> {
 		}
 
 		return undefined;
+	}
+
+	/** A name matches the kind the entity was registered under; a class matches it and its subclasses. */
+	public matches<K extends KindName<D>>(entity: Entity<any>, type: K): entity is KindInstance<D, K>;
+	public matches<T extends Entity<any>>(entity: Entity<any>, kind: EntityClass<T>): entity is T;
+	public matches(entity: Entity<any>, kind: KindQuery): boolean {
+		return typeof kind === "string" ? entity.kind === kind : entity instanceof kind;
 	}
 
 	public describe(): string {

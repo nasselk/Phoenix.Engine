@@ -1,0 +1,54 @@
+/**
+ * Defaults that make a game in a browser behave like an application instead of a page: no text
+ * selection or magnifier, no tap highlight, no pinch or double-tap zoom, no pull-to-refresh and no
+ * rubber banding. Text fields keep everything a text field needs.
+ *
+ * Import it once, before your own styles:
+ *
+ *   import "phoenix.engine/native.css";
+ *
+ * What a stylesheet cannot do — the context menu, Safari's pinch gestures, the browser's zoom
+ * shortcuts, dragging an image out of the page — is what `native()` from "phoenix.engine/client" does.
+ */
+
+html {
+	height: 100%;
+	/* Phones otherwise reflow text on rotation, which moves a HUD around. */
+	-webkit-text-size-adjust: 100%;
+	text-size-adjust: 100%;
+	/* No grey flash where a finger lands. */
+	-webkit-tap-highlight-color: transparent;
+}
+
+body {
+	height: 100%;
+	margin: 0;
+	overflow: hidden;
+	/* No pull-to-refresh, and no rubber banding past the edges. */
+	overscroll-behavior: none;
+	/* Panels can still scroll, but nothing zooms: pinch and double-tap are out. */
+	touch-action: pan-x pan-y;
+	user-select: none;
+	-webkit-user-select: none;
+	/* Safari: no callout menu and no magnifier on a long press. */
+	-webkit-touch-callout: none;
+}
+
+/* The game reads touches itself, so nothing on it scrolls or zooms. */
+canvas {
+	display: block;
+	touch-action: none;
+}
+
+img {
+	-webkit-user-drag: none;
+}
+
+input,
+textarea,
+select,
+[contenteditable] {
+	user-select: text;
+	-webkit-user-select: text;
+	-webkit-touch-callout: default;
+}

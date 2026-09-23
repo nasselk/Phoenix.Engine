@@ -1,7 +1,10 @@
-import type { Entity } from "./entity";
-export type EntityConstructor<T extends Entity = Entity> = new (...args: any[]) => T;
+import type { Entity, EntityClass } from "./entity";
+export type EntityConstructor<T extends Entity<any> = Entity<any>> = new (...args: any[]) => T;
 export type EntityDefinitions = Record<string, EntityConstructor>;
-export declare const MAX_ENTITY_KINDS = 256;
+export type KindName<D extends EntityDefinitions> = Extract<keyof D, string>;
+export type KindInstance<D extends EntityDefinitions, K extends KindName<D>> = InstanceType<D[K]>;
+export type KindQuery = string | EntityClass<Entity<any>>;
+export declare const MAX_ENTITY_KINDS: number;
 export declare class EntityRegistry<D extends EntityDefinitions = EntityDefinitions> {
     readonly names: readonly Extract<keyof D, string>[];
     private readonly definitions;
@@ -11,9 +14,11 @@ export declare class EntityRegistry<D extends EntityDefinitions = EntityDefiniti
     get size(): number;
     has(name: string): boolean;
     code(name: Extract<keyof D, string>): number;
-    name(code: number): Extract<keyof D, string> | undefined;
+    kind(code: number): Extract<keyof D, string> | undefined;
     class<K extends Extract<keyof D, string>>(name: K): D[K];
-    kindOf(entity: Entity): Extract<keyof D, string> | undefined;
+    kindOf(entity: Entity<any>): Extract<keyof D, string> | undefined;
+    matches<K extends KindName<D>>(entity: Entity<any>, type: K): entity is KindInstance<D, K>;
+    matches<T extends Entity<any>>(entity: Entity<any>, kind: EntityClass<T>): entity is T;
     describe(): string;
 }
 export declare function defineEntities<const D extends EntityDefinitions>(definitions: D): EntityRegistry<D>;

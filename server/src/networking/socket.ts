@@ -3,19 +3,30 @@ import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { warn } from "../../../shared/utils/logger";
 import { type Contract, type InboundEvent, type MessagePayload, type OutboundEvent, type Protocol, type SendPayload } from "../../../shared/networking/protocol";
+import { Seen } from "../world/replication";
+import type { World } from "../world/world";
 
 type SocketEvents<C extends Contract> = {
 	disconnection: [code: number, reason: string, manual: boolean];
 	message: [event: InboundEvent<C>, data: MessagePayload<C, InboundEvent<C>>];
 };
 
+/**
+ * Whatever a game keeps on a connection, like the player it drives. Empty here: a game adds its own
+ * fields, all optional, since a new connection has none of them yet.
+ *
+ *   declare module "phoenix.engine/server" {
+ *   	interface SocketData { player?: Player }
+ *   }
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: a game merges its own fields into it.
+export interface SocketData {}
+
 /** What Bun carries on the raw websocket. Set during the upgrade, before `open` runs. */
 export type SocketUserData = {
-	/** Assigned in `open`, so it is absent for exactly as long as the handshake takes. */
 	socket?: Socket<any>;
 	readonly ip: string;
 	readonly sessionID: string;
-	/** The session id this connection reclaimed, when the client presented a live one. */
 	readonly reconnectionToken?: string;
 };
 
@@ -31,11 +42,15 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 	public readonly ip: string;
 	public readonly sessionID: string;
 	public readonly reconnectionToken?: string;
-	/** `performance.now()` of the last frame received. The idle sweep reads this. */
 	public lastMessage: number;
 	/** Frames received since the last `resetRates()`, in total... */
 	public messages: number;
 	public readonly rates: CounterMap<number>;
+	public readonly room?: World<any, any, C>;
+	/** Which entities this socket's client holds. The room's frames keep it; it empties when the socket leaves the room. */
+	public readonly seen: Seen;
+	/** The game's own record for this connection. See SocketData. */
+	public readonly data: SocketData;
 	private readonly protocol: Protocol<C>;
 	private readonly socket: ServerWebSocket<SocketUserData>;
 	private manuallyDisconnected: boolean;
@@ -53,6 +68,8 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 		this.messages = 0;
 		this.rates = new CounterMap();
 		this.manuallyDisconnected = false;
+		this.seen = new Seen();
+		this.data = {};
 	}
 
 	/**

@@ -7,9 +7,5 @@
 	"scripts": {
 		"build": "tsc",
 		"types:check": "tsc --noEmit"
-	},
-	"dependencies": {
-		"earcut": "^3.2.3",
-		"@types/earcut": "^3.0.0"
 	}
 }

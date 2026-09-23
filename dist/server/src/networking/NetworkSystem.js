@@ -3,7 +3,7 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";
 import { error, log, warn } from "../../../shared/utils/logger";
 import { Protocol } from "../../../shared/networking/protocol";
-import { SESSION_ROUTE, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, WS_ROUTE } from "../../../shared/networking/session";
+import { SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL } from "../../../shared/networking/session";
 import { Socket } from "./socket";
 import { Interval } from "../../../shared/utils/timers/timer";
 import { BufferReader } from "@nasselk/binarypack";
@@ -16,12 +16,12 @@ export const DEFAULT_NETWORK_SETTINGS = {
         maxRequestRate: 30,
     },
     ws: {
-        maxSessions: 1000,
-        maxSessionsPerIP: 8,
+        maxSessions: Infinity,
+        maxSessionsPerIP: Infinity,
         maxMessageSize: 1024 * 16,
         maxBackPressure: 1024 * 1024,
-        maxMessageRate: 200,
-        idleTimeout: 30,
+        maxMessageRate: Infinity,
+        idleTimeout: 0,
     },
 };
 export class NetworkSystem extends EventEmitter {
@@ -76,7 +76,7 @@ export class NetworkSystem extends EventEmitter {
         this.sweep = new Interval(() => {
             const now = performance.now();
             for (const socket of this.sockets.values()) {
-                if (now - socket.lastMessage >= idleTimeout) {
+                if (idleTimeout > 0 && now - socket.lastMessage >= idleTimeout) {
                     socket.disconnect(false, "Idle timeout", 1001);
                 }
                 else {
@@ -113,10 +113,10 @@ export class NetworkSystem extends EventEmitter {
                 tls: certs,
                 maxRequestBodySize: settings.http.maxRequestBodySize,
                 routes: {
-                    [WS_ROUTE]: {
+                    ["/ws"]: {
                         GET: (req, server) => this.handleUpgrade(req, server),
                     },
-                    [SESSION_ROUTE]: {
+                    ["/session/init"]: {
                         OPTIONS: this.preflight(),
                         POST: this.middleware((state) => this.initSession(state)),
                     },
@@ -175,6 +175,7 @@ export class NetworkSystem extends EventEmitter {
                         this.sessions.set(socket.sessionID, Date.now() + SESSION_TTL);
                         socket.disconnection(code, reason);
                         this.emit("disconnection", socket, code, reason);
+                        socket.room?.leave(socket);
                     },
                 },
                 error: (err) => {

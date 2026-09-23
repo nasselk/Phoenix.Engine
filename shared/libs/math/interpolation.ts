@@ -1,6 +1,6 @@
-import { extractRGBA } from "../../utils/color.js";
+import { extractRGBA } from "../../utils/color";
 
-import { normalizeAnglePI } from "./angle.js";
+import { normalizeAnglePI } from "./angle";
 
 const view = (globalThis as any).document; // Check if running in a browser environment
 

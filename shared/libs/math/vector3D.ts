@@ -1,4 +1,4 @@
-import { clamp } from "./utils.js";
+import { clamp } from "./utils";
 
 /**
  * Represents a simple 3D point or vector with x, y and z coordinates.

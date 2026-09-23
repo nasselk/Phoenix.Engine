@@ -1,5 +1,7 @@
-import { Howl, Howler, type HowlOptions } from "howler";
+import { Howler } from "howler";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
+import type { AssetManager } from "../assets/AssetManager";
+import { waitForUserGesture } from "../utils/gesture";
 
 type AudioSystemEvents = {
 	init: [];
@@ -23,17 +25,21 @@ export interface AudioOptions {
 	muteInitial: boolean;
 }
 
+/**
+ * Plays sounds, and holds the volume, the mute and the audio context. Sounds are loaded through
+ * the asset manager, as the `sound` kind, and played by the id they were loaded under:
+ *
+ *   await engine.assets.load("sound", "jump", "/sounds/jump.webm");
+ *   engine.audio.play("jump");
+ */
 export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 	/** The current state of the rendering system. */
 	public initialized: AudioSystemState;
 
-	private readonly sounds: Map<string, Howl>;
-
-	public constructor() {
+	public constructor(private readonly assets: AssetManager) {
 		super();
 
 		this.initialized = AudioSystemState.NULL;
-		this.sounds = new Map<string, Howl>();
 	}
 
 	public async init(settings: Partial<AudioOptions> = {}): Promise<void> {
@@ -47,48 +53,10 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 		if (settings.globalVolume !== undefined) this.volume = settings.globalVolume;
 		if (settings.muteInitial !== undefined) this.muted = settings.muteInitial;
 
-		await Howler.ctx?.resume();
+		void waitForUserGesture().then(() => Howler.ctx?.resume());
 
 		this.initialized = AudioSystemState.INITIALIZED;
 		this.emit("init");
-	}
-
-	/**
-	 * Registers and loads a new sound into the audio system.
-	 *
-	 * @param id A unique string identifier for the sound.
-	 * @param src The URL(s) to the audio file. Can be a string or an array of strings (for fallback formats).
-	 * @param options Additional Howler options (e.g., loop, sprite, specific volume).
-	 * @returns The created Howl instance.
-	 */
-	public load(id: string, src: string | string[], options: Partial<Omit<HowlOptions, "src">> = {}): Howl {
-		if (this.sounds.has(id)) {
-			console.warn(`AudioSystem: Sound with id '${id}' is already loaded. Returning existing Howl.`);
-
-			return this.sounds.get(id)!;
-		}
-
-		const howl = new Howl({
-			src: Array.isArray(src) ? src : [src],
-			...options,
-		});
-
-		this.sounds.set(id, howl);
-
-		return howl;
-	}
-
-	/**
-	 * Unloads a sound from memory and removes it from the audio system.
-	 *
-	 * @param id The unique identifier of the sound to remove.
-	 */
-	public remove(id: string): void {
-		const sound = this.sounds.get(id);
-		if (sound) {
-			sound.unload();
-			this.sounds.delete(id);
-		}
 	}
 
 	/**
@@ -102,9 +70,9 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 	public play(id: string, spriteId?: string): number | undefined {
 		this.assertInitialized();
 
-		const sound = this.sounds.get(id);
+		const sound = this.assets.get("sound", id);
 		if (!sound) {
-			console.error(`AudioSystem: Cannot play. Sound '${id}' not found.`);
+			console.error(`AudioSystem: Cannot play. Sound '${id}' is not loaded.`);
 			return undefined;
 		}
 
@@ -124,7 +92,7 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 		this.assertInitialized();
 
 		if (id) {
-			const sound = this.sounds.get(id);
+			const sound = this.assets.get("sound", id);
 
 			if (sound) {
 				sound.pause(playbackId);
@@ -132,7 +100,7 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 			}
 		} else {
 			// Pause globally if no ID is passed
-			for (const [soundId, howl] of this.sounds.entries()) {
+			for (const [soundId, howl] of this.assets.cache.entries("sound")) {
 				howl.pause();
 				this.emit("pause", soundId, -1);
 			}
@@ -149,7 +117,7 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 		this.assertInitialized();
 
 		if (id) {
-			const sound = this.sounds.get(id);
+			const sound = this.assets.get("sound", id);
 
 			if (sound) {
 				sound.stop(playbackId);
@@ -170,10 +138,8 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 			throw new Error("AudioSystem is already destroyed");
 		}
 
-		// Stop and unload all sounds
-		for (const howl of this.sounds.values()) {
-			howl.unload();
-		}
+		// The sounds themselves are the asset cache's, and are unloaded with it.
+		Howler.stop();
 
 		await Howler.ctx?.suspend();
 

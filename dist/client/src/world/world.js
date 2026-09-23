@@ -1,57 +1,58 @@
-import { warn } from "../../../shared/utils/logger";
+import { Group } from "three";
 import { World as BaseWorld } from "../../../shared/world/world";
 export class World extends BaseWorld {
-    constructor(options = {}) {
-        super(options);
-        this.group = options.group;
+    constructor() {
+        super(...arguments);
+        this.group = new Group();
+    }
+    allocateID() {
+        return this.ids.allocateNegative();
     }
     spawn(kind, ...args) {
-        const Kind = this.requireRegistry("spawn").class(kind);
+        const Kind = this.registry.class(kind);
         const options = (args[0] ?? {});
-        const entity = new Kind(this, this.context, this.group, options);
+        const entity = new Kind(this, this.context, options);
         return this.insert(kind, entity, options.id);
     }
     sync(reader) {
-        const registry = this.requireRegistry("sync");
+        const registry = this.registry;
+        const despawns = reader.readUint16();
+        for (let i = 0; i < despawns; i++) {
+            this.get(reader.readUint16())?.destroy();
+        }
         const spawns = reader.readUint16();
         for (let i = 0; i < spawns; i++) {
             const code = reader.readUint8();
             const id = reader.readUint16();
-            const length = reader.readUint16();
-            const end = reader.offset + length;
-            const kind = registry.name(code);
+            const kind = registry.kind(code);
             if (kind === undefined) {
-                warn("World", `Ignoring a spawn of unknown entity kind ${code}; this build knows [ ${registry.describe()} ]`);
+                throw new Error(`Entity ${id} spawned as unknown kind ${code}, so the rest of the frame cannot be read; this build knows [ ${registry.describe()} ]`);
+            }
+            const existing = this.get(id);
+            if (existing !== undefined && existing.kind === kind) {
+                existing.deserialize(reader);
             }
             else {
-                const existing = this.entities.get(id);
-                if (existing !== undefined && existing.kind === kind) {
-                    existing.deserialize(reader);
-                }
-                else {
-                    if (existing !== undefined) {
-                        existing.destroy();
-                    }
-                    const entity = new (registry.class(kind))(this, this.context, this.group, { id });
-                    entity.deserialize(reader);
-                    this.insert(kind, entity, id);
-                }
+                existing?.destroy();
+                const entity = new (registry.class(kind))(this, this.context, { id });
+                entity.deserialize(reader);
+                this.insert(kind, entity, id);
             }
-            reader.offset = end;
             reader.resetBits();
         }
         const updates = reader.readUint16();
         for (let i = 0; i < updates; i++) {
             const id = reader.readUint16();
-            const length = reader.readUint16();
-            const end = reader.offset + length;
-            this.entities.get(id)?.deserializeUpdate(reader);
-            reader.offset = end;
+            const entity = this.get(id);
+            if (entity === undefined) {
+                throw new Error(`Update for entity ${id}, which this world does not have, so the rest of the frame cannot be read`);
+            }
+            entity.deserializeUpdate(reader);
             reader.resetBits();
         }
-        const despawns = reader.readUint16();
-        for (let i = 0; i < despawns; i++) {
-            this.entities.get(reader.readUint16())?.destroy();
-        }
+    }
+    destroy() {
+        super.destroy();
+        this.group.removeFromParent();
     }
 }

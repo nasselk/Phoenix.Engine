@@ -1,4 +1,4 @@
-export const MAX_ENTITY_KINDS = 256;
+export const MAX_ENTITY_KINDS = 2 ** 8;
 export class EntityRegistry {
     constructor(definitions) {
         const names = Object.keys(definitions).sort();
@@ -30,7 +30,7 @@ export class EntityRegistry {
         }
         return code;
     }
-    name(code) {
+    kind(code) {
         return this.names[code];
     }
     class(name) {
@@ -50,6 +50,9 @@ export class EntityRegistry {
             constructor = Object.getPrototypeOf(constructor);
         }
         return undefined;
+    }
+    matches(entity, kind) {
+        return typeof kind === "string" ? entity.kind === kind : entity instanceof kind;
     }
     describe() {
         return this.names.map((name, code) => `${code}: ${name}`).join(", ");

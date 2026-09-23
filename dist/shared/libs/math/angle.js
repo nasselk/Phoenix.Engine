@@ -1,20 +1,17 @@
-import { randomFloat } from "./random.js";
+import { randomFloat } from "./random";
+import { wrap } from "./utils";
 export function randomAngle(min = 0, max = 2 * Math.PI, random = Math.random) {
     return randomFloat(min, max, random);
 }
-export function getAngleDistance(a, b) {
+export function angleDistance(a, b) {
     const distance = Math.abs(normalizeAngle2PI(a - b));
     return Math.min(distance, 2 * Math.PI - distance);
 }
 export function normalizeAnglePI(angle) {
-    const PI = Math.PI;
-    const twoPI = 2 * PI;
-    angle = ((((angle + PI) % twoPI) + twoPI) % twoPI) - PI;
-    return angle;
+    return wrap(angle, -Math.PI, Math.PI);
 }
 export function normalizeAngle2PI(angle) {
-    const twoPI = 2 * Math.PI;
-    return ((angle % twoPI) + twoPI) % twoPI;
+    return wrap(angle, 0, 2 * Math.PI);
 }
 export function signedAngleDistance(angle1, angle2) {
     const twoPI = 2 * Math.PI;
@@ -35,9 +32,9 @@ export function radiansToDegrees(radians) {
 export function closestAngle(reference, ...angles) {
     reference = normalizeAngle2PI(reference);
     let closest = angles[0];
-    let distance = getAngleDistance(reference, closest);
+    let distance = angleDistance(reference, closest);
     for (let i = 1; i < angles.length; i++) {
-        const newDistance = getAngleDistance(reference, angles[i]);
+        const newDistance = angleDistance(reference, angles[i]);
         if (newDistance < distance) {
             closest = angles[i];
             distance = newDistance;

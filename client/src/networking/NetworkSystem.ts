@@ -1,13 +1,13 @@
-import { error, log } from "../../../shared/utils/logger";
+import { error, log, warn } from "../../../shared/utils/logger";
 
-import { Timeout } from "../../../shared/utils/timers/timer";
+import { Interval, Timeout } from "../../../shared/utils/timers/timer";
 
 import { wait } from "../../../shared/utils/timers/wait";
 
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { post } from "../../../shared/utils/fetch";
 import { Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
-import { SESSION_ROUTE, SESSION_SUBPROTOCOL, WS_ROUTE, type SessionResponse } from "../../../shared/networking/session";
+import { ServerRoutes, SESSION_SUBPROTOCOL, type SessionResponse } from "../../../shared/networking/session";
 import { BufferReader, type Buffers } from "@nasselk/binarypack";
 
 type NetworkEvents = {
@@ -15,6 +15,30 @@ type NetworkEvents = {
 	disconnection: [code: number, reason: string, manual: boolean];
 	reconnection: [];
 	message: [event: string, data: BufferReader];
+	stats: [stats: NetworkStats];
+};
+
+export type NetworkChannelStats = {
+	bps: number;
+	mps: number;
+};
+
+export type NetworkStats = {
+	readonly in: NetworkChannelStats;
+	readonly out: NetworkChannelStats;
+	latency: number;
+};
+
+type ChannelState = {
+	bytes: number;
+	messages: number;
+};
+
+type NetworkStatsState = {
+	readonly in: ChannelState;
+	readonly out: ChannelState;
+	latency: number;
+	since: number;
 };
 
 /**
@@ -27,12 +51,8 @@ type NetworkEvents = {
 export type NetworkSystemOptions<In extends readonly string[], Out extends readonly string[], InSchemas, OutSchemas> = {
 	readonly in?: { readonly events: In; readonly schema?: InSchemas };
 	readonly out?: { readonly events: Out; readonly schema?: OutSchemas };
-	/** Base URL of the server, e.g. `http://localhost:3000`. Given here, the system connects as soon as it is constructed. */
-	readonly url?: URL | string;
 	readonly simulation?: {
-		/** Artificial round-trip latency in ms, applied as half on send and half on receive. Develop against something worse than localhost. */
 		readonly latency?: number;
-		/** Artificial packet loss: the chance in `[0, 1]` that any one message is silently dropped. */
 		readonly loss?: number;
 	};
 };
@@ -61,8 +81,14 @@ export class NetworkSystem<
 	private sessionID?: string | null;
 	private manuallyDisconnected: boolean;
 	private reconnecting: boolean;
-	private readonly latency: number;
-	private readonly loss: number;
+	private readonly simulation: {
+		latency: number;
+		loss: number;
+	};
+
+	private readonly statsTimer: Interval;
+	private readonly state: NetworkStatsState;
+	public readonly stats: NetworkStats;
 
 	public constructor(options?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>) {
 		super();
@@ -71,20 +97,27 @@ export class NetworkSystem<
 		this.messages = [];
 		this.manuallyDisconnected = false;
 		this.reconnecting = false;
-		this.latency = options?.simulation?.latency ?? 0;
-		this.loss = options?.simulation?.loss ?? 0;
+		this.simulation = {
+			latency: options?.simulation?.latency ?? 0,
+			loss: options?.simulation?.loss ?? 0,
+		};
 
-		if (options?.url) {
-			this.connectDetached(options.url);
-		}
-	}
+		this.stats = {
+			in: { bps: 0, mps: 0 },
+			out: { bps: 0, mps: 0 },
+			latency: 10,
+		};
 
-	/** `connect()` is called from places that cannot await it — surface the failure rather than
-	 *  leaving an unhandled rejection behind. */
-	private connectDetached(url: URL | string): void {
-		this.connect(url).catch((err) => {
-			error("Network", "Connection failed:", err instanceof Error ? err.message : err);
-		});
+		this.state = {
+			in: { bytes: 0, messages: 0 },
+			out: { bytes: 0, messages: 0 },
+			latency: 0,
+			since: 0,
+		};
+
+		this.statsTimer = new Interval(() => this.computeStats(), 1000, false);
+
+		this.statsTimer.pause();
 	}
 
 	/**
@@ -101,10 +134,18 @@ export class NetworkSystem<
 		// A trailing slash would double up against the route, which starts with one.
 		const baseURL = (this.baseURL = (url instanceof URL ? url.toString() : url).replace(/\/+$/, ""));
 
-		const response = await post<SessionResponse>(baseURL, SESSION_ROUTE, {
-			reconnectionToken: this.sessionID ?? null,
-			...data,
-		});
+		const response = await post<SessionResponse>(
+			baseURL,
+			ServerRoutes.SESSION,
+			{
+				reconnectionToken: this.sessionID ?? null,
+				...data,
+			},
+			{
+				timeout: 5000,
+				tries: 5,
+			},
+		);
 
 		if (!response.success) {
 			throw new Error(`Failed to initialize session: ${response.error?.message ?? "unknown error"}`);
@@ -116,7 +157,7 @@ export class NetworkSystem<
 		this.reconnecting = session.allowReconnection;
 
 		// http -> ws, https -> wss. Anchored so a host containing "http" is left alone.
-		return this.setupWebSocket(baseURL.replace(/^http/, "ws") + WS_ROUTE, session.ticket);
+		return this.setupWebSocket(baseURL.replace(/^http/, "ws") + ServerRoutes.WS, session.ticket);
 	}
 
 	/**
@@ -205,12 +246,15 @@ export class NetworkSystem<
 
 		const buffer = this.protocol.encode(event, data);
 
-		if (this.loss > 0 && Math.random() <= this.loss) {
+		this.state.out.bytes += buffer.byteLength;
+		this.state.out.messages++;
+
+		if (this.simulation.loss > 0 && Math.random() <= this.simulation.loss) {
 			return this;
 		}
 
-		if (this.latency > 0) {
-			await wait(this.latency / 2);
+		if (this.simulation.latency > 0) {
+			await wait(this.simulation.latency / 2);
 		}
 
 		// The socket can close while the simulated latency is being waited out.
@@ -222,12 +266,15 @@ export class NetworkSystem<
 	}
 
 	private async handle(data: Buffers): Promise<this> {
-		if (this.loss > 0 && Math.random() <= this.loss) {
+		this.state.in.bytes += data.byteLength;
+		this.state.in.messages++;
+
+		if (this.simulation.loss > 0 && Math.random() <= this.simulation.loss) {
 			return this;
 		}
 
-		if (this.latency > 0) {
-			await wait(this.latency / 2);
+		if (this.simulation.latency > 0) {
+			await wait(this.simulation.latency / 2);
 		}
 
 		const reader = new BufferReader(data);
@@ -283,7 +330,10 @@ export class NetworkSystem<
 	}
 
 	private onConnect(): void {
-		log("Network", "Connected to", this.socket?.url);
+		log("Network", "Connected to", this.baseURL + ServerRoutes.WS);
+
+		this.resetStats();
+		this.statsTimer.resume();
 
 		this.emit("connection");
 
@@ -296,15 +346,20 @@ export class NetworkSystem<
 
 	private onDisconnect(code: number, reason: string): void {
 		this.reconnectTimeout?.clear();
+		this.statsTimer.pause();
+
+		this.emit("disconnection", code, reason, this.manuallyDisconnected);
 
 		// 1006 is an abnormal close: no close frame, so the server never decided to drop us.
-		if (code === 1006 && !this.manuallyDisconnected && this.baseURL) {
+		if (!this.manuallyDisconnected && this.baseURL) {
 			const baseURL = this.baseURL;
 
-			error("Network", "Connection lost, trying to reconnect");
+			error("Network", "Connection lost, trying to reconnect", code, reason);
 
 			this.reconnectTimeout = new Timeout(() => {
-				this.connectDetached(baseURL);
+				this.connect(baseURL).catch((err) => {
+					warn("Network", "Reconnection failed:", err instanceof Error ? err.message : err);
+				});
 			}, 500);
 		} else {
 			this.sessionID = null;
@@ -312,12 +367,39 @@ export class NetworkSystem<
 			log("Network", "Disconnected from server with code", code, reason);
 		}
 
-		this.emit("disconnection", code, reason, this.manuallyDisconnected);
-
 		this.manuallyDisconnected = false;
 	}
 
+	private computeStats(): void {
+		const state = this.state;
+		const stats = this.stats;
+		const now = performance.now();
+		const elapsed = now - state.since;
+		const perSecond = elapsed > 0 ? 1000 / elapsed : 0;
+
+		stats.in.bps = state.in.bytes * perSecond;
+		stats.in.mps = state.in.messages * perSecond;
+
+		stats.out.bps = state.out.bytes * perSecond;
+		stats.out.mps = state.out.messages * perSecond;
+
+		this.resetStats(now);
+
+		this.emit("stats", stats);
+	}
+
+	private resetStats(now: number = performance.now()): void {
+		const state = this.state;
+
+		state.in.bytes = 0;
+		state.in.messages = 0;
+		state.out.bytes = 0;
+		state.out.messages = 0;
+		state.since = now;
+	}
+
 	public destroy(): void {
+		this.statsTimer.clear();
 		this.disconnect();
 		this.reconnectTimeout?.clear();
 
@@ -331,5 +413,50 @@ export class NetworkSystem<
 	 */
 	public get readyState(): NetworkState {
 		return this.socket?.readyState ?? NetworkState.CLOSED;
+	}
+
+	/**
+	 * Returns the number of bytes currently buffered in the WebSocket connection.
+	 *
+	 * @see https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/bufferedAmount
+	 */
+	public get buffered(): number {
+		return this.socket?.bufferedAmount ?? 0;
+	}
+
+	/**
+	 * Returns the simulated latency in milliseconds. The latency is applied as half on send and half on receive.
+	 */
+	public get latency(): number {
+		return this.simulation.latency;
+	}
+
+	/**
+	 * Sets the simulated latency in milliseconds. The latency is applied as half on send and half on receive.
+	 */
+	public set latency(latency: number) {
+		if (latency < 0) {
+			throw new Error("Latency must be a non-negative number");
+		}
+
+		this.simulation.latency = latency;
+	}
+
+	/**
+	 * Returns the simulated packet loss as a number in `[0, 1]`. Each message has that chance of being silently dropped.
+	 */
+	public get loss(): number {
+		return this.simulation.loss;
+	}
+
+	/**
+	 * Sets the simulated packet loss as a number in `[0, 1]`. Each message has that chance of being silently dropped.
+	 */
+	public set loss(loss: number) {
+		if (loss < 0 || loss > 1) {
+			throw new Error("Loss must be a number in [0, 1]");
+		}
+
+		this.simulation.loss = loss;
 	}
 }

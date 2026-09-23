@@ -1,4 +1,3 @@
-import { Vector } from "./vector.js";
 export const EPSILON = 1e-10;
 export function clamp(value, minimum, maximum) {
     if (minimum > maximum) {
@@ -32,11 +31,6 @@ export function normalizeArray(array) {
         array[i] /= total;
     }
     return array;
-}
-export function getBoundingBox(width, height, angle = 0) {
-    const cos = Math.abs(Math.cos(angle));
-    const sin = Math.abs(Math.sin(angle));
-    return new Vector(width * cos + height * sin, width * sin + height * cos);
 }
 export function distance(x1, y1, x2, y2) {
     const dx = x2 - x1;

@@ -1,4 +1,3 @@
-import { Vector } from "./vector.js";
 export function randomBoolean(w1 = 0.5, w2 = 0.5) {
     return weightedRandom(w1, w2) === 0;
 }
@@ -37,17 +36,4 @@ export function weightedRandom(...weights) {
         }
     }
     return weights.length - 1;
-}
-export function randomCirclePoint(position, radius, innerRadius = 0, random = Math.random) {
-    const angle = random() * 2 * Math.PI;
-    const distance = innerRadius + Math.sqrt(random()) * (radius - innerRadius);
-    return new Vector(angle, distance, true).add(position);
-}
-export function randomTrianglePoint(p1, p2, p3, random = Math.random) {
-    const random1 = random();
-    const random2 = random();
-    const sqrt = Math.sqrt(random1);
-    const x = (1 - sqrt) * p1.x + sqrt * (1 - random2) * p2.x + sqrt * random2 * p3.x;
-    const y = (1 - sqrt) * p1.y + sqrt * (1 - random2) * p2.y + sqrt * random2 * p3.y;
-    return new Vector(x, y);
 }

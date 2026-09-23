@@ -1,10 +1,11 @@
-import { Howl, Howler } from "howler";
+import { Howler } from "howler";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
+import { waitForUserGesture } from "../utils/gesture";
 export class AudioSystem extends EventEmitter {
-    constructor() {
+    constructor(assets) {
         super();
+        this.assets = assets;
         this.initialized = 0;
-        this.sounds = new Map();
     }
     async init(settings = {}) {
         if (this.initialized !== 0) {
@@ -15,34 +16,15 @@ export class AudioSystem extends EventEmitter {
             this.volume = settings.globalVolume;
         if (settings.muteInitial !== undefined)
             this.muted = settings.muteInitial;
-        await Howler.ctx?.resume();
+        void waitForUserGesture().then(() => Howler.ctx?.resume());
         this.initialized = 2;
         this.emit("init");
     }
-    load(id, src, options = {}) {
-        if (this.sounds.has(id)) {
-            console.warn(`AudioSystem: Sound with id '${id}' is already loaded. Returning existing Howl.`);
-            return this.sounds.get(id);
-        }
-        const howl = new Howl({
-            src: Array.isArray(src) ? src : [src],
-            ...options,
-        });
-        this.sounds.set(id, howl);
-        return howl;
-    }
-    remove(id) {
-        const sound = this.sounds.get(id);
-        if (sound) {
-            sound.unload();
-            this.sounds.delete(id);
-        }
-    }
     play(id, spriteId) {
         this.assertInitialized();
-        const sound = this.sounds.get(id);
+        const sound = this.assets.get("sound", id);
         if (!sound) {
-            console.error(`AudioSystem: Cannot play. Sound '${id}' not found.`);
+            console.error(`AudioSystem: Cannot play. Sound '${id}' is not loaded.`);
             return undefined;
         }
         const playbackId = sound.play(spriteId);
@@ -52,14 +34,14 @@ export class AudioSystem extends EventEmitter {
     pause(id, playbackId) {
         this.assertInitialized();
         if (id) {
-            const sound = this.sounds.get(id);
+            const sound = this.assets.get("sound", id);
             if (sound) {
                 sound.pause(playbackId);
                 this.emit("pause", id, playbackId ?? -1);
             }
         }
         else {
-            for (const [soundId, howl] of this.sounds.entries()) {
+            for (const [soundId, howl] of this.assets.cache.entries("sound")) {
                 howl.pause();
                 this.emit("pause", soundId, -1);
             }
@@ -68,7 +50,7 @@ export class AudioSystem extends EventEmitter {
     stop(id, playbackId) {
         this.assertInitialized();
         if (id) {
-            const sound = this.sounds.get(id);
+            const sound = this.assets.get("sound", id);
             if (sound) {
                 sound.stop(playbackId);
                 this.emit("stop", id, playbackId ?? -1);
@@ -85,9 +67,7 @@ export class AudioSystem extends EventEmitter {
         if (this.initialized === 3) {
             throw new Error("AudioSystem is already destroyed");
         }
-        for (const howl of this.sounds.values()) {
-            howl.unload();
-        }
+        Howler.stop();
         await Howler.ctx?.suspend();
         this.initialized = 3;
         this.emit("destroy");

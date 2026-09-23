@@ -1,5 +1,5 @@
-import { extractRGBA } from "../../utils/color.js";
-import { normalizeAnglePI } from "./angle.js";
+import { extractRGBA } from "../../utils/color";
+import { normalizeAnglePI } from "./angle";
 const view = globalThis.document;
 const curves = [];
 curves[0] = (f) => f;

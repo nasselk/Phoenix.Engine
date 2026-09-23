@@ -11,7 +11,11 @@ const validationPatterns = [
 	/[\x00-\x1F\x7F]/, // Control characters
 ];
 
-export default function validateText(text: string, length: number | [number, number] = Infinity): boolean {
+export function normalizeText(text: string): string {
+	return text.replace(/\s+/g, " ").trim();
+}
+
+export function validateText(text: string, length: number | [number, number] = Infinity): boolean {
 	let min = 0;
 	let max = 0;
 

@@ -1,5 +1,5 @@
-import { Howl, type HowlOptions } from "howler";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
+import type { AssetManager } from "../assets/AssetManager";
 type AudioSystemEvents = {
     init: [];
     play: [id: string, soundId: number];
@@ -20,12 +20,10 @@ export interface AudioOptions {
     muteInitial: boolean;
 }
 export declare class AudioSystem extends EventEmitter<AudioSystemEvents> {
+    private readonly assets;
     initialized: AudioSystemState;
-    private readonly sounds;
-    constructor();
+    constructor(assets: AssetManager);
     init(settings?: Partial<AudioOptions>): Promise<void>;
-    load(id: string, src: string | string[], options?: Partial<Omit<HowlOptions, "src">>): Howl;
-    remove(id: string): void;
     play(id: string, spriteId?: string): number | undefined;
     pause(id?: string, playbackId?: number): void;
     stop(id?: string, playbackId?: number): void;

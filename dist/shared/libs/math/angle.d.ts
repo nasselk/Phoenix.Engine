@@ -1,5 +1,5 @@
 export declare function randomAngle(min?: number, max?: number, random?: () => number): number;
-export declare function getAngleDistance(a: number, b: number): number;
+export declare function angleDistance(a: number, b: number): number;
 export declare function normalizeAnglePI(angle: number): number;
 export declare function normalizeAngle2PI(angle: number): number;
 export declare function signedAngleDistance(angle1: number, angle2: number): number;

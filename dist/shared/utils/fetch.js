@@ -1,6 +1,6 @@
-import { Timeout } from "./timers/timer.js";
-import { wait } from "./timers/wait.js";
-import { error } from "./logger.js";
+import { Timeout } from "./timers/timer";
+import { wait } from "./timers/wait";
+import { error } from "./logger";
 const RETRIABLE_STATUS = new Set([408, 425, 429]);
 function isRetriable(status) {
     return status >= 500 || RETRIABLE_STATUS.has(status);

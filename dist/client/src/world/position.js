@@ -1,9 +1,10 @@
 import { Interpolator } from "../../../shared/libs/math/interpolation";
 import { Vector3 } from "../../../shared/libs/math/vector3D";
+import { Group } from "three";
 import { Entity } from "./entity";
 export class PositionEntity extends Entity {
-    constructor(world, context, group, options = {}) {
-        super(world, context, group, options);
+    constructor(world, context, options = {}) {
+        super(world, context, options);
         this.positionSmoothing = true;
         this.smoothing = PositionEntity.DEFAULT_SMOOTHING;
         this.rotationInterpolation = true;
@@ -12,6 +13,17 @@ export class PositionEntity extends Entity {
         this.targetPosition = this.position.clone();
         this.rotation = new Vector3(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
         this.targetRotation = this.rotation.clone();
+        this.group = new Group();
+        this.group.rotation.order = "YXZ";
+        this.group.userData.entity = this;
+        this.syncGroup();
+    }
+    onSpawn() {
+        this.syncGroup();
+        this.world.group.add(this.group);
+    }
+    onDestroy() {
+        this.group.removeFromParent();
     }
     update(deltaTime) {
         const { FRAMES_PER_SECOND, SNAP_DISTANCE, SNAP_ANGLE } = PositionEntity;
@@ -30,6 +42,12 @@ export class PositionEntity extends Entity {
         else {
             this.rotation.set(this.targetRotation);
         }
+        this.syncGroup();
+    }
+    syncGroup() {
+        const { position, rotation, group } = this;
+        group.position.set(position.x, position.y, position.z);
+        group.rotation.set(rotation.x, rotation.y, rotation.z);
     }
     deserialize(reader) {
         const x = reader.readFloat32();

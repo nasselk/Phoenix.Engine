@@ -6,7 +6,10 @@ const profanityPatterns = profanities.map((word) => {
 const validationPatterns = [
     /[\x00-\x1F\x7F]/,
 ];
-export default function validateText(text, length = Infinity) {
+export function normalizeText(text) {
+    return text.replace(/\s+/g, " ").trim();
+}
+export function validateText(text, length = Infinity) {
     let min = 0;
     let max = 0;
     if (Array.isArray(length)) {

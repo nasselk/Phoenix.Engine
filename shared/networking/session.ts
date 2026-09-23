@@ -8,11 +8,12 @@
  */
 export const SESSION_SUBPROTOCOL = "mope.session";
 
-/** HTTP route that mints a session ticket. POST, JSON in, JSON out. */
-export const SESSION_ROUTE = "/session/init";
-
-/** WebSocket route the ticket is redeemed against. */
-export const WS_ROUTE = "/ws";
+export const enum ServerRoutes {
+	/** HTTP route that mints a session ticket. POST, JSON in, JSON out. */
+	SESSION = "/session/init",
+	/** WebSocket route the ticket is redeemed against. */
+	WS = "/ws",
+}
 
 /** How long a ticket stays redeemable: long enough to open a socket, short enough to be worthless if it leaks. */
 export const TICKET_TTL = 5_000;
@@ -20,14 +21,14 @@ export const TICKET_TTL = 5_000;
 /** How long a disconnected session id stays claimable by a client presenting it as `reconnectionToken`. */
 export const SESSION_TTL = 30_000;
 
-/** Body of a POST to {@link SESSION_ROUTE}. Anything else a game sends rides alongside these. */
+/** Body of a POST to {@link ServerRoutes.SESSION}. Anything else a game sends rides alongside these. */
 export type SessionRequest = {
 	/** The session id from a previous handshake, to keep the same identity across a reconnect. */
 	reconnectionToken?: string | null;
 	[key: string]: unknown;
 };
 
-/** Answer to a POST to {@link SESSION_ROUTE}. */
+/** Answer to a POST to {@link ServerRoutes.SESSION}. */
 export type SessionResponse = {
 	/** One-time credential for the upgrade. Offered as the second subprotocol, never logged. */
 	ticket: string;

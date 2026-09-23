@@ -1,4 +1,4 @@
-import { clamp } from "./utils.js";
+import { clamp } from "./utils";
 class Vector3D {
     constructor(a = 0, b = a, c = b, polar = false) {
         if (polar) {

@@ -14,13 +14,19 @@
 			"types": "./dist/client/src/index.d.ts",
 			"import": "./dist/client/src/index.js"
 		},
+		"./text": {
+			"types": "./dist/client/src/text/index.d.ts",
+			"import": "./dist/client/src/text/index.js"
+		},
 		"./server": {
 			"types": "./dist/server/src/index.d.ts",
 			"import": "./dist/server/src/index.js"
 		},
+		"./native.css": "./client/UI/native.css",
 		"./ui/*.svelte": {
-			"svelte": "./client/UI/components/*.svelte",
-			"default": "./client/UI/components/*.svelte"
+			"types": "./client/UI/components/*/*.svelte.d.ts",
+			"svelte": "./client/UI/components/*/*.svelte",
+			"default": "./client/UI/components/*/*.svelte"
 		}
 	},
 	"workspaces": [
@@ -45,7 +51,8 @@
 		"build": "bun run build:client && bun run build:server",
 		"build:client": "cd client && bun run build",
 		"build:server": "cd server && bun run build",
-		"types:check": "cd client && bun run types:check && cd ../server && bun run types:check",
+		"test": "bun test tests",
+		"types:check": "cd client && bun run types:check && cd ../server && bun run types:check && cd .. && tsc -p tests",
 		"format": "biome format --write",
 		"prepare": "husky || true"
 	},
@@ -53,29 +60,25 @@
 		"@nasselk/binarypack": "github:nasselk/BinaryPack",
 		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"howler": "^2.2.4",
-		"stats.js": "^0.17.0"
+		"stats.js": "^0.17.0",
+		"troika-three-text": "^0.53.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.3",
-		"@types/bun": "^1.4.0",
-		"@types/three": "^0.185.4",
+		"@biomejs/biome": "2.5.14",
+		"@dimforge/rapier3d-compat": "^0.20.0",
+		"@types/bun": "^1.4.2",
+		"@types/three": "^0.186.0",
 		"husky": "^9.1.7",
 		"typescript": "^7.0.2",
 		"@types/howler": "^2.2.13",
 		"@types/stats.js": "^0.17.4"
 	},
 	"peerDependencies": {
-		"pixi.js": "^8.19.0",
-		"three": "^0.185.1",
-		"svelte": "^5.56.4"
+		"@dimforge/rapier3d-compat": "^0.20.0",
+		"three": "^0.186.0",
+		"svelte": "^5.57.1"
 	},
 	"peerDependenciesMeta": {
-		"pixi.js": {
-			"optional": true
-		},
-		"three": {
-			"optional": true
-		},
 		"svelte": {
 			"optional": true
 		}

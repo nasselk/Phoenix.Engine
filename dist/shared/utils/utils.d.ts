@@ -1,4 +1,4 @@
-import { JsonObject } from "./types.js";
+import { JsonObject } from "./types";
 export declare function removeFromArray<T>(array: T[], item?: T, index?: number): T | void;
 export declare function randomValue<T>(list: T[], random?: () => number): T;
 export declare function randomValue<T>(...values: T[]): T;

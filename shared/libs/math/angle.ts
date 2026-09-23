@@ -1,4 +1,5 @@
-import { randomFloat } from "./random.js";
+import { randomFloat } from "./random";
+import { wrap } from "./utils";
 
 /**
  * Generates a random angle within a specified range.
@@ -27,11 +28,11 @@ export function randomAngle(min: number = 0, max: number = 2 * Math.PI, random =
  * @returns The shortest distance between the angles (always positive).
  *
  * @example
- * getAngleDistance(0, Math.PI / 2) // π/2 (~1.57)
- * getAngleDistance(0, Math.PI * 1.5) // π/2 (~1.57) - takes shorter path
- * getAngleDistance(0, 2 * Math.PI) // 0 - same angle
+ * angleDistance(0, Math.PI / 2) // π/2 (~1.57)
+ * angleDistance(0, Math.PI * 1.5) // π/2 (~1.57) - takes shorter path
+ * angleDistance(0, 2 * Math.PI) // 0 - same angle
  */
-export function getAngleDistance(a: number, b: number): number {
+export function angleDistance(a: number, b: number): number {
 	const distance = Math.abs(normalizeAngle2PI(a - b));
 
 	return Math.min(distance, 2 * Math.PI - distance);
@@ -52,12 +53,7 @@ export function getAngleDistance(a: number, b: number): number {
  * normalizeAnglePI(-3 * Math.PI) // -π (wraps around)
  */
 export function normalizeAnglePI(angle: number): number {
-	const PI = Math.PI;
-	const twoPI = 2 * PI;
-
-	angle = ((((angle + PI) % twoPI) + twoPI) % twoPI) - PI;
-
-	return angle;
+	return wrap(angle, -Math.PI, Math.PI);
 }
 
 /**
@@ -74,9 +70,7 @@ export function normalizeAnglePI(angle: number): number {
  * normalizeAngle2PI(-Math.PI / 2) // 3π/2 (~4.71)
  */
 export function normalizeAngle2PI(angle: number): number {
-	const twoPI = 2 * Math.PI;
-
-	return ((angle % twoPI) + twoPI) % twoPI;
+	return wrap(angle, 0, 2 * Math.PI);
 }
 
 /**
@@ -165,10 +159,10 @@ export function closestAngle(reference: number, ...angles: number[]): number {
 	reference = normalizeAngle2PI(reference);
 
 	let closest = angles[0];
-	let distance = getAngleDistance(reference, closest);
+	let distance = angleDistance(reference, closest);
 
 	for (let i = 1; i < angles.length; i++) {
-		const newDistance = getAngleDistance(reference, angles[i]);
+		const newDistance = angleDistance(reference, angles[i]);
 
 		if (newDistance < distance) {
 			closest = angles[i];

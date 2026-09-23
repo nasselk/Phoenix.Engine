@@ -1,51 +1,44 @@
 import { EventEmitter } from "../utils/EventEmitter";
+import { IDAllocator } from "../utils/IDAllocator";
 import type { Entity, EntityClass } from "./entity";
-import type { EntityDefinitions, EntityRegistry } from "./registry";
+import type { EntityDefinitions, EntityRegistry, KindInstance, KindName, KindQuery } from "./registry";
 export type WorldEvents = {
-    spawn: [entity: Entity];
-    destroy: [entity: Entity];
+    spawn: [entity: Entity<any>];
+    destroy: [entity: Entity<any>];
     update: [deltaTime: number];
 };
-export type WorldRole = "local" | "authority" | "mirror";
-export type WorldOptions<D extends EntityDefinitions = EntityDefinitions, C = unknown> = {
+export type WorldOptions<D extends EntityDefinitions, C> = {
     readonly capacity?: number;
-    readonly entities?: EntityRegistry<D>;
-    readonly role?: WorldRole;
-    readonly idReuseDelay?: number;
+    readonly entities: EntityRegistry<D>;
     readonly context?: C;
 };
-type KindName<D extends EntityDefinitions> = Extract<keyof D, string>;
-type KindInstance<D extends EntityDefinitions, K extends KindName<D>> = InstanceType<D[K]>;
-export declare class World<D extends EntityDefinitions = EntityDefinitions, C = unknown, E extends Entity<C> = Entity<C>> extends EventEmitter<WorldEvents> {
+export declare abstract class World<D extends EntityDefinitions, C, E extends Entity<C> = Entity<C>> extends EventEmitter<WorldEvents> {
     readonly entities: Map<number, E>;
-    time: number;
     readonly capacity: number;
-    readonly entityRegistry?: EntityRegistry<D>;
-    readonly role: WorldRole;
-    readonly context: C;
-    private readonly ids;
-    private readonly idReuseDelay;
+    readonly registry: EntityRegistry<D>;
+    protected readonly context: C;
+    protected readonly ids: IDAllocator;
     private living;
-    constructor(options?: WorldOptions<D, C>);
-    get size(): number;
+    time: number;
+    protected abstract allocateID(): number;
+    constructor(options: WorldOptions<D, C>);
     protected insert<T extends Entity<any>>(kind: string, entity: T, id: number | undefined): T;
-    onEntityDestroy(entity: Entity): void;
+    update(deltaTime: number): void;
+    protected simulate(_deltaTime: number): void;
+    onEntityDestroy(entity: Entity<any>): void;
     get(id: number): E | undefined;
     get<K extends KindName<D>>(id: number, kind: K): KindInstance<D, K> | undefined;
-    get<T extends Entity>(id: number, Kind: EntityClass<T>): T | undefined;
+    get<T extends Entity<any>>(id: number, Kind: EntityClass<T>): T | undefined;
     has(id: number): boolean;
-    update(deltaTime: number): void;
+    has<K extends KindName<D>>(id: number, kind: K): boolean;
+    has<T extends Entity<any>>(id: number, Kind: EntityClass<T>): boolean;
     each<K extends KindName<D>>(type: K, callback: (entity: KindInstance<D, K>) => void): void;
-    each<T extends Entity>(kind: EntityClass<T>, callback: (entity: T) => void): void;
+    each<T extends Entity<any>>(kind: EntityClass<T>, callback: (entity: T) => void): void;
     all<K extends KindName<D>>(kind: K): KindInstance<D, K>[];
-    all<T extends Entity>(kind: EntityClass<T>): T[];
+    all<T extends Entity<any>>(kind: EntityClass<T>): T[];
     count<K extends KindName<D>>(type: K): number;
-    count<T extends Entity>(kind: EntityClass<T>): number;
-    matches<K extends KindName<D>>(entity: Entity, type: K): entity is KindInstance<D, K>;
-    matches<T extends Entity>(entity: Entity, kind: EntityClass<T>): entity is T;
-    protected allocateID(): number;
-    protected requireRegistry(what: string): EntityRegistry<D>;
-    clear(): void;
-    dispose(): void;
+    count<T extends Entity<any>>(kind: EntityClass<T>): number;
+    clear(...kinds: KindQuery[]): void;
+    destroy(): void;
+    get size(): number;
 }
-export {};

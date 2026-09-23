@@ -1,31 +1,21 @@
 import { EventEmitter } from "../utils/EventEmitter";
 import { IDAllocator } from "../utils/IDAllocator";
-import { warn } from "../utils/logger";
 export class World extends EventEmitter {
-    constructor(options = {}) {
+    constructor(options) {
         super();
         this.entities = new Map();
-        this.time = 0;
         this.ids = new IDAllocator();
         this.living = 0;
+        this.time = 0;
         const capacity = options.capacity ?? Infinity;
         if (capacity < 1) {
             throw new Error(`World capacity must be at least 1, got ${capacity}`);
         }
         this.capacity = capacity;
-        this.entityRegistry = options.entities;
-        this.role = options.role ?? "local";
+        this.registry = options.entities;
         this.context = options.context;
-        this.idReuseDelay = options.idReuseDelay ?? 2500;
-    }
-    get size() {
-        return this.living;
     }
     insert(kind, entity, id) {
-        if (entity.alive) {
-            warn("World", `Entity ${entity.id} (${entity.type}) is already spawned`);
-            return entity;
-        }
         if (this.living >= this.capacity) {
             throw new Error(`World is full (capacity ${this.capacity})`);
         }
@@ -39,6 +29,18 @@ export class World extends EventEmitter {
         this.emit("spawn", entity);
         return entity;
     }
+    update(deltaTime) {
+        this.time += deltaTime;
+        this.ids.processTimeouts();
+        for (const entity of this.entities.values()) {
+            if (entity.alive) {
+                entity.update(deltaTime);
+            }
+        }
+        this.simulate(deltaTime);
+        this.emit("update", deltaTime);
+    }
+    simulate(_deltaTime) { }
     onEntityDestroy(entity) {
         const id = entity.id;
         this.living--;
@@ -49,31 +51,21 @@ export class World extends EventEmitter {
         });
         entity.onDestroy();
         this.emit("destroy", entity);
-        this.ids.freeWithTimeout(id, this.idReuseDelay);
+        this.ids.freeWithTimeout(id, 5000);
     }
     get(id, kind) {
         const entity = this.entities.get(id);
-        if (entity === undefined || !entity.alive || (kind !== undefined && !this.matches(entity, kind))) {
+        if (entity === undefined || !entity.alive || (kind !== undefined && !this.registry.matches(entity, kind))) {
             return undefined;
         }
         return entity;
     }
-    has(id) {
-        return this.entities.get(id)?.alive === true;
-    }
-    update(deltaTime) {
-        this.time += deltaTime;
-        this.ids.processTimeouts();
-        for (const entity of this.entities.values()) {
-            if (entity.alive) {
-                entity.update(deltaTime);
-            }
-        }
-        this.emit("update", deltaTime);
+    has(id, kind) {
+        return this.get(id, kind) !== undefined;
     }
     each(kind, callback) {
         for (const entity of this.entities.values()) {
-            if (entity.alive && this.matches(entity, kind)) {
+            if (entity.alive && this.registry.matches(entity, kind)) {
                 callback(entity);
             }
         }
@@ -90,27 +82,25 @@ export class World extends EventEmitter {
         });
         return total;
     }
-    matches(entity, kind) {
-        return typeof kind === "string" ? entity.kind === kind : entity instanceof kind;
-    }
-    allocateID() {
-        const id = this.role === "mirror" ? this.ids.allocateNegative() : this.ids.allocate();
-        return id;
-    }
-    requireRegistry(what) {
-        const registry = this.entityRegistry;
-        if (registry === undefined) {
-            throw new Error(`This world cannot ${what}: it was built without an entity registry. Pass one as \`entities\` — see defineEntities.`);
+    clear(...kinds) {
+        if (kinds.length === 0) {
+            for (const entity of [...this.entities.values()]) {
+                entity.destroy();
+            }
         }
-        return registry;
-    }
-    clear() {
-        for (const entity of [...this.entities.values()]) {
-            entity.destroy();
+        else {
+            for (const entity of [...this.entities.values()]) {
+                if (kinds.some((kind) => this.registry.matches(entity, kind))) {
+                    entity.destroy();
+                }
+            }
         }
     }
-    dispose() {
+    destroy() {
         this.clear();
         this.removeAllListeners();
+    }
+    get size() {
+        return this.living;
     }
 }

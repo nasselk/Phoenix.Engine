@@ -13,8 +13,6 @@ export {
 	defineEntities,
 	Entity,
 	EntityRegistry,
-	AIR_DENSITY,
-	GRAVITY,
 	MAX_ENTITY_KINDS,
 	World,
 	type EntityClass,
@@ -23,8 +21,11 @@ export {
 	type EntityDefinitions,
 	type WorldEvents,
 	type WorldOptions,
-	type WorldRole,
 } from "./world/index";
+
+// Physics: the integration and the collisions, the same on both sides, for a game that simulates on
+// either. A collider attaches to anything with a position, so a client can run what the server ran.
+export * from "./physics/index";
 
 /**
  * The binary primitives, re-exported from the engine's own copy of them.
@@ -39,19 +40,23 @@ export { BufferReader, BufferWriter, type Buffers } from "@nasselk/binarypack";
 
 // Networking: the wire contract types both sides declare against
 export { MAX_EVENTS, Protocol, ProtocolChannel, type Contract, type ContractOf, type InboundEvent, type InboundSchemas, type MessagePayload, type OutboundEvent, type OutboundSchemas, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
-export { SESSION_ROUTE, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, WS_ROUTE, type SessionRequest, type SessionResponse } from "./networking/session";
+export { ServerRoutes, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, type SessionRequest, type SessionResponse } from "./networking/session";
+export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "./networking/invite";
 
 // Utilities
 export { CounterMap } from "./utils/CounterMap";
+export { deepCopy, deepMerge, randomValue, removeFromArray } from "./utils/utils";
+export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";
 export { EventEmitter } from "./utils/EventEmitter";
 export { IDAllocator } from "./utils/IDAllocator";
 export { credit, error, log, warn } from "./utils/logger";
 export { Interval, Timeout, Timer } from "./utils/timers/timer";
+export { createTimings, MAX_SAMPLES, PerfSampler, toRate, type Timings } from "./utils/perfStats";
 export { wait } from "./utils/timers/wait";
 
 // Math
 export { Interpolator } from "./libs/math/interpolation";
 export { ObservableVector3, Vector3, type Vector3Structure } from "./libs/math/vector3D";
 export { clamp, wrap } from "./libs/math/utils";
-export { censorText, default as validateText } from "./utils/validation/text";
+export { censorText, normalizeText, validateText } from "./utils/validation/text";
 export { randomElement, randomFloat, randomInt } from "./libs/math/random";

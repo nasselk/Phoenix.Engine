@@ -1,5 +1,5 @@
-import { randomInt } from "../libs/math/random.js";
-import { JsonObject } from "./types.js";
+import { randomInt } from "../libs/math/random";
+import { JsonObject } from "./types";
 
 export function removeFromArray<T>(array: T[], item?: T, index?: number): T | void {
 	if (index !== undefined) {

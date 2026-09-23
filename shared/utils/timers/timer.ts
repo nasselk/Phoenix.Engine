@@ -1,4 +1,4 @@
-import { randomInt } from "../../libs/math/random.js";
+import { randomInt } from "../../libs/math/random";
 
 type TimerCallback<T extends any[] = any[]> = (...args: T) => void;
 

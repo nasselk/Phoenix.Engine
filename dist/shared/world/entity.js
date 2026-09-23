@@ -7,12 +7,6 @@ export class Entity {
         this.world = world;
         this.context = context;
     }
-    get age() {
-        return this.world.time - this.spawnTime;
-    }
-    get type() {
-        return this.constructor.name;
-    }
     onSpawn() { }
     onDestroy() { }
     destroy() {
@@ -22,5 +16,11 @@ export class Entity {
         this.alive = false;
         this.world.onEntityDestroy(this);
         return true;
+    }
+    get age() {
+        return this.world.time - this.spawnTime;
+    }
+    get type() {
+        return this.constructor.name;
     }
 }

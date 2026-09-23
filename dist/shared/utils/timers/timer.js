@@ -1,4 +1,4 @@
-import { randomInt } from "../../libs/math/random.js";
+import { randomInt } from "../../libs/math/random";
 export class Timer {
     constructor(callback, delay, interval = false, customLoop = Timer.useCustomLoop, ...params) {
         this.delay = Array.isArray(delay) ? randomInt(delay[0], delay[1]) : delay;

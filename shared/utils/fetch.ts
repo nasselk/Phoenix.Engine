@@ -1,8 +1,8 @@
-import { Timeout } from "./timers/timer.js";
+import { Timeout } from "./timers/timer";
 
-import { wait } from "./timers/wait.js";
+import { wait } from "./timers/wait";
 
-import { error } from "./logger.js";
+import { error } from "./logger";
 import type { JsonValue } from "./types";
 
 type ResponseError = {

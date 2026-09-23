@@ -1,50 +1,32 @@
-import { EventEmitter } from "../../../shared/utils/EventEmitter";
-type InputEvents = {
-    init: [];
-    pointermove: [event: PointerEvent];
-    destroy: [];
-};
 export type ActionCallback = (event: KeyboardEvent) => void;
-export type InputSystemOptions<Actions extends readonly string[] = []> = {
-    readonly actions?: Actions;
-    readonly contexts?: Readonly<Record<string, readonly Actions[number][]>>;
+export type InputSystemOptions<Action extends string = never> = {
+    readonly binds?: Readonly<Record<Action, readonly string[]>>;
 };
-export declare class InputSystem<const Actions extends readonly string[] = []> extends EventEmitter<InputEvents> {
+export declare class InputSystem<const Action extends string = never> {
     private readonly pressedCodes;
     private readonly actions;
     private readonly bindings;
     private readonly held;
-    private readonly actionListeners;
-    private readonly contexts;
-    private readonly stack;
+    private readonly listeners;
     private readonly handlers;
     private initialized;
-    constructor(options?: InputSystemOptions<Actions>);
+    constructor(options?: InputSystemOptions<Action>);
     init(): void;
-    mapKeyToAction(action: Actions[number], code: string): this;
-    unmapKeyFromAction(action: Actions[number], code: string): boolean;
-    keysForAction(action: Actions[number]): readonly string[];
-    onActionStart(action: Actions[number], cb: ActionCallback): () => void;
-    onActionStop(action: Actions[number], cb: ActionCallback): () => void;
-    private subscribe;
-    isRunningAction(action: Actions[number]): boolean;
-    isKeyPressed(code: string): boolean;
+    mapActionToKeys(action: Action, ...codes: readonly string[]): this;
+    unmapActionFromKeys(action: Action, ...codes: readonly string[]): this;
+    onActionStart(action: Action, cb: ActionCallback): () => void;
+    onActionStop(action: Action, cb: ActionCallback): () => void;
+    onPressInput(cb: (event: KeyboardEvent) => void): () => void;
+    isActionRunning(action: Action): boolean;
+    isInputPressed(code: string): boolean;
     isPrintableKey(event: KeyboardEvent): boolean;
-    get context(): string | undefined;
-    isActionEnabled(action: Actions[number]): boolean;
-    pushContext(name: string): this;
-    popContext(): string | undefined;
-    setContext(name: string): this;
+    private codesOf;
+    private subscribe;
     private keyDown;
-    private keyUp;
     private press;
     private release;
     private dispatch;
     private releaseAll;
-    private pointerDown;
-    private pointerUp;
-    private pointerMove;
     private syntheticEvent;
     destroy(): void;
 }
-export {};

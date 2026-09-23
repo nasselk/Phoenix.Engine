@@ -8,8 +8,5 @@
 	"scripts": {
 		"build": "tsc",
 		"types:check": "tsc --noEmit"
-	},
-	"dependencies": {
-		"uuid": "^14.0.2"
 	}
 }

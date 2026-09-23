@@ -3,7 +3,7 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";
 import { error, log, warn } from "../../../shared/utils/logger";
 import { Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
-import { SESSION_ROUTE, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, WS_ROUTE, type SessionRequest, type SessionResponse } from "../../../shared/networking/session";
+import { ServerRoutes, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, type SessionRequest, type SessionResponse } from "../../../shared/networking/session";
 import { Socket, type SocketUserData } from "./socket";
 import { Interval } from "../../../shared/utils/timers/timer";
 import type { BunRequest, Server } from "bun";
@@ -124,12 +124,12 @@ export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
 		maxRequestRate: 30,
 	},
 	ws: {
-		maxSessions: 1000,
-		maxSessionsPerIP: 8,
+		maxSessions: Infinity,
+		maxSessionsPerIP: Infinity,
 		maxMessageSize: 1024 * 16,
 		maxBackPressure: 1024 * 1024,
-		maxMessageRate: 200,
-		idleTimeout: 30,
+		maxMessageRate: Infinity,
+		idleTimeout: 0,
 	},
 };
 
@@ -246,7 +246,8 @@ export class NetworkSystem<
 			const now = performance.now();
 
 			for (const socket of this.sockets.values()) {
-				if (now - socket.lastMessage >= idleTimeout) {
+				// 0 is never, as it is for Bun: otherwise every socket would be idle at the first sweep.
+				if (idleTimeout > 0 && now - socket.lastMessage >= idleTimeout) {
 					socket.disconnect(false, "Idle timeout", 1001);
 				} else {
 					socket.resetRates();
@@ -292,10 +293,10 @@ export class NetworkSystem<
 				maxRequestBodySize: settings.http.maxRequestBodySize,
 
 				routes: {
-					[WS_ROUTE]: {
+					[ServerRoutes.WS]: {
 						GET: (req: BunRequest, server: Server<SocketUserData>) => this.handleUpgrade(req, server),
 					},
-					[SESSION_ROUTE]: {
+					[ServerRoutes.SESSION]: {
 						OPTIONS: this.preflight(),
 						POST: this.middleware((state) => this.initSession(state)),
 					},
@@ -377,6 +378,9 @@ export class NetworkSystem<
 						socket.disconnection(code, reason);
 
 						this.emit("disconnection", socket, code, reason);
+
+						// After the game's own handlers, which may still need to know the room it was in.
+						socket.room?.leave(socket);
 					},
 				},
 
@@ -517,7 +521,7 @@ export class NetworkSystem<
 	}
 
 	/** Validate a WebSocket upgrade (ticket, capacity) then hand the socket to Bun. */
-	private handleUpgrade(req: Request, server: Server<SocketUserData>): Response | undefined {
+	private handleUpgrade(req: BunRequest, server: Server<SocketUserData>): Response | undefined {
 		const ticket = this.parseTicket(req.headers.get("sec-websocket-protocol"));
 		const session = ticket ? this.redeemTicket(ticket) : undefined;
 
@@ -540,7 +544,7 @@ export class NetworkSystem<
 
 		// On success Bun owns the socket and we must NOT return a Response. Echo back only the
 		// protocol name (never the ticket) so the browser completes the handshake.
-		if (server.upgrade(req, { data, headers: { "Sec-WebSocket-Protocol": SESSION_SUBPROTOCOL } })) {
+		if (server.upgrade(req as unknown as Request, { data, headers: { "Sec-WebSocket-Protocol": SESSION_SUBPROTOCOL } })) {
 			return undefined;
 		}
 
@@ -581,7 +585,7 @@ export class NetworkSystem<
 		return Date.now() < session.expiresAt ? session : undefined;
 	}
 
-	private getRequestIP(req: Request): string {
+	private getRequestIP(req: BunRequest): string {
 		if (this.settings.proxied) {
 			// Behind a reverse proxy: trust the left-most entry (the real client).
 			const forwarded = req.headers.get("CF-Connecting-IP");
@@ -591,7 +595,7 @@ export class NetworkSystem<
 			}
 		}
 
-		return this.server?.requestIP(req)?.address ?? "";
+		return this.server?.requestIP(req as unknown as Request)?.address ?? "";
 	}
 
 	private middleware(handler: (state: RequestState, req: BunRequest) => Response | Promise<Response>): (req: BunRequest) => Promise<Response> {

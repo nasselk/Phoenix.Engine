@@ -6,6 +6,16 @@ type NetworkEvents = {
     disconnection: [code: number, reason: string, manual: boolean];
     reconnection: [];
     message: [event: string, data: BufferReader];
+    stats: [stats: NetworkStats];
+};
+export type NetworkChannelStats = {
+    bps: number;
+    mps: number;
+};
+export type NetworkStats = {
+    readonly in: NetworkChannelStats;
+    readonly out: NetworkChannelStats;
+    latency: number;
 };
 export type NetworkSystemOptions<In extends readonly string[], Out extends readonly string[], InSchemas, OutSchemas> = {
     readonly in?: {
@@ -16,7 +26,6 @@ export type NetworkSystemOptions<In extends readonly string[], Out extends reado
         readonly events: Out;
         readonly schema?: OutSchemas;
     };
-    readonly url?: URL | string;
     readonly simulation?: {
         readonly latency?: number;
         readonly loss?: number;
@@ -38,10 +47,11 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private sessionID?;
     private manuallyDisconnected;
     private reconnecting;
-    private readonly latency;
-    private readonly loss;
+    private readonly simulation;
+    private readonly statsTimer;
+    private readonly state;
+    readonly stats: NetworkStats;
     constructor(options?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>);
-    private connectDetached;
     connect(url: URL | string, data?: Record<string, unknown>): Promise<WebSocket>;
     disconnect(code?: number, reason?: string): Promise<this>;
     private setupWebSocket;
@@ -51,7 +61,14 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     simulate<K extends InboundEvent<C>>(event: K, data: MessagePayload<C, K>): void;
     private onConnect;
     private onDisconnect;
+    private computeStats;
+    private resetStats;
     destroy(): void;
     get readyState(): NetworkState;
+    get buffered(): number;
+    get latency(): number;
+    set latency(latency: number);
+    get loss(): number;
+    set loss(loss: number);
 }
 export {};

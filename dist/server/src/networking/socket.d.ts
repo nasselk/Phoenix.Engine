@@ -2,10 +2,14 @@ import type { ServerWebSocket } from "bun";
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { type Contract, type InboundEvent, type MessagePayload, type OutboundEvent, type Protocol, type SendPayload } from "../../../shared/networking/protocol";
+import { Seen } from "../world/replication";
+import type { World } from "../world/world";
 type SocketEvents<C extends Contract> = {
     disconnection: [code: number, reason: string, manual: boolean];
     message: [event: InboundEvent<C>, data: MessagePayload<C, InboundEvent<C>>];
 };
+export interface SocketData {
+}
 export type SocketUserData = {
     socket?: Socket<any>;
     readonly ip: string;
@@ -26,6 +30,9 @@ export declare class Socket<C extends Contract = Contract> extends EventEmitter<
     lastMessage: number;
     messages: number;
     readonly rates: CounterMap<number>;
+    readonly room?: World<any, any, C>;
+    readonly seen: Seen;
+    readonly data: SocketData;
     private readonly protocol;
     private readonly socket;
     private manuallyDisconnected;

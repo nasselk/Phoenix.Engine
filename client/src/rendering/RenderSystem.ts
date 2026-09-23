@@ -1,28 +1,26 @@
+import { type ColorRepresentation, Scene, WebGLRenderer, type WebGLRendererParameters } from "three";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
+import { log } from "../../../shared/utils/logger";
 import { waitForUserGesture } from "../utils/gesture";
+import type { OrbitCamera } from "./lib/camera/Camera";
+import { DesktopCamera } from "./lib/camera/DesktopCamera";
+import { TextureBuilder } from "./lib/TextureBuilder";
+import { TouchCamera } from "./lib/camera/TouchCamera";
 
 type RenderSystemEvents = {
 	init: [renderer: HTMLCanvasElement];
-	/** `deltaTime` is in seconds; `now` is a millisecond timestamp. */
 	render: [deltaTime: number, now: number];
 	resize: [width: number, height: number];
-	load: [id: string];
-	loaderror: [id: string, error: unknown];
 	destroy: [];
 };
 
-/**
- * One loaded asset and the URL it came from.
- *
- * The source is kept because disposal is not always a method on the asset itself — Pixi hands its
- * cache back a URL, not a texture — so a renderer needs both halves to let go of one cleanly.
- */
-type RenderAsset<A> = {
-	readonly src: string;
-	readonly asset: A;
+export type RenderSystemOptions = {
+	readonly renderer?: "WebGL" | "WebGPU";
+	readonly resolution?: number;
+	readonly fullscreen?: boolean;
+	readonly backgroundColor?: ColorRepresentation;
+	readonly three?: Omit<WebGLRendererParameters, "canvas">;
 };
-
-export type RendererKind = "2D" | "3D";
 
 export const enum RenderSystemState {
 	NULL,
@@ -31,15 +29,20 @@ export const enum RenderSystemState {
 	DESTROYED,
 }
 
-/**
- * The renderer-agnostic half of a rendering backend.
- *
- * `Asset` is whatever the backend loads and draws: a Pixi `Texture` for the 2D renderer, a Three
- * `Object3D` for the 3D one. The registry, deduplication and teardown below are identical for both,
- * so they live here; the two hooks that actually know a file format are abstract.
- */
-export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderSystemEvents> {
+/** The three.js renderer: the canvas, the WebGL context, the scene and the camera. */
+export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	protected canvas!: HTMLCanvasElement;
+
+	private three!: WebGLRenderer;
+
+	/** The 3D scene */
+	public readonly scene: Scene;
+
+	/** The 3D camera */
+	public camera: OrbitCamera;
+
+	/** The texture builder for creating textures in the 3D scene */
+	public readonly textureBuilder: TextureBuilder;
 
 	/** The current state of the rendering system. */
 	public initialized: RenderSystemState;
@@ -47,97 +50,24 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 	/** The resolution of the renderer. */
 	public resolution: number;
 
-	/** Assets that finished loading, by the id they were registered under. */
-	protected readonly assets: Map<string, RenderAsset<Asset>>;
-
-	/** Loads still in flight, so a second `load()` of the same id joins the first instead of racing it. */
-	private readonly loading: Map<string, Promise<Asset>>;
-
 	private observer?: ResizeObserver;
 
-	protected abstract runInternalRenderer(): void;
-
-	/** Pull one asset off the network. The backend picks the loader; the base class owns the bookkeeping. */
-	protected abstract loadAsset(src: string): Promise<Asset>;
-
-	/** Release everything an asset holds — GPU buffers, cache entries, the lot. */
-	protected abstract disposeAsset(asset: Asset, src: string): void;
-
-	public constructor(view?: HTMLCanvasElement) {
+	/**
+	 * @param touch Fingers rather than a mouse: the camera then turns on a drag and zooms on a pinch,
+	 *   where a desktop one waits for a held button and a wheel. The engine passes what it detected.
+	 */
+	public constructor(view?: HTMLCanvasElement, touch: boolean = false) {
 		super();
 
 		this.view = view ?? this.createRenderingView();
 		this.initialized = RenderSystemState.NULL;
 		this.resolution = 1;
-		this.assets = new Map();
-		this.loading = new Map();
-	}
 
-	/**
-	 * Register and load an asset under `id`.
-	 *
-	 * Loading is genuinely asynchronous here, unlike a sound, so the same id asked for twice while
-	 * the first request is still open returns that same promise rather than fetching twice. An
-	 * already-loaded id resolves immediately and never re-fetches — call `remove()` first to replace one.
-	 */
-	public load(id: string, src: string): Promise<Asset> {
-		const loaded = this.assets.get(id);
+		this.scene = new Scene();
+		this.camera = touch ? new TouchCamera() : new DesktopCamera();
+		this.textureBuilder = new TextureBuilder();
 
-		if (loaded !== undefined) {
-			return Promise.resolve(loaded.asset);
-		}
-
-		const pending = this.loading.get(id);
-
-		if (pending !== undefined) {
-			return pending;
-		}
-
-		const promise = this.loadAsset(src)
-			.then((asset) => {
-				this.loading.delete(id);
-				this.assets.set(id, { src, asset });
-
-				this.emit("load", id);
-
-				return asset;
-			})
-			.catch((error: unknown) => {
-				this.loading.delete(id);
-
-				// Surfaced as an event as well as a rejection: a missing texture is usually something a
-				// game wants to log or substitute, not something every call site wants to try/catch.
-				this.emit("loaderror", id, error);
-
-				throw error;
-			});
-
-		this.loading.set(id, promise);
-
-		return promise;
-	}
-
-	/** The asset behind an id, or `undefined` while it is still loading or was never registered. */
-	public get(id: string): Asset | undefined {
-		return this.assets.get(id)?.asset;
-	}
-
-	/** Whether `id` has finished loading and is safe to draw this frame. */
-	public has(id: string): boolean {
-		return this.assets.has(id);
-	}
-
-	/** Dispose an asset and forget the id. A load still in flight is left to finish and is not registered. */
-	public remove(id: string): void {
-		const entry = this.assets.get(id);
-
-		if (entry === undefined) {
-			return;
-		}
-
-		this.assets.delete(id);
-
-		this.disposeAsset(entry.asset, entry.src);
+		this.camera.connect(this.canvas);
 	}
 
 	/**
@@ -146,7 +76,7 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 	 *
 	 * @returns A promise that resolves when the renderer is initialized and ready to use.
 	 */
-	public async init(settings: Partial<{ resolution: number; fullscreen: boolean }>, promise?: Promise<any>): Promise<any> {
+	public async init(settings: RenderSystemOptions = {}): Promise<WebGLRenderer> {
 		if (this.initialized !== RenderSystemState.NULL) {
 			throw new Error("Renderer is already initialized or destroyed");
 		}
@@ -154,11 +84,30 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 		this.initialized = RenderSystemState.INITIALIZING;
 		this.resolution = settings.resolution ?? 1;
 
+		switch (settings.renderer) {
+			case "WebGPU":
+				throw new Error("WebGPU is not yet supported");
+
+				this.three = new WebGLRenderer({
+					powerPreference: "high-performance",
+					...settings.three,
+					canvas: this.canvas,
+				});
+
+			case "WebGL":
+			default:
+				this.three = new WebGLRenderer({
+					powerPreference: "high-performance",
+					...settings.three,
+					canvas: this.canvas,
+				});
+		}
+
+		this.three.setClearColor(settings.backgroundColor ?? "black");
+
 		if (settings.fullscreen) {
 			waitForUserGesture().then(() => this.setFullscreen(true));
 		}
-
-		await promise;
 
 		this.initialized = RenderSystemState.INITIALIZED;
 
@@ -168,6 +117,10 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 		this.observer.observe(this.canvas);
 
 		this.emit("init", this.canvas);
+
+		log("Renderer", "Successfully initialized WebGL renderer");
+
+		return this.three;
 	}
 
 	/**
@@ -185,8 +138,9 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 		// Emit the render event, allowing external listeners to perform actions before the scene is rendered.
 		this.emit("render", deltaTime, now);
 
-		// Render the scene graph
-		this.runInternalRenderer();
+		this.camera.update(deltaTime);
+
+		this.three.render(this.scene, this.camera);
 	}
 
 	/**
@@ -228,12 +182,31 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 		return canvas;
 	}
 
-	protected resize(width: number = 0, height: number = width): this {
+	/** Whether there is a context to draw with: false before `init` and after `destroy`. */
+	public get ready(): boolean {
+		return this.initialized === RenderSystemState.INITIALIZED;
+	}
+
+	/**
+	 * Match the drawing buffer to the canvas, at the current `resolution`. Called on its own whenever
+	 * the canvas changes size; a game calls it after changing the resolution.
+	 */
+	public resize(width?: number, height: number | undefined = width): this {
 		if (this.initialized !== RenderSystemState.INITIALIZED) {
 			throw new Error("Renderer is not initialized. Call init() before starting the rendering loop.");
 		}
 
+		const bounds = this.canvas.getBoundingClientRect();
+
+		width ??= bounds.width * devicePixelRatio;
+		height ??= bounds.height * devicePixelRatio;
+
 		this.emit("resize", width, height);
+
+		this.three.setSize(width * this.resolution, height * this.resolution, false);
+
+		this.camera.aspect = width / height;
+		this.camera.updateProjectionMatrix();
 
 		return this;
 	}
@@ -249,15 +222,14 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 
 		this.observer?.disconnect();
 
+		this.camera.destroy();
+
 		if (view) {
 			this.canvas.remove();
 		}
 
-		for (const id of [...this.assets.keys()]) {
-			this.remove(id);
-		}
-
-		this.loading.clear();
+		this.three.dispose();
+		this.three.forceContextLoss();
 
 		this.emit("destroy");
 
@@ -273,6 +245,11 @@ export abstract class RenderSystem<Asset = unknown> extends EventEmitter<RenderS
 
 			this.observer?.disconnect();
 			this.observer?.observe(value);
+
+			// The constructor sets the first view before the camera exists; any later one takes the camera with it.
+			if (this.camera !== undefined) {
+				this.camera.connect(value);
+			}
 		}
 	}
 
