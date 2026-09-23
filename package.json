@@ -78,6 +78,9 @@
 		"svelte": "^5.57.1"
 	},
 	"peerDependenciesMeta": {
+		"three": {
+			"optional": true
+		},
 		"svelte": {
 			"optional": true
 		}

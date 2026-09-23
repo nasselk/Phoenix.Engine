@@ -151,7 +151,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		if (rz) {
 			const rotation = reader.readFloat32();
 
-			targetRotation.y = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
+			targetRotation.z = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
 		}
 	}
 }
