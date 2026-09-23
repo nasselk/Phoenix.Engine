@@ -13,15 +13,6 @@
 		"stats.js": "^0.17.0",
 		"troika-three-text": "^0.53.0"
 	},
-	"peerDependencies": {
-		"svelte": "^5.57.1",
-		"three": "^0.186.0"
-	},
-	"peerDependenciesMeta": {
-		"svelte": {
-			"optional": true
-		}
-	},
 	"devDependencies": {
 		"@types/howler": "^2.2.13",
 		"@types/stats.js": "^0.17.4",

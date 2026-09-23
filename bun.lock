@@ -7,16 +7,15 @@
       "dependencies": {
         "@nasselk/binarypack": "github:nasselk/BinaryPack",
         "@nasselk/binaryschema": "github:nasselk/BinarySchema",
+        "@types/howler": "^2.2.13",
+        "@types/stats.js": "^0.17.4",
         "howler": "^2.2.4",
         "stats.js": "^0.17.0",
-        "troika-three-text": "^0.53.0",
       },
       "devDependencies": {
         "@biomejs/biome": "2.5.14",
         "@dimforge/rapier3d-compat": "^0.20.0",
         "@types/bun": "^1.4.2",
-        "@types/howler": "^2.2.13",
-        "@types/stats.js": "^0.17.4",
         "@types/three": "^0.186.0",
         "husky": "^9.1.7",
         "typescript": "^7.0.2",
@@ -45,13 +44,6 @@
         "svelte": "^5.57.1",
         "three": "^0.186.0",
       },
-      "peerDependencies": {
-        "svelte": "^5.57.1",
-        "three": "^0.186.0",
-      },
-      "optionalPeers": [
-        "svelte",
-      ],
     },
     "server": {
       "name": "phoenix.engine.server",
@@ -171,7 +163,7 @@
 
     "esm-env": ["esm-env@1.2.2", "", {}, "sha512-Epxrv+Nr/CaL4ZcFGPJIYLWFom+YeV1DqMLHJoEd9SYRxNbaFruBwfEX/kkHUJf55j2+TUbmDcmuilbP1TmXHA=="],
 
-    "esrap": ["esrap@2.3.7", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.4.15" }, "peerDependencies": { "@typescript-eslint/types": "^8.2.0" }, "optionalPeers": ["@typescript-eslint/types"] }, "sha512-n2nf7fZR3c9yXf0BPEuHuXqT+KW0SJVj4cN5FMEkpCZ3scLjOQWpiccyCxVzCC2q1wubTghuEGzngJY/7Ah0Ow=="],
+    "esrap": ["esrap@2.3.10", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.4.15" }, "peerDependencies": { "@typescript-eslint/types": "^8.2.0" }, "optionalPeers": ["@typescript-eslint/types"] }, "sha512-U57Y4yS8udsPP22QKK6dhbGQl6JeQXYYWGDPPfA8YAU1jMaqZ8ogVazTqoPl3WYtRj84c2TCeNhhep8NKaNX5w=="],
 
     "fflate": ["fflate@0.8.3", "", {}, "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA=="],
 
