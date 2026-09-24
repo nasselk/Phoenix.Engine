@@ -81,6 +81,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private sweep?;
     private server?;
     constructor(options?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>);
+    init(): void;
     private mergeSettings;
     private setAllowedOrigins;
     private setTimedProtections;

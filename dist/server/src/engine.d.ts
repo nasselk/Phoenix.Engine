@@ -32,7 +32,7 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     createRoom(inviteCode?: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
     getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
     destroyRoom(inviteCode: string): boolean;
-    destroy(): void;
     private freeInviteCode;
+    destroy(): void;
 }
 export {};

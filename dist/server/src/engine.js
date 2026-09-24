@@ -23,6 +23,7 @@ export class Engine extends EventEmitter {
         credit("Server");
         log("Phoenix Server", "Initializing the engine...");
         await initPhysics();
+        this.network.init();
         this.loop.on("tick", (deltaTime) => {
             for (const room of this.rooms.values()) {
                 room.update(deltaTime);
@@ -55,15 +56,6 @@ export class Engine extends EventEmitter {
         this.rooms.delete(inviteCode);
         return true;
     }
-    destroy() {
-        for (const inviteCode of [...this.rooms.keys()]) {
-            this.destroyRoom(inviteCode);
-        }
-        this.network.destroy();
-        this.loop.destroy();
-        this.emit("destroy");
-        this.removeAllListeners();
-    }
     freeInviteCode() {
         for (let attempt = 0; attempt < MAX_INVITE_CODE_ATTEMPTS; attempt++) {
             let code = "";
@@ -75,5 +67,14 @@ export class Engine extends EventEmitter {
             }
         }
         throw new Error(`No free invite code after ${MAX_INVITE_CODE_ATTEMPTS} attempts: too many rooms are open`);
+    }
+    destroy() {
+        for (const inviteCode of [...this.rooms.keys()]) {
+            this.destroyRoom(inviteCode);
+        }
+        this.network.destroy();
+        this.loop.destroy();
+        this.emit("destroy");
+        this.removeAllListeners();
     }
 }

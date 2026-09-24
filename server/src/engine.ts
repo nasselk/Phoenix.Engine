@@ -85,6 +85,8 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		// Every room owns a physics world, so none can open until Rapier is loaded.
 		await initPhysics();
 
+		this.network.init();
+
 		this.loop.on("tick", (deltaTime) => {
 			for (const room of this.rooms.values()) {
 				room.update(deltaTime);
@@ -138,19 +140,6 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		return true;
 	}
 
-	public destroy(): void {
-		for (const inviteCode of [...this.rooms.keys()]) {
-			this.destroyRoom(inviteCode);
-		}
-
-		this.network.destroy();
-		this.loop.destroy();
-
-		this.emit("destroy");
-
-		this.removeAllListeners();
-	}
-
 	private freeInviteCode(): string {
 		for (let attempt = 0; attempt < MAX_INVITE_CODE_ATTEMPTS; attempt++) {
 			let code = "";
@@ -165,5 +154,18 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		}
 
 		throw new Error(`No free invite code after ${MAX_INVITE_CODE_ATTEMPTS} attempts: too many rooms are open`);
+	}
+
+	public destroy(): void {
+		for (const inviteCode of [...this.rooms.keys()]) {
+			this.destroyRoom(inviteCode);
+		}
+
+		this.network.destroy();
+		this.loop.destroy();
+
+		this.emit("destroy");
+
+		this.removeAllListeners();
 	}
 }

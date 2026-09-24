@@ -38,6 +38,8 @@ export class NetworkSystem extends EventEmitter {
         this.sessions = new Map();
         this.origins = this.setAllowedOrigins(options?.origins ?? "*");
         this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, options?.limits?.[event]));
+    }
+    init() {
         this.setTimedProtections();
         this.setupWebSocketServer();
     }

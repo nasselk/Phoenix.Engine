@@ -185,7 +185,9 @@ export class NetworkSystem<
 		this.sessions = new Map();
 		this.origins = this.setAllowedOrigins(options?.origins ?? "*");
 		this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, (options?.limits as Record<string, EventLimit> | undefined)?.[event]));
+	}
 
+	public init(): void {
 		this.setTimedProtections();
 		this.setupWebSocketServer();
 	}

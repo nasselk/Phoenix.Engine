@@ -19,6 +19,11 @@ export type LoopStats = {
     low99: number;
     readonly ticks: Timings;
     readonly mspt: Timings;
+    readonly memory: {
+        total: number;
+        heap: number;
+        arraybuffer: number;
+    };
 };
 export declare class GameLoop extends EventEmitter<GameLoopEvents> {
     lastTickTime: number;

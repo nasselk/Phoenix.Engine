@@ -15,6 +15,11 @@ export class GameLoop extends EventEmitter {
             low99: 0,
             ticks: createTimings(),
             mspt: createTimings(),
+            memory: {
+                total: 0,
+                heap: 0,
+                arraybuffer: 0,
+            },
         };
         this.samples = new PerfSampler();
         this.statsTimer = new Interval(() => this.computeStats(), 1000, false);
@@ -80,6 +85,10 @@ export class GameLoop extends EventEmitter {
         const stats = this.stats;
         const samples = this.samples;
         const now = performance.now();
+        const memory = process.memoryUsage();
+        stats.memory.total = memory.rss;
+        stats.memory.heap = memory.heapUsed;
+        stats.memory.arraybuffer = memory.arrayBuffers;
         stats.TPS = samples.rate(now);
         stats.low99 = toRate(samples.measureIntervals(stats.ticks).p99);
         samples.measureExecution(stats.mspt);
