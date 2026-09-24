@@ -173,9 +173,9 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 		const now = performance.now();
 		const memory = process.memoryUsage();
 
-		stats.memory.total = memory.rss;
-		stats.memory.heap = memory.heapUsed;
-		stats.memory.arraybuffer = memory.arrayBuffers;
+		stats.memory.total = memory.rss / 1024 / 1024;
+		stats.memory.heap = memory.heapUsed / 1024 / 1024;
+		stats.memory.arraybuffer = memory.arrayBuffers / 1024 / 1024;
 		stats.TPS = samples.rate(now);
 		stats.low99 = toRate(samples.measureIntervals(stats.ticks).p99);
 
