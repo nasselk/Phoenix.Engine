@@ -1,6 +1,6 @@
 import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-compat";
 import { BufferWriter } from "@nasselk/binarypack";
-import { ObservableVector3 } from "../../../../shared/libs/math/vector3D";
+import { ObservableVector3 } from "../../../../shared/math/vector3";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";

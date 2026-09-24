@@ -1,6 +1,6 @@
-import { Vector3 } from "../libs/math/vector3D";
+import { Vector3 } from "../math/vector3";
 import { removeFromArray } from "../utils/utils";
-import { clamp } from "../libs/math/utils";
+import { clamp } from "../math/utils";
 class HashGrid3D {
     constructor(cellWidth, cellHeight = cellWidth, cellDepth = cellHeight, bounds, removableObjects = true, types) {
         this.bounds = {

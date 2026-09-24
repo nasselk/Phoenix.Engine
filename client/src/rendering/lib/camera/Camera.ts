@@ -1,5 +1,5 @@
 import { PerspectiveCamera, Vector3 } from "three";
-import { clamp } from "../../../../../shared/libs/math/utils";
+import { clamp } from "../../../../../shared/math/utils";
 
 export type OrbitTarget = { readonly x: number; readonly y: number; readonly z: number };
 

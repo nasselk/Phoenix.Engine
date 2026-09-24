@@ -1,20 +1,4 @@
 /**
- * Generates a random boolean value based on weighted probabilities.
- *
- * @param w1 - Weight for returning true (defaults to 0.5).
- * @param w2 - Weight for returning false (defaults to 0.5).
- * @returns True if the first weight is selected, false otherwise.
- *
- * @example
- * randomBoolean() // 50% true, 50% false
- * randomBoolean(0.7, 0.3) // 70% true, 30% false
- * randomBoolean(1, 3) // 25% true, 75% false
- */
-export function randomBoolean(w1: number = 0.5, w2: number = 0.5): boolean {
-	return weightedRandom(w1, w2) === 0;
-}
-
-/**
  * Generates a random integer between min and max (inclusive).
  *
  * @param min - The minimum value (inclusive).
@@ -59,6 +43,24 @@ export function randomFloat(min: number = 0, max: number = 1, random: () => numb
 }
 
 /**
+ * Generates a random angle within a specified range.
+ *
+ * @param min - The minimum angle in radians (defaults to 0).
+ * @param max - The maximum angle in radians (defaults to 2π).
+ * @param random - Optional custom random function (defaults to Math.random).
+ * @returns A random angle between min and max.
+ * @throws {RangeError} If min is greater than max.
+ *
+ * @example
+ * randomAngle() // Random angle between 0 and 2π
+ * randomAngle(0, Math.PI) // Random angle between 0 and π
+ * randomAngle(-Math.PI, Math.PI) // Random angle between -π and π
+ */
+export function randomAngle(min: number = 0, max: number = 2 * Math.PI, random = Math.random): number {
+	return randomFloat(min, max, random);
+}
+
+/**
  * Picks a random element from the given array
  *
  * @param array - The array to pick an element from
@@ -68,6 +70,22 @@ export function randomFloat(min: number = 0, max: number = 1, random: () => numb
  */
 export function randomElement<T>(array: readonly T[]): T {
 	return array[Math.floor(Math.random() * array.length)];
+}
+
+/**
+ * Generates a random boolean value based on weighted probabilities.
+ *
+ * @param w1 - Weight for returning true (defaults to 0.5).
+ * @param w2 - Weight for returning false (defaults to 0.5).
+ * @returns True if the first weight is selected, false otherwise.
+ *
+ * @example
+ * randomBoolean() // 50% true, 50% false
+ * randomBoolean(0.7, 0.3) // 70% true, 30% false
+ * randomBoolean(1, 3) // 25% true, 75% false
+ */
+export function randomBoolean(w1: number = 0.5, w2: number = 0.5): boolean {
+	return weightedRandom(w1, w2) === 0;
 }
 
 /**

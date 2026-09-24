@@ -1,4 +1,4 @@
-import { randomInt } from "../libs/math/random";
+import { randomInt } from "../math/random";
 export function removeFromArray(array, item, index) {
     if (index !== undefined) {
         const last = array.pop();

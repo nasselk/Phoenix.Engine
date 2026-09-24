@@ -1,4 +1,4 @@
-import { randomInt } from "../libs/math/random";
+import { randomInt } from "../math/random";
 import { JsonObject } from "./types";
 
 export function removeFromArray<T>(array: T[], item?: T, index?: number): T | void {

@@ -1,5 +1,5 @@
 import { BufferReader } from "@nasselk/binarypack";
-import { Vector3 } from "../../../../shared/libs/math/vector3D";
+import { Vector3 } from "../../../../shared/math/vector3";
 import { Group } from "three";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";

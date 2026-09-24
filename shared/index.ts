@@ -55,8 +55,8 @@ export { createTimings, MAX_SAMPLES, PerfSampler, toRate, type Timings } from ".
 export { wait } from "./utils/timers/wait";
 
 // Math
-export { Interpolator } from "./libs/math/interpolation";
-export { ObservableVector3, Vector3, type Vector3Structure } from "./libs/math/vector3D";
-export { clamp, wrap } from "./libs/math/utils";
+export { Interpolator } from "./math/interpolation";
+export { ObservableVector3, Vector3, type Vector3Structure } from "./math/vector3";
+export { clamp, wrap } from "./math/utils";
 export { censorText, normalizeText, validateText } from "./utils/validation/text";
-export { randomElement, randomFloat, randomInt } from "./libs/math/random";
+export { randomElement, randomFloat, randomInt, randomAngle, randomBoolean, weightedRandom } from "./math/random";

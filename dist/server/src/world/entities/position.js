@@ -1,5 +1,5 @@
 import { BufferWriter } from "@nasselk/binarypack";
-import { ObservableVector3 } from "../../../../shared/libs/math/vector3D";
+import { ObservableVector3 } from "../../../../shared/math/vector3";
 import { eulerToQuaternion, quaternionToEuler } from "../../../../shared/physics/rapier";
 import { Entity } from "./entity";
 import { wrap } from "../../../../shared";

@@ -1,4 +1,5 @@
-import { extractRGBA } from "../../utils/color";
+import { Vector3Like } from "three";
+import { extractRGBA } from "../utils/color";
 
 import { normalizeAnglePI } from "./angle";
 
@@ -43,6 +44,12 @@ function lerpAngle(start: number, end: number, factor: number, deltaTime?: numbe
 	return lerp(start, start + delta, factor, deltaTime, limit);
 }
 
+export function lerpVector(start: Vector3Like, end: Vector3Like, factor: number, deltaTime?: number, limit?: number): void {
+	start.x = lerp(start.x, end.x, factor, deltaTime, limit);
+	start.y = lerp(start.y, end.y, factor, deltaTime, limit);
+	start.z = lerp(start.z, end.z, factor, deltaTime, limit);
+}
+
 function lerpColor(start: string, end: string, factor: number = 0.05, deltaTime: number = 1, limit: number = 0): string {
 	const startChannels = extractRGBA(start);
 	const endChannels = extractRGBA(end);
@@ -82,6 +89,12 @@ function tweenAngle(start: number, end: number, duration: number, elapsed: numbe
 	return tween(start, start + delta, duration, elapsed, curve);
 }
 
+export function tweenVector(start: Vector3Like, end: Vector3Like, duration: number, elapsed: number, curve?: InterpolationCurve): void {
+	start.x = tween(start.x, end.x, duration, elapsed, curve);
+	start.y = tween(start.y, end.y, duration, elapsed, curve);
+	start.z = tween(start.z, end.z, duration, elapsed, curve);
+}
+
 function tweenColor(start: string, end: string, duration: number, elapsed: number, curve?: InterpolationCurve): string {
 	if (elapsed >= duration) {
 		return end;
@@ -101,10 +114,12 @@ function tweenColor(start: string, end: string, duration: number, elapsed: numbe
 export const Interpolator = {
 	lerp,
 	lerpAngle,
+	lerpVector,
 	lerpColor,
 	clampedLerp,
 	tween,
 	tweenAngle,
+	tweenVector,
 	tweenColor,
 };
 

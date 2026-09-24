@@ -1,10 +1,7 @@
-import { Vector3, type Vector3Structure } from "../libs/math/vector3D";
-
+import { Vector3, type Vector3Structure } from "../math/vector3";
 import type { Constructor } from "../utils/types";
-
 import { removeFromArray } from "../utils/utils";
-
-import { clamp } from "../libs/math/utils";
+import { clamp } from "../math/utils";
 
 type QueryCallback<T, Types, P extends any[]> = (objects: Types extends undefined ? T[] : { [K in keyof Types]: Types[K] extends Constructor<infer R> ? R[] : never }, queryID: number, param1: P[0], param2: P[1]) => boolean | void;
 type PairsQueryCallback<T> = (entity1: T, entity2: T) => void;

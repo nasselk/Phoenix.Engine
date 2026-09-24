@@ -1,5 +1,5 @@
 import { PerspectiveCamera, Vector3 } from "three";
-import { clamp } from "../../../../../shared/libs/math/utils";
+import { clamp } from "../../../../../shared/math/utils";
 const WORLD_UP = new Vector3(0, 1, 0);
 const MAX_FRAME = 0.1;
 export class OrbitCamera extends PerspectiveCamera {

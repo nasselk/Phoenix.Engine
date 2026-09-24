@@ -1,6 +1,6 @@
 import type { ColliderDesc, RigidBody, RigidBodyDesc, Rotation } from "@dimforge/rapier3d-compat";
 import { BufferWriter } from "@nasselk/binarypack";
-import { ObservableVector3 } from "../../../../shared/libs/math/vector3D";
+import { ObservableVector3 } from "../../../../shared/math/vector3";
 import { eulerToQuaternion, quaternionToEuler } from "../../../../shared/physics/rapier";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";

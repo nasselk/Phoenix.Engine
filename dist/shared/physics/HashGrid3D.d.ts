@@ -1,4 +1,4 @@
-import { type Vector3Structure } from "../libs/math/vector3D";
+import { type Vector3Structure } from "../math/vector3";
 import type { Constructor } from "../utils/types";
 type QueryCallback<T, Types, P extends any[]> = (objects: Types extends undefined ? T[] : {
     [K in keyof Types]: Types[K] extends Constructor<infer R> ? R[] : never;

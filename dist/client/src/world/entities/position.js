@@ -1,6 +1,6 @@
 import { BufferReader } from "@nasselk/binarypack";
-import { Interpolator } from "../../../../shared/libs/math/interpolation";
-import { Vector3 } from "../../../../shared/libs/math/vector3D";
+import { Interpolator } from "../../../../shared/math/interpolation";
+import { Vector3 } from "../../../../shared/math/vector3";
 import { Group } from "three";
 import { Entity } from "./entity";
 export class PositionEntity extends Entity {
@@ -31,7 +31,7 @@ export class PositionEntity extends Entity {
         const frames = deltaTime * FRAMES_PER_SECOND;
         if (this.positionSmoothing) {
             const { position, targetPosition, smoothing } = this;
-            position.set(Interpolator.lerp(position.x, targetPosition.x, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.y, targetPosition.y, smoothing, frames, SNAP_DISTANCE), Interpolator.lerp(position.z, targetPosition.z, smoothing, frames, SNAP_DISTANCE));
+            Interpolator.lerpVector(position, targetPosition, smoothing, frames, SNAP_DISTANCE);
         }
         else {
             this.position.set(this.targetPosition);
