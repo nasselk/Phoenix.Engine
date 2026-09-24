@@ -2,8 +2,11 @@ export const MAX_SAMPLES = 2024;
 export function createTimings() {
     return { avg: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0 };
 }
+export function round(value) {
+    return Math.round(value * 100) / 100;
+}
 export function toRate(ms) {
-    return ms > 0 ? 1000 / ms : 0;
+    return ms > 0 ? round(1000 / ms) : 0;
 }
 export function percentile(sorted, quantile) {
     return sorted[Math.min(sorted.length - 1, Math.floor(quantile * sorted.length))];
@@ -26,13 +29,13 @@ export function measure(samples, count, scratch, out) {
         total += value;
     }
     const sorted = scratch.subarray(0, count).sort();
-    out.avg = total / count;
-    out.min = sorted[0];
-    out.max = sorted[count - 1];
-    out.p50 = percentile(sorted, 0.5);
-    out.p90 = percentile(sorted, 0.9);
-    out.p95 = percentile(sorted, 0.95);
-    out.p99 = percentile(sorted, 0.99);
+    out.avg = round(total / count);
+    out.min = round(sorted[0]);
+    out.max = round(sorted[count - 1]);
+    out.p50 = round(percentile(sorted, 0.5));
+    out.p90 = round(percentile(sorted, 0.9));
+    out.p95 = round(percentile(sorted, 0.95));
+    out.p99 = round(percentile(sorted, 0.99));
     return out;
 }
 export class PerfSampler {
@@ -71,7 +74,7 @@ export class PerfSampler {
     }
     rate(now = performance.now()) {
         const elapsed = now - this.since;
-        return elapsed > 0 ? (this.total * 1000) / elapsed : 0;
+        return elapsed > 0 ? round((this.total * 1000) / elapsed) : 0;
     }
     reset(now = performance.now()) {
         this.count = 0;

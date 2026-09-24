@@ -9,6 +9,7 @@ export type Timings = {
 };
 export declare const MAX_SAMPLES = 2024;
 export declare function createTimings(): Timings;
+export declare function round(value: number): number;
 export declare function toRate(ms: number): number;
 export declare function percentile(sorted: Float64Array, quantile: number): number;
 export declare function measure(samples: Float64Array, count: number, scratch: Float64Array, out: Timings): Timings;

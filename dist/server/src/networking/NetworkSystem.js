@@ -369,9 +369,6 @@ export class NetworkSystem extends EventEmitter {
     destroy() {
         this.sweep?.clear();
         this.sweep = undefined;
-        for (const socket of this.sockets.values()) {
-            socket.disconnect(false, "Server shutting down", 1001);
-        }
         this.sockets.clear();
         this.tickets.clear();
         this.sessions.clear();

@@ -14,8 +14,12 @@ export function createTimings(): Timings {
 	return { avg: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0 };
 }
 
+export function round(value: number): number {
+	return Math.round(value * 100) / 100;
+}
+
 export function toRate(ms: number): number {
-	return ms > 0 ? 1000 / ms : 0;
+	return ms > 0 ? round(1000 / ms) : 0;
 }
 
 export function percentile(sorted: Float64Array, quantile: number): number {
@@ -46,13 +50,13 @@ export function measure(samples: Float64Array, count: number, scratch: Float64Ar
 
 	const sorted = scratch.subarray(0, count).sort();
 
-	out.avg = total / count;
-	out.min = sorted[0]!;
-	out.max = sorted[count - 1]!;
-	out.p50 = percentile(sorted, 0.5);
-	out.p90 = percentile(sorted, 0.9);
-	out.p95 = percentile(sorted, 0.95);
-	out.p99 = percentile(sorted, 0.99);
+	out.avg = round(total / count);
+	out.min = round(sorted[0]!);
+	out.max = round(sorted[count - 1]!);
+	out.p50 = round(percentile(sorted, 0.5));
+	out.p90 = round(percentile(sorted, 0.9));
+	out.p95 = round(percentile(sorted, 0.95));
+	out.p99 = round(percentile(sorted, 0.99));
 
 	return out;
 }
@@ -114,7 +118,7 @@ export class PerfSampler {
 	public rate(now: number = performance.now()): number {
 		const elapsed = now - this.since;
 
-		return elapsed > 0 ? (this.total * 1000) / elapsed : 0;
+		return elapsed > 0 ? round((this.total * 1000) / elapsed) : 0;
 	}
 
 	public reset(now: number = performance.now()): void {
