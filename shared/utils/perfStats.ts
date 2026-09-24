@@ -1,5 +1,5 @@
 export type Timings = {
-	ms: number;
+	avg: number;
 	min: number;
 	max: number;
 	p50: number;
@@ -11,7 +11,7 @@ export type Timings = {
 export const MAX_SAMPLES = 2024;
 
 export function createTimings(): Timings {
-	return { ms: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0 };
+	return { avg: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0 };
 }
 
 export function toRate(ms: number): number {
@@ -24,7 +24,7 @@ export function percentile(sorted: Float64Array, quantile: number): number {
 
 export function measure(samples: Float64Array, count: number, scratch: Float64Array, out: Timings): Timings {
 	if (count === 0) {
-		out.ms = 0;
+		out.avg = 0;
 		out.min = 0;
 		out.max = 0;
 		out.p50 = 0;
@@ -46,7 +46,7 @@ export function measure(samples: Float64Array, count: number, scratch: Float64Ar
 
 	const sorted = scratch.subarray(0, count).sort();
 
-	out.ms = total / count;
+	out.avg = total / count;
 	out.min = sorted[0]!;
 	out.max = sorted[count - 1]!;
 	out.p50 = percentile(sorted, 0.5);

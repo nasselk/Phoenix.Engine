@@ -1,5 +1,5 @@
 export type Timings = {
-    ms: number;
+    avg: number;
     min: number;
     max: number;
     p50: number;

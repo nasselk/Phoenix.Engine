@@ -1,6 +1,6 @@
 export const MAX_SAMPLES = 2024;
 export function createTimings() {
-    return { ms: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0 };
+    return { avg: 0, min: 0, max: 0, p50: 0, p90: 0, p95: 0, p99: 0 };
 }
 export function toRate(ms) {
     return ms > 0 ? 1000 / ms : 0;
@@ -10,7 +10,7 @@ export function percentile(sorted, quantile) {
 }
 export function measure(samples, count, scratch, out) {
     if (count === 0) {
-        out.ms = 0;
+        out.avg = 0;
         out.min = 0;
         out.max = 0;
         out.p50 = 0;
@@ -26,7 +26,7 @@ export function measure(samples, count, scratch, out) {
         total += value;
     }
     const sorted = scratch.subarray(0, count).sort();
-    out.ms = total / count;
+    out.avg = total / count;
     out.min = sorted[0];
     out.max = sorted[count - 1];
     out.p50 = percentile(sorted, 0.5);
