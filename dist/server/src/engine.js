@@ -14,10 +14,7 @@ export class Engine extends EventEmitter {
         this.network = new NetworkSystem(options.network);
         this.loop = new GameLoop(options.loop);
         this.rooms = new Map();
-        this.roomsConfig = {
-            maximum: Infinity,
-            ...options.rooms,
-        };
+        this.maxRooms = options.rooms?.maximum ?? Infinity;
     }
     async init() {
         credit("Server");
@@ -33,14 +30,14 @@ export class Engine extends EventEmitter {
         log("Phoenix Server", "Successfully initiated the engine");
         this.emit("init");
     }
-    createRoom(inviteCode = this.freeInviteCode()) {
+    createRoom(capacity, inviteCode = this.freeInviteCode()) {
         if (this.rooms.has(inviteCode)) {
             throw new Error(`A room with invite code "${inviteCode}" already exists`);
         }
-        if (this.rooms.size === this.roomsConfig?.maximum) {
-            throw new Error(`The engine is at its maximum of ${this.roomsConfig.maximum} rooms`);
+        if (this.rooms.size === this.maxRooms) {
+            throw new Error(`The engine is at its maximum of ${this.maxRooms} rooms`);
         }
-        const room = new World({ inviteCode, capacity: this.roomsConfig?.maximum, entities: this.entities, context: this.context, network: this.network });
+        const room = new World({ inviteCode, capacity, entities: this.entities, context: this.context, network: this.network });
         this.rooms.set(inviteCode, room);
         return room;
     }

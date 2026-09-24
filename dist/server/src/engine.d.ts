@@ -16,7 +16,6 @@ export type EngineOptions<In extends readonly string[] = [], Out extends readonl
     readonly loop?: Partial<GameLoopParams>;
     readonly rooms?: {
         maximum?: number;
-        maxSessions?: number;
     };
 };
 type ContextOf<C, Self> = [C] extends [never] ? Self : C;
@@ -25,11 +24,11 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     readonly loop: GameLoop;
     readonly rooms: Map<string, World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>>;
     private readonly entities;
-    private readonly roomsConfig;
+    private readonly maxRooms;
     private readonly context;
     constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D, C>);
     init(): Promise<void>;
-    createRoom(inviteCode?: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
+    createRoom(capacity?: number, inviteCode?: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
     getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
     destroyRoom(inviteCode: string): boolean;
     private freeInviteCode;
