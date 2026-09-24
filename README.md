@@ -223,7 +223,7 @@ There is one `Engine` per process on each side, and it owns every subsystem.
 | `loop` | `TPS` (ticks per second), `turbo`, `speed`. |
 | `rooms` | `maximum` rooms per process. |
 
-`await engine.init()` loads Rapier, opens the network and starts the loop. Rooms: `createRoom(code?)`, `getRoom(code)`, `destroyRoom(code)`, `rooms`.
+`await engine.init()` loads Rapier, opens the network and starts the loop. Rooms: `createRoom(capacity?, code?)` — `capacity` is how many entities the room holds at once (default 65535) —, `getRoom(code)`, `destroyRoom(code)`, `rooms`.
 
 **Client** — `new Engine(options)`:
 
