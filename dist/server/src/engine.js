@@ -45,9 +45,18 @@ export class Engine extends EventEmitter {
     occupancy() {
         const rooms = {};
         for (const [code, room] of this.rooms) {
-            rooms[code] = room.sockets.size;
+            rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers };
         }
         return rooms;
+    }
+    fullestRoom() {
+        let fullest;
+        for (const room of this.rooms.values()) {
+            if (room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+                fullest = room;
+            }
+        }
+        return fullest;
     }
     getRoom(inviteCode) {
         return this.rooms.get(inviteCode);

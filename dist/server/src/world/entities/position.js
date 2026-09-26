@@ -61,9 +61,9 @@ export class PositionEntity extends Entity {
         writer.writeFloat32(position.x);
         writer.writeFloat32(position.y);
         writer.writeFloat32(position.z);
-        writer.writeFloat32(rotation.x);
-        writer.writeFloat32(rotation.y);
-        writer.writeFloat32(rotation.z);
+        writer.writeUint8(rotation.x);
+        writer.writeUint8(rotation.y);
+        writer.writeUint8(rotation.z);
     }
     serializeUpdate(writer) {
         const { position, rotation } = this;

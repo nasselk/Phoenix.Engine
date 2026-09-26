@@ -1,5 +1,6 @@
 import { GameLoop, type GameLoopParams } from "./GameLoop";
 import { World } from "./world/world";
+import { type RoomOccupancy } from "../../shared/networking/invite";
 import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
 import type { ContractOf, SchemasFor } from "../../shared/networking/protocol";
 import type { EntityDefinitions, EntityRegistry } from "../../shared/world/registry";
@@ -29,7 +30,8 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D, C>);
     init(): Promise<void>;
     createRoom(maxPlayers?: number, capacity?: number, inviteCode?: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
-    occupancy(): Record<string, number>;
+    occupancy(): Record<string, RoomOccupancy>;
+    fullestRoom(): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
     getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
     destroyRoom(inviteCode: string): boolean;
     private freeInviteCode;

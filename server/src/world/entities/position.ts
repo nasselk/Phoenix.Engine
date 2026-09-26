@@ -123,9 +123,9 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		writer.writeFloat32(position.y);
 		writer.writeFloat32(position.z);
 
-		writer.writeFloat32(rotation.x);
-		writer.writeFloat32(rotation.y);
-		writer.writeFloat32(rotation.z);
+		writer.writeUint8(rotation.x);
+		writer.writeUint8(rotation.y);
+		writer.writeUint8(rotation.z);
 	}
 
 	public override serializeUpdate(writer: BufferWriter): void {

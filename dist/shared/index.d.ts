@@ -3,7 +3,7 @@ export * from "./physics/index";
 export { BufferReader, BufferWriter, type Buffers } from "@nasselk/binarypack";
 export { MAX_EVENTS, Protocol, ProtocolChannel, type Contract, type ContractOf, type InboundEvent, type InboundSchemas, type MessagePayload, type OutboundEvent, type OutboundSchemas, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
 export { ServerRoutes, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, type SessionRequest, type SessionResponse } from "./networking/session";
-export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "./networking/invite";
+export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "./networking/invite";
 export { CounterMap } from "./utils/CounterMap";
 export { deepCopy, deepMerge, randomValue, removeFromArray } from "./utils/utils";
 export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";

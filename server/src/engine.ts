@@ -2,7 +2,7 @@ import { credit, log } from "../../shared/utils/logger";
 import { initPhysics } from "../../shared/physics/rapier";
 import { GameLoop, type GameLoopParams } from "./GameLoop";
 import { World } from "./world/world";
-import { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "../../shared/networking/invite";
+import { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "../../shared/networking/invite";
 import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
 import type { ContractOf, SchemasFor } from "../../shared/networking/protocol";
 import type { EntityDefinitions, EntityRegistry } from "../../shared/world/registry";
@@ -118,15 +118,28 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		return room;
 	}
 
-	/** Every open room's invite code and how many players are in it: what `GET /rooms` answers, so a client can find which server has a room. */
-	public occupancy(): Record<string, number> {
-		const rooms: Record<string, number> = {};
+	/** Every open room's invite code, how many players are in it and how many it takes: what `GET /rooms` answers, so a client can find which server has a room. */
+	public occupancy(): Record<string, RoomOccupancy> {
+		const rooms: Record<string, RoomOccupancy> = {};
 
 		for (const [code, room] of this.rooms) {
-			rooms[code] = room.sockets.size;
+			rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers };
 		}
 
 		return rooms;
+	}
+
+	/** The room with the most players that still has a free seat, for quick play. Undefined when every room is full or none is open. */
+	public fullestRoom(): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {
+		let fullest: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
+
+		for (const room of this.rooms.values()) {
+			if (room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+				fullest = room;
+			}
+		}
+
+		return fullest;
 	}
 
 	public getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {

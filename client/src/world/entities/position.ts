@@ -104,9 +104,9 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 		this.targetPosition.set(x, y, z);
 
-		const pitch = reader.readFloat32();
-		const yaw = reader.readFloat32();
-		const roll = reader.readFloat32();
+		const pitch = reader.readInt8();
+		const yaw = reader.readInt8();
+		const roll = reader.readInt8();
 
 		this.targetRotation.set(pitch, yaw, roll);
 
@@ -137,19 +137,19 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		}
 
 		if (rx) {
-			const rotation = reader.readFloat32();
+			const rotation = reader.readInt8();
 
 			targetRotation.x = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
 		}
 
 		if (ry) {
-			const rotation = reader.readFloat32();
+			const rotation = reader.readInt8();
 
 			targetRotation.y = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
 		}
 
 		if (rz) {
-			const rotation = reader.readFloat32();
+			const rotation = reader.readInt8();
 
 			targetRotation.z = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
 		}
