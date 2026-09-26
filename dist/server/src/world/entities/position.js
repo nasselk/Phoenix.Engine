@@ -61,9 +61,12 @@ export class PositionEntity extends Entity {
         writer.writeFloat32(position.x);
         writer.writeFloat32(position.y);
         writer.writeFloat32(position.z);
-        writer.writeUint8(rotation.x);
-        writer.writeUint8(rotation.y);
-        writer.writeUint8(rotation.z);
+        const rx = BufferWriter.toPrecision(wrap(rotation.x, 0, 2 * Math.PI), 2 * Math.PI, 8);
+        const ry = BufferWriter.toPrecision(wrap(rotation.y, 0, 2 * Math.PI), 2 * Math.PI, 8);
+        const rz = BufferWriter.toPrecision(wrap(rotation.z, 0, 2 * Math.PI), 2 * Math.PI, 8);
+        writer.writeUint8(rx);
+        writer.writeUint8(ry);
+        writer.writeUint8(rz);
     }
     serializeUpdate(writer) {
         const { position, rotation } = this;
@@ -90,15 +93,15 @@ export class PositionEntity extends Entity {
         }
         if (rx) {
             const rotation = BufferWriter.toPrecision(wrap(this.rotation.x, 0, 2 * Math.PI), 2 * Math.PI, 8);
-            writer.writeFloat32(rotation);
+            writer.writeUint8(rotation);
         }
         if (ry) {
             const rotation = BufferWriter.toPrecision(wrap(this.rotation.y, 0, 2 * Math.PI), 2 * Math.PI, 8);
-            writer.writeFloat32(rotation);
+            writer.writeUint8(rotation);
         }
         if (rz) {
             const rotation = BufferWriter.toPrecision(wrap(this.rotation.z, 0, 2 * Math.PI), 2 * Math.PI, 8);
-            writer.writeFloat32(rotation);
+            writer.writeUint8(rotation);
         }
     }
     get room() {
