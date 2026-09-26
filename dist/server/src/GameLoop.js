@@ -61,35 +61,25 @@ export class GameLoop extends EventEmitter {
             this.next = setTimeout(() => this.tick(), 1);
         }
         const now = performance.now();
-        const step = 1000 / (this.maxTickRate || Infinity);
-        if (step === 0) {
-            const interval = now - this.lastTickTime;
+        const deltaTimeCap = (1000 / (this.maxTickRate || Infinity)) * this.speed;
+        const interval = now - this.lastTickTime;
+        const deltaTime = Math.min(interval, 100) * this.speed;
+        if (deltaTime >= deltaTimeCap) {
             this.lastTickTime = now;
-            this.run(now, Math.min(interval, 100) * this.speed, interval);
-            return;
+            if (this.tickID === Number.MAX_SAFE_INTEGER) {
+                this.tickID = 0;
+            }
+            else {
+                this.tickID++;
+            }
+            this.emit("tickStart", now);
+            Timer.runAll(now, this.speed);
+            this.emit("tick", deltaTime / 1000, now);
+            const now2 = performance.now();
+            const tickTime = now2 - now;
+            this.emit("tickEnd", tickTime, now2);
+            this.samples.push(interval, tickTime);
         }
-        for (let due = 0; now - this.lastTickTime >= step && due < GameLoop.MAX_CATCH_UP; due++) {
-            this.lastTickTime += step;
-            this.run(performance.now(), step * this.speed, step);
-        }
-        if (now - this.lastTickTime >= step) {
-            this.lastTickTime = now;
-        }
-    }
-    run(now, deltaTime, interval) {
-        if (this.tickID === Number.MAX_SAFE_INTEGER) {
-            this.tickID = 0;
-        }
-        else {
-            this.tickID++;
-        }
-        this.emit("tickStart", now);
-        Timer.runAll(now, this.speed);
-        this.emit("tick", deltaTime / 1000, now);
-        const now2 = performance.now();
-        const tickTime = now2 - now;
-        this.emit("tickEnd", tickTime, now2);
-        this.samples.push(interval, tickTime);
     }
     computeStats() {
         const stats = this.stats;
@@ -115,4 +105,3 @@ export class GameLoop extends EventEmitter {
         return this.next === undefined;
     }
 }
-GameLoop.MAX_CATCH_UP = 5;

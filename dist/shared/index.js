@@ -18,3 +18,4 @@ export { ObservableVector3, Vector3 } from "./math/vector3";
 export { clamp, wrap } from "./math/utils";
 export { censorText, normalizeText, validateText } from "./utils/validation/text";
 export { randomElement, randomFloat, randomInt, randomAngle, randomBoolean, weightedRandom } from "./math/random";
+export { get, post, put, del } from "./utils/fetch";
