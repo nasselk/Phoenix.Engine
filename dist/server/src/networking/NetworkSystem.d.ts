@@ -78,6 +78,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private readonly socketIDs;
     private readonly tickets;
     private readonly sessions;
+    private readonly extraRoutes;
     private sweep?;
     private server?;
     constructor(options?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>);
@@ -89,6 +90,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private handle;
     private withinLimits;
     private static resolveLimit;
+    route(path: string, handler: () => Response | Promise<Response>): this;
     onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): this;
     broadcast<K extends OutboundEvent<C>>(topic: string, event: K, ...[data]: SendPayload<C, K>): this;
     private handleUpgrade;

@@ -9,11 +9,12 @@ export const MAX_INVITE_CODE_ATTEMPTS = 100;
 export class Engine extends EventEmitter {
     constructor(options) {
         super();
+        this.rooms = new Map();
         this.entities = options.entities;
         this.context = (options.context ?? this);
         this.network = new NetworkSystem(options.network);
         this.loop = new GameLoop(options.loop);
-        this.rooms = new Map();
+        this.network.route("/rooms", () => Response.json(this.occupancy()));
         this.maxRooms = options.rooms?.maximum ?? Infinity;
     }
     async init() {
@@ -40,6 +41,13 @@ export class Engine extends EventEmitter {
         const room = new World({ inviteCode, maxPlayers, capacity, entities: this.entities, context: this.context, network: this.network });
         this.rooms.set(inviteCode, room);
         return room;
+    }
+    occupancy() {
+        const rooms = {};
+        for (const [code, room] of this.rooms) {
+            rooms[code] = room.sockets.size;
+        }
+        return rooms;
     }
     getRoom(inviteCode) {
         return this.rooms.get(inviteCode);

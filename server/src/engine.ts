@@ -64,11 +64,13 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	public constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D, C>) {
 		super();
 
+		this.rooms = new Map();
 		this.entities = options.entities;
 		this.context = (options.context ?? this) as ContextOf<C, this>;
 		this.network = new NetworkSystem<In, Out, InSchemas, OutSchemas>(options.network);
 		this.loop = new GameLoop(options.loop);
-		this.rooms = new Map();
+
+		this.network.route("/rooms", () => Response.json(this.occupancy()));
 		this.maxRooms = options.rooms?.maximum ?? Infinity;
 	}
 
@@ -114,6 +116,17 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		this.rooms.set(inviteCode, room);
 
 		return room;
+	}
+
+	/** Every open room's invite code and how many players are in it: what `GET /rooms` answers, so a client can find which server has a room. */
+	public occupancy(): Record<string, number> {
+		const rooms: Record<string, number> = {};
+
+		for (const [code, room] of this.rooms) {
+			rooms[code] = room.sockets.size;
+		}
+
+		return rooms;
 	}
 
 	public getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {

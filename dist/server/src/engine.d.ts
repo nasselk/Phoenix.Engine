@@ -29,6 +29,7 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D, C>);
     init(): Promise<void>;
     createRoom(maxPlayers?: number, capacity?: number, inviteCode?: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
+    occupancy(): Record<string, number>;
     getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
     destroyRoom(inviteCode: string): boolean;
     private freeInviteCode;

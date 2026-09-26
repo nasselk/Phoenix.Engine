@@ -168,6 +168,8 @@ export class NetworkSystem<
 	private readonly tickets: Map<string, Ticket>;
 	/** Known session ids, valued by the epoch ms they stop being reclaimable (`Infinity` while connected). */
 	private readonly sessions: Map<string, number>;
+	/** GET routes added with `route`, served next to the built-in ones. */
+	private readonly extraRoutes = new Map<string, () => Response | Promise<Response>>();
 	private sweep?: Interval;
 	private server?: Server<SocketUserData>;
 
@@ -314,6 +316,7 @@ export class NetworkSystem<
 					"/ping": {
 						GET: this.middleware(() => Response.json("pong")),
 					},
+					...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware(handler) }])),
 				},
 
 				fetch: () => new Response("Not Found", { status: 404 }),
@@ -499,6 +502,20 @@ export class NetworkSystem<
 	 * @param callback Receives the sending socket, then the decoded data when the event has an
 	 *   inbound schema or the raw reader otherwise.
 	 */
+	/**
+	 * Serve a GET route next to the built-in ones, with the same CORS and rate limits. Added before
+	 * `init`, which is when the server starts listening.
+	 */
+	public route(path: string, handler: () => Response | Promise<Response>): this {
+		if (this.server !== undefined) {
+			throw new Error(`Route "${path}" added after the server started; add it before init()`);
+		}
+
+		this.extraRoutes.set(path, handler);
+
+		return this;
+	}
+
 	public onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): this {
 		this.messages[this.protocol.in.code(event)] = callback;
 

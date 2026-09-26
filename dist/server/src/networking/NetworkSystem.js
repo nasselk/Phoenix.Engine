@@ -27,6 +27,7 @@ export const DEFAULT_NETWORK_SETTINGS = {
 export class NetworkSystem extends EventEmitter {
     constructor(options) {
         super();
+        this.extraRoutes = new Map();
         this.protocol = new Protocol(options);
         this.settings = this.mergeSettings(options);
         this.sockets = new Map();
@@ -132,6 +133,7 @@ export class NetworkSystem extends EventEmitter {
                     "/ping": {
                         GET: this.middleware(() => Response.json("pong")),
                     },
+                    ...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware(handler) }])),
                 },
                 fetch: () => new Response("Not Found", { status: 404 }),
                 websocket: {
@@ -246,6 +248,13 @@ export class NetworkSystem extends EventEmitter {
             throw new RangeError(`Invalid byteLength for "${event}": expected a non-negative integer or [min, max] with min <= max, got ${JSON.stringify(byteLength)}`);
         }
         return { maxRate: limit.maxRate, minBytes, maxBytes };
+    }
+    route(path, handler) {
+        if (this.server !== undefined) {
+            throw new Error(`Route "${path}" added after the server started; add it before init()`);
+        }
+        this.extraRoutes.set(path, handler);
+        return this;
     }
     onMessage(event, callback) {
         this.messages[this.protocol.in.code(event)] = callback;
