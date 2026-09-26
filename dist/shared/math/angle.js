@@ -1,8 +1,4 @@
-import { randomFloat } from "./random";
 import { wrap } from "./utils";
-export function randomAngle(min = 0, max = 2 * Math.PI, random = Math.random) {
-    return randomFloat(min, max, random);
-}
 export function angleDistance(a, b) {
     const distance = Math.abs(normalizeAngle2PI(a - b));
     return Math.min(distance, 2 * Math.PI - distance);

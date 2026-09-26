@@ -7,6 +7,8 @@ export class OrbitCamera extends PerspectiveCamera {
         super(options.fov ?? 75, 1, options.near ?? 0.1, options.far ?? 1000);
         this.orbiting = false;
         this.free = false;
+        this.verticalFovDegrees = this.fov;
+        this.minHorizontalFovDegrees = options.minHorizontalFov ?? 60;
         this.yaw = options.yaw ?? 0;
         this.pitch = options.pitch ?? 0.6;
         this.distance = options.distance ?? 14;
@@ -41,6 +43,28 @@ export class OrbitCamera extends PerspectiveCamera {
     }
     toggleDetached() {
         return this.setDetached(!this.free);
+    }
+    fit(aspect = this.aspect) {
+        const narrowest = this.minHorizontalFovDegrees;
+        const needed = narrowest > 0 ? 2 * Math.atan(Math.tan((narrowest * Math.PI) / 360) / aspect) * (180 / Math.PI) : 0;
+        this.aspect = aspect;
+        this.fov = Math.max(this.verticalFovDegrees, needed);
+        this.updateProjectionMatrix();
+        return this;
+    }
+    get verticalFov() {
+        return this.verticalFovDegrees;
+    }
+    set verticalFov(degrees) {
+        this.verticalFovDegrees = degrees;
+        this.fit();
+    }
+    get minHorizontalFov() {
+        return this.minHorizontalFovDegrees;
+    }
+    set minHorizontalFov(degrees) {
+        this.minHorizontalFovDegrees = degrees;
+        this.fit();
     }
     setZoom(zoom) {
         this.zoom = clamp(zoom, this.minZoom, this.maxZoom);

@@ -5,13 +5,13 @@ import { clamp } from "./utils";
  * This is a structural type that can be satisfied by any object with x, y and z properties.
  * Use this for parameters that accept duck-typed vector-like objects.
  */
-type Vector3DStructure = { x: number; y: number; z: number };
+type Vector3Structure = { x: number; y: number; z: number };
 
 /**
  * A 3D vector class providing vector mathematics operations.
  * Supports both Cartesian (x, y, z) and spherical (azimuth, elevation, magnitude) coordinate systems.
  */
-class Vector3D {
+class Vector3 {
 	/**
 	 * A constant null vector at origin (0, 0, 0).
 	 *
@@ -23,7 +23,7 @@ class Vector3D {
 	 * // Rotate around origin
 	 * vec.rotate(Math.PI / 2, axis, Vector3D.NULL);
 	 */
-	public static readonly NULL: Vector3D = Object.freeze(new Vector3D());
+	public static readonly NULL: Vector3 = Object.freeze(new Vector3());
 
 	/**
 	 * A temporary vector instance for calculations to avoid creating new objects.
@@ -35,11 +35,11 @@ class Vector3D {
 	 * // Use TEMP1 for intermediate calculations
 	 * const result = Vector3D.TEMP1.set(vec1).add(vec2);
 	 */
-	public static readonly TEMP1: Vector3D = new Vector3D();
-	public static readonly TEMP2: Vector3D = new Vector3D();
-	public static readonly TEMP3: Vector3D = new Vector3D();
-	public static readonly TEMP4: Vector3D = new Vector3D();
-	public static readonly TEMP5: Vector3D = new Vector3D();
+	public static readonly TEMP1: Vector3 = new Vector3();
+	public static readonly TEMP2: Vector3 = new Vector3();
+	public static readonly TEMP3: Vector3 = new Vector3();
+	public static readonly TEMP4: Vector3 = new Vector3();
+	public static readonly TEMP5: Vector3 = new Vector3();
 
 	/** The x-coordinate of the vector. */
 	public x: number;
@@ -100,7 +100,7 @@ class Vector3D {
 	 * vec.set(other) // Copy other vector
 	 * vec.set(other, 2) // Copy other vector scaled by 2
 	 */
-	public set(vector: Vector3DStructure, scalar?: number): this;
+	public set(vector: Vector3Structure, scalar?: number): this;
 
 	/**
 	 * Sets this vector's x, y and z components.
@@ -116,7 +116,7 @@ class Vector3D {
 	 */
 	public set(x: number, y?: number, z?: number): this;
 
-	public set(a: Vector3DStructure | number, b?: number, c?: number): this {
+	public set(a: Vector3Structure | number, b?: number, c?: number): this {
 		if (typeof a === "object") {
 			const scalar = b ?? 1;
 
@@ -143,7 +143,7 @@ class Vector3D {
 	 * vec.add(other) // Add other vector
 	 * vec.add(other, 2) // Add other vector scaled by 2
 	 */
-	public add(vector: Vector3DStructure, scalar?: number): this;
+	public add(vector: Vector3Structure, scalar?: number): this;
 
 	/**
 	 * Adds individual values to this vector's components.
@@ -159,7 +159,7 @@ class Vector3D {
 	 */
 	public add(x: number, y?: number, z?: number): this;
 
-	public add(a: Vector3DStructure | number, b?: number, c?: number): this {
+	public add(a: Vector3Structure | number, b?: number, c?: number): this {
 		if (typeof a === "object") {
 			const scalar = b ?? 1;
 
@@ -188,7 +188,7 @@ class Vector3D {
 	 * vec.subtract(other) // Subtract other vector
 	 * vec.subtract(other, 2) // Subtract other vector scaled by 2
 	 */
-	public subtract(vector: Vector3DStructure, scalar?: number): this;
+	public subtract(vector: Vector3Structure, scalar?: number): this;
 
 	/**
 	 * Subtracts individual values from this vector's components.
@@ -204,7 +204,7 @@ class Vector3D {
 	 */
 	public subtract(x: number, y?: number, z?: number): this;
 
-	public subtract(a: Vector3DStructure | number, b?: number, c?: number): this {
+	public subtract(a: Vector3Structure | number, b?: number, c?: number): this {
 		if (typeof a === "object") {
 			const scalar = b ?? 1;
 
@@ -233,7 +233,7 @@ class Vector3D {
 	 * vec.multiply(other) // Component-wise multiply
 	 * vec.multiply(other, 2) // Multiply with other vector scaled by 2
 	 */
-	public multiply(vector: Vector3DStructure, scalar?: number): this;
+	public multiply(vector: Vector3Structure, scalar?: number): this;
 
 	/**
 	 * Multiplies this vector's components by individual values.
@@ -249,7 +249,7 @@ class Vector3D {
 	 */
 	public multiply(x: number, y?: number, z?: number): this;
 
-	public multiply(a: Vector3DStructure | number, b?: number, c?: number): this {
+	public multiply(a: Vector3Structure | number, b?: number, c?: number): this {
 		if (typeof a === "object") {
 			const scalar = b ?? 1;
 
@@ -278,7 +278,7 @@ class Vector3D {
 	 * vec.divide(other) // Component-wise divide
 	 * vec.divide(other, 2) // Divide by other vector scaled by 2
 	 */
-	public divide(vector: Vector3DStructure, scalar?: number): this;
+	public divide(vector: Vector3Structure, scalar?: number): this;
 
 	/**
 	 * Divides this vector's components by individual values.
@@ -294,7 +294,7 @@ class Vector3D {
 	 */
 	public divide(x: number, y?: number, z?: number): this;
 
-	public divide(a: Vector3DStructure | number, b?: number, c?: number): this {
+	public divide(a: Vector3Structure | number, b?: number, c?: number): this {
 		if (typeof a === "object") {
 			const scalar = b ?? 1;
 
@@ -373,7 +373,7 @@ class Vector3D {
 	 * // Move this vector 10% of the way to (1, 2, 3)
 	 * position.addDirection(new Vector3D(1, 2, 3), 0.1);
 	 */
-	public interpolate(otherVec: Vector3D, t: number) {
+	public interpolate(otherVec: Vector3, t: number) {
 		this.x += (otherVec.x - this.x) * t;
 		this.y += (otherVec.y - this.y) * t;
 		this.z += (otherVec.z - this.z) * t;
@@ -412,7 +412,7 @@ class Vector3D {
 	 * @param vector - The vector to calculate the dot product with.
 	 * @returns The dot product (scalar value).
 	 */
-	public dot(vector: Vector3DStructure): number {
+	public dot(vector: Vector3Structure): number {
 		return this.x * vector.x + this.y * vector.y + this.z * vector.z;
 	}
 
@@ -423,8 +423,8 @@ class Vector3D {
 	 * @param vector - The vector to calculate the cross product with.
 	 * @returns A new Vector3D perpendicular to both vectors.
 	 */
-	public cross(vector: Vector3DStructure): Vector3D {
-		return new Vector3D(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
+	public cross(vector: Vector3Structure): Vector3 {
+		return new Vector3(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
 	}
 
 	/**
@@ -438,8 +438,8 @@ class Vector3D {
 	 * const b = new Vector3D(1, 2, 3);
 	 * const delta = a.delta(b); // delta is (2, 2, 2)
 	 */
-	public delta(vector: Vector3DStructure): Vector3D {
-		return new Vector3D(vector.x - this.x, vector.y - this.y, vector.z - this.z);
+	public delta(vector: Vector3Structure): Vector3 {
+		return new Vector3(vector.x - this.x, vector.y - this.y, vector.z - this.z);
 	}
 
 	/**
@@ -453,8 +453,8 @@ class Vector3D {
 	 * const b = new Vector3D(4, 4, 4);
 	 * const mid = a.midpoint(b); // mid is (2, 2, 2)
 	 */
-	public midpoint(vector: Vector3DStructure): Vector3D {
-		return new Vector3D((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
+	public midpoint(vector: Vector3Structure): Vector3 {
+		return new Vector3((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
 	}
 
 	/**
@@ -480,7 +480,7 @@ class Vector3D {
 	 * @param point - The point the axis passes through (defaults to origin).
 	 * @returns This vector for method chaining.
 	 */
-	public rotate(angle: number, axis: Vector3DStructure, point: Vector3DStructure = Vector3D.NULL): this {
+	public rotate(angle: number, axis: Vector3Structure, point: Vector3Structure = Vector3.NULL): this {
 		const dx = this.x - point.x;
 		const dy = this.y - point.y;
 		const dz = this.z - point.z;
@@ -517,7 +517,7 @@ class Vector3D {
 	 * @param vector - The point to calculate distance to.
 	 * @returns The distance between the two points.
 	 */
-	public distance(vector: Vector3DStructure): number {
+	public distance(vector: Vector3Structure): number {
 		const dx = this.x - vector.x;
 		const dy = this.y - vector.y;
 		const dz = this.z - vector.z;
@@ -532,7 +532,7 @@ class Vector3D {
 	 * @param vector - The point to calculate squared distance to.
 	 * @returns The squared distance between the two points.
 	 */
-	public distanceSquared(vector: Vector3DStructure): number {
+	public distanceSquared(vector: Vector3Structure): number {
 		const dx = this.x - vector.x;
 		const dy = this.y - vector.y;
 		const dz = this.z - vector.z;
@@ -547,7 +547,7 @@ class Vector3D {
 	 * @param vector - The point to calculate the azimuth to.
 	 * @returns The angle in radians.
 	 */
-	public azimuthTo(vector: Vector3DStructure): number {
+	public azimuthTo(vector: Vector3Structure): number {
 		const dx = vector.x - this.x;
 		const dy = vector.y - this.y;
 
@@ -561,7 +561,7 @@ class Vector3D {
 	 * @param vector - The point to calculate the elevation to.
 	 * @returns The angle in radians.
 	 */
-	public elevationTo(vector: Vector3DStructure): number {
+	public elevationTo(vector: Vector3Structure): number {
 		const dx = vector.x - this.x;
 		const dy = vector.y - this.y;
 		const dz = vector.z - this.z;
@@ -576,7 +576,7 @@ class Vector3D {
 	 * @param p2 - Second endpoint of the line segment.
 	 * @returns The shortest distance to the line segment.
 	 */
-	public segmentDistance(p1: Vector3D, p2: Vector3D): number {
+	public segmentDistance(p1: Vector3, p2: Vector3): number {
 		const projection = this.projectOnSegment(p1, p2);
 
 		return this.distance(projection);
@@ -590,7 +590,7 @@ class Vector3D {
 	 * @param p2 - Second endpoint of the line segment.
 	 * @returns A new Vector3D representing the closest point on the segment.
 	 */
-	public projectOnSegment(p1: Vector3D, p2: Vector3D): Vector3D {
+	public projectOnSegment(p1: Vector3, p2: Vector3): Vector3 {
 		const ab = p2.clone().subtract(p1);
 		const t = clamp(this.clone().subtract(p1).dot(ab) / ab.magnitudeSquared, 0, 1);
 		return p1.clone().add(ab.scale(t));
@@ -603,7 +603,7 @@ class Vector3D {
 	 * @param p - A vector defining the line segment.
 	 * @returns A new Vector3D representing the closest point on the segment.
 	 */
-	public project(p: Vector3D): Vector3D {
+	public project(p: Vector3): Vector3 {
 		const t = this.clone().dot(p) / p.magnitudeSquared;
 		return p.clone().add(p.scale(t));
 	}
@@ -615,7 +615,7 @@ class Vector3D {
 	 * @param normal - The normal vector of the reflecting surface (should be unit length).
 	 * @returns This vector for method chaining.
 	 */
-	public reflect(normal: Vector3DStructure): this {
+	public reflect(normal: Vector3Structure): this {
 		const dotProduct = this.dot(normal);
 
 		return this.subtract(normal, 2 * dotProduct);
@@ -637,9 +637,9 @@ class Vector3D {
 	 * @param vector - The vector to compare against.
 	 * @returns True if the x, y and z components are equal.
 	 */
-	public equals(vector: Vector3DStructure): boolean;
+	public equals(vector: Vector3Structure): boolean;
 
-	public equals(a: Vector3DStructure | number, b?: number, c?: number): boolean {
+	public equals(a: Vector3Structure | number, b?: number, c?: number): boolean {
 		if (typeof a === "object") {
 			return this.x === a.x && this.y === a.y && this.z === a.z;
 		} else {
@@ -664,8 +664,8 @@ class Vector3D {
 	 *
 	 * @returns A new Vector3D instance with the same x, y and z values.
 	 */
-	public clone(): Vector3D {
-		return new Vector3D(this.x, this.y, this.z);
+	public clone(): Vector3 {
+		return new Vector3(this.x, this.y, this.z);
 	}
 
 	/**
@@ -807,7 +807,7 @@ class Vector3D {
 	}
 }
 
-class ObservableVector3D extends Vector3D {
+class ObservableVector3 extends Vector3 {
 	private storedX: number;
 	private storedY: number;
 	private storedZ: number;
@@ -957,4 +957,4 @@ class ObservableVector3D extends Vector3D {
 	}
 }
 
-export { Vector3D as Vector3, ObservableVector3D as ObservableVector3, type Vector3DStructure as Vector3Structure };
+export { Vector3, ObservableVector3, type Vector3Structure };

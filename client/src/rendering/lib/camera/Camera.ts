@@ -4,7 +4,13 @@ import { clamp } from "../../../../../shared/math/utils";
 export type OrbitTarget = { readonly x: number; readonly y: number; readonly z: number };
 
 export type OrbitCameraOptions = Partial<{
+	/** The vertical field of view the game is designed for, in degrees. */
 	readonly fov: number;
+	/**
+	 * The narrowest the horizontal field of view may get, in degrees: on a screen narrower than that
+	 * allows, as a phone held upright, the view widens rather than cutting the sides off. 0 turns it off.
+	 */
+	readonly minHorizontalFov: number;
 	readonly near: number;
 	readonly far: number;
 	readonly yaw: number;
@@ -64,8 +70,14 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 
 	protected free = false;
 
+	private verticalFovDegrees: number;
+	private minHorizontalFovDegrees: number;
+
 	public constructor(options: OrbitCameraOptions = {}) {
 		super(options.fov ?? 75, 1, options.near ?? 0.1, options.far ?? 1000);
+
+		this.verticalFovDegrees = this.fov;
+		this.minHorizontalFovDegrees = options.minHorizontalFov ?? 60;
 
 		this.yaw = options.yaw ?? 0;
 		this.pitch = options.pitch ?? 0.6;
@@ -115,6 +127,41 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 
 	public toggleDetached(): this {
 		return this.setDetached(!this.free);
+	}
+
+	/**
+	 * Match a canvas of that shape: the vertical field of view the game asked for, widened when the
+	 * screen is too narrow to show `minHorizontalFov` across. What the renderer calls on every resize.
+	 */
+	public fit(aspect: number = this.aspect): this {
+		const narrowest = this.minHorizontalFovDegrees;
+		const needed = narrowest > 0 ? 2 * Math.atan(Math.tan((narrowest * Math.PI) / 360) / aspect) * (180 / Math.PI) : 0;
+
+		this.aspect = aspect;
+		this.fov = Math.max(this.verticalFovDegrees, needed);
+		this.updateProjectionMatrix();
+
+		return this;
+	}
+
+	/** The vertical field of view the game is designed for, in degrees; the one shown unless the screen is too narrow. */
+	public get verticalFov(): number {
+		return this.verticalFovDegrees;
+	}
+
+	public set verticalFov(degrees: number) {
+		this.verticalFovDegrees = degrees;
+		this.fit();
+	}
+
+	/** The narrowest the horizontal field of view may get, in degrees. 0 turns it off. */
+	public get minHorizontalFov(): number {
+		return this.minHorizontalFovDegrees;
+	}
+
+	public set minHorizontalFov(degrees: number) {
+		this.minHorizontalFovDegrees = degrees;
+		this.fit();
 	}
 
 	/** Lens zoom, clamped to minZoom..maxZoom. Takes effect immediately. */

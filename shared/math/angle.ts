@@ -1,23 +1,4 @@
-import { randomFloat } from "./random";
 import { wrap } from "./utils";
-
-/**
- * Generates a random angle within a specified range.
- *
- * @param min - The minimum angle in radians (defaults to 0).
- * @param max - The maximum angle in radians (defaults to 2π).
- * @param random - Optional custom random function (defaults to Math.random).
- * @returns A random angle between min and max.
- * @throws {RangeError} If min is greater than max.
- *
- * @example
- * randomAngle() // Random angle between 0 and 2π
- * randomAngle(0, Math.PI) // Random angle between 0 and π
- * randomAngle(-Math.PI, Math.PI) // Random angle between -π and π
- */
-export function randomAngle(min: number = 0, max: number = 2 * Math.PI, random = Math.random): number {
-	return randomFloat(min, max, random);
-}
 
 /**
  * Calculates the shortest angular distance between two angles.

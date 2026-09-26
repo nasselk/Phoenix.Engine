@@ -376,7 +376,6 @@ export class NetworkSystem extends EventEmitter {
         this.requestsRate.clear();
         this.socketIDs.clear();
         this.server?.stop(true);
-        this.server = undefined;
         log("Networking Server", "Stopped the WebSocket server.");
         this.emit("destroy");
         this.removeAllListeners();

@@ -1,52 +1,52 @@
-type Vector3DStructure = {
+type Vector3Structure = {
     x: number;
     y: number;
     z: number;
 };
-declare class Vector3D {
-    static readonly NULL: Vector3D;
-    static readonly TEMP1: Vector3D;
-    static readonly TEMP2: Vector3D;
-    static readonly TEMP3: Vector3D;
-    static readonly TEMP4: Vector3D;
-    static readonly TEMP5: Vector3D;
+declare class Vector3 {
+    static readonly NULL: Vector3;
+    static readonly TEMP1: Vector3;
+    static readonly TEMP2: Vector3;
+    static readonly TEMP3: Vector3;
+    static readonly TEMP4: Vector3;
+    static readonly TEMP5: Vector3;
     x: number;
     y: number;
     z: number;
     constructor(x?: number, y?: number, z?: number);
     constructor(azimuth: number, elevation: number, length: number, polar: true);
-    set(vector: Vector3DStructure, scalar?: number): this;
+    set(vector: Vector3Structure, scalar?: number): this;
     set(x: number, y?: number, z?: number): this;
-    add(vector: Vector3DStructure, scalar?: number): this;
+    add(vector: Vector3Structure, scalar?: number): this;
     add(x: number, y?: number, z?: number): this;
-    subtract(vector: Vector3DStructure, scalar?: number): this;
+    subtract(vector: Vector3Structure, scalar?: number): this;
     subtract(x: number, y?: number, z?: number): this;
-    multiply(vector: Vector3DStructure, scalar?: number): this;
+    multiply(vector: Vector3Structure, scalar?: number): this;
     multiply(x: number, y?: number, z?: number): this;
-    divide(vector: Vector3DStructure, scalar?: number): this;
+    divide(vector: Vector3Structure, scalar?: number): this;
     divide(x: number, y?: number, z?: number): this;
     scale(scalar: number): this;
     addDirection(azimuth: number, elevation: number, distance: number): this;
-    interpolate(otherVec: Vector3D, t: number): this;
+    interpolate(otherVec: Vector3, t: number): this;
     setDirection(azimuth: number, elevation: number, distance: number): this;
-    dot(vector: Vector3DStructure): number;
-    cross(vector: Vector3DStructure): Vector3D;
-    delta(vector: Vector3DStructure): Vector3D;
-    midpoint(vector: Vector3DStructure): Vector3D;
+    dot(vector: Vector3Structure): number;
+    cross(vector: Vector3Structure): Vector3;
+    delta(vector: Vector3Structure): Vector3;
+    midpoint(vector: Vector3Structure): Vector3;
     normalize(): this;
-    rotate(angle: number, axis: Vector3DStructure, point?: Vector3DStructure): this;
-    distance(vector: Vector3DStructure): number;
-    distanceSquared(vector: Vector3DStructure): number;
-    azimuthTo(vector: Vector3DStructure): number;
-    elevationTo(vector: Vector3DStructure): number;
-    segmentDistance(p1: Vector3D, p2: Vector3D): number;
-    projectOnSegment(p1: Vector3D, p2: Vector3D): Vector3D;
-    project(p: Vector3D): Vector3D;
-    reflect(normal: Vector3DStructure): this;
+    rotate(angle: number, axis: Vector3Structure, point?: Vector3Structure): this;
+    distance(vector: Vector3Structure): number;
+    distanceSquared(vector: Vector3Structure): number;
+    azimuthTo(vector: Vector3Structure): number;
+    elevationTo(vector: Vector3Structure): number;
+    segmentDistance(p1: Vector3, p2: Vector3): number;
+    projectOnSegment(p1: Vector3, p2: Vector3): Vector3;
+    project(p: Vector3): Vector3;
+    reflect(normal: Vector3Structure): this;
     equals(x: number, y?: number, z?: number): boolean;
-    equals(vector: Vector3DStructure): boolean;
+    equals(vector: Vector3Structure): boolean;
     toString(): string;
-    clone(): Vector3D;
+    clone(): Vector3;
     get magnitude(): number;
     set magnitude(value: number);
     get magnitudeSquared(): number;
@@ -60,7 +60,7 @@ declare class Vector3D {
     get max(): number;
     get min(): number;
 }
-declare class ObservableVector3D extends Vector3D {
+declare class ObservableVector3 extends Vector3 {
     private storedX;
     private storedY;
     private storedZ;
@@ -75,4 +75,4 @@ declare class ObservableVector3D extends Vector3D {
     hasUpdatedZ(minimumDelta?: number): boolean;
     hasUpdated(minimumDelta?: number): boolean;
 }
-export { Vector3D as Vector3, ObservableVector3D as ObservableVector3, type Vector3DStructure as Vector3Structure };
+export { Vector3, ObservableVector3, type Vector3Structure };

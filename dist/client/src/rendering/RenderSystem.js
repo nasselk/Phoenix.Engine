@@ -90,8 +90,7 @@ export class RenderSystem extends EventEmitter {
         height ?? (height = bounds.height * devicePixelRatio);
         this.emit("resize", width, height);
         this.three.setSize(width * this.resolution, height * this.resolution, false);
-        this.camera.aspect = width / height;
-        this.camera.updateProjectionMatrix();
+        this.camera.fit(width / height);
         return this;
     }
     destroy(view = false) {

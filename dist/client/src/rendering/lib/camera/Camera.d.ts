@@ -6,6 +6,7 @@ export type OrbitTarget = {
 };
 export type OrbitCameraOptions = Partial<{
     readonly fov: number;
+    readonly minHorizontalFov: number;
     readonly near: number;
     readonly far: number;
     readonly yaw: number;
@@ -40,12 +41,19 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     protected element?: HTMLElement | Window;
     protected orbiting: boolean;
     protected free: boolean;
+    private verticalFovDegrees;
+    private minHorizontalFovDegrees;
     constructor(options?: OrbitCameraOptions);
     get detached(): boolean;
     setDetached(detached: boolean): this;
     detach(): this;
     reattach(): this;
     toggleDetached(): this;
+    fit(aspect?: number): this;
+    get verticalFov(): number;
+    set verticalFov(degrees: number);
+    get minHorizontalFov(): number;
+    set minHorizontalFov(degrees: number);
     setZoom(zoom: number): this;
     get isOrbiting(): boolean;
     rotate(yaw: number, pitch: number): this;

@@ -1,5 +1,5 @@
 import { clamp } from "./utils";
-class Vector3D {
+class Vector3 {
     constructor(a = 0, b = a, c = b, polar = false) {
         if (polar) {
             this.x = c * Math.cos(b) * Math.cos(a);
@@ -123,13 +123,13 @@ class Vector3D {
         return this.x * vector.x + this.y * vector.y + this.z * vector.z;
     }
     cross(vector) {
-        return new Vector3D(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
+        return new Vector3(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
     }
     delta(vector) {
-        return new Vector3D(vector.x - this.x, vector.y - this.y, vector.z - this.z);
+        return new Vector3(vector.x - this.x, vector.y - this.y, vector.z - this.z);
     }
     midpoint(vector) {
-        return new Vector3D((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
+        return new Vector3((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
     }
     normalize() {
         if (this.isNull) {
@@ -138,7 +138,7 @@ class Vector3D {
         const magnitude = this.magnitude;
         return this.divide(magnitude);
     }
-    rotate(angle, axis, point = Vector3D.NULL) {
+    rotate(angle, axis, point = Vector3.NULL) {
         const dx = this.x - point.x;
         const dy = this.y - point.y;
         const dz = this.z - point.z;
@@ -214,7 +214,7 @@ class Vector3D {
         return `Vector3(${this.x}, ${this.y}, ${this.z})`;
     }
     clone() {
-        return new Vector3D(this.x, this.y, this.z);
+        return new Vector3(this.x, this.y, this.z);
     }
     get magnitude() {
         return Math.sqrt(this.x ** 2 + this.y ** 2 + this.z ** 2);
@@ -267,13 +267,13 @@ class Vector3D {
         return Math.min(this.x, this.y, this.z);
     }
 }
-Vector3D.NULL = Object.freeze(new Vector3D());
-Vector3D.TEMP1 = new Vector3D();
-Vector3D.TEMP2 = new Vector3D();
-Vector3D.TEMP3 = new Vector3D();
-Vector3D.TEMP4 = new Vector3D();
-Vector3D.TEMP5 = new Vector3D();
-class ObservableVector3D extends Vector3D {
+Vector3.NULL = Object.freeze(new Vector3());
+Vector3.TEMP1 = new Vector3();
+Vector3.TEMP2 = new Vector3();
+Vector3.TEMP3 = new Vector3();
+Vector3.TEMP4 = new Vector3();
+Vector3.TEMP5 = new Vector3();
+class ObservableVector3 extends Vector3 {
     constructor(a = 0, b = a, c = b, polar = false) {
         super(a, b, c, polar);
         this.storedX = this.x;
@@ -326,4 +326,4 @@ class ObservableVector3D extends Vector3D {
         return false;
     }
 }
-export { Vector3D as Vector3, ObservableVector3D as ObservableVector3 };
+export { Vector3, ObservableVector3 };

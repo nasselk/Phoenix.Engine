@@ -205,8 +205,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.three.setSize(width * this.resolution, height * this.resolution, false);
 
-		this.camera.aspect = width / height;
-		this.camera.updateProjectionMatrix();
+		this.camera.fit(width / height);
 
 		return this;
 	}

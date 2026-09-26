@@ -26,6 +26,7 @@ export type LoopStats = {
     };
 };
 export declare class GameLoop extends EventEmitter<GameLoopEvents> {
+    static readonly MAX_CATCH_UP = 5;
     lastTickTime: number;
     speed: number;
     maxTickRate: number;
@@ -39,6 +40,7 @@ export declare class GameLoop extends EventEmitter<GameLoopEvents> {
     resume(): this;
     pause(): this;
     private tick;
+    private run;
     private computeStats;
     destroy(): void;
     get paused(): boolean;
