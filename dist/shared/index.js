@@ -15,6 +15,7 @@ export { wait } from "./utils/timers/wait";
 export { Interpolator } from "./math/interpolation";
 export { ObservableVector2, Vector2 } from "./math/vector2";
 export { ObservableVector3, Vector3 } from "./math/vector3";
+export { eulerToQuaternion, ObservableQuaternion, Quaternion, quaternionToEuler } from "./math/quaternion";
 export { clamp, wrap } from "./math/utils";
 export { censorText, normalizeText, validateText } from "./utils/validation/text";
 export { randomElement, randomFloat, randomInt, randomAngle, randomBoolean, weightedRandom } from "./math/random";

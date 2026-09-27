@@ -1,4 +1,4 @@
-import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-compat";
+import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
 import { PositionEntity, type PositionEntityOptions } from "./position";
 import type { World } from "../world";
 

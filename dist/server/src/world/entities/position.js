@@ -1,8 +1,6 @@
-import { BufferWriter } from "@nasselk/binarypack";
 import { ObservableVector3 } from "../../../../shared/math/vector3";
-import { eulerToQuaternion, quaternionToEuler } from "../../../../shared/physics/rapier";
+import { ObservableQuaternion } from "../../../../shared/math/quaternion";
 import { Entity } from "./entity";
-import { wrap } from "../../../../shared";
 export const POSITION_EPSILON = 0.000001;
 export const ROTATION_EPSILON = 0.01;
 export class PositionEntity extends Entity {
@@ -10,7 +8,8 @@ export class PositionEntity extends Entity {
         super(world, context, options);
         this.turns = true;
         this.position = new ObservableVector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
-        this.rotation = new ObservableVector3(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
+        this.rotation = new ObservableQuaternion().setFromEuler(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
+        this.rotation.store();
     }
     embody(body, ...shapes) {
         const { physics } = this.room;
@@ -19,7 +18,7 @@ export class PositionEntity extends Entity {
             physics.removeRigidBody(this.body);
         }
         body.setTranslation(position.x, position.y, position.z);
-        body.setRotation(eulerToQuaternion(rotation.x, rotation.y, rotation.z, { x: 0, y: 0, z: 0, w: 1 }));
+        body.setRotation(rotation.clone());
         body.userData = this;
         this.turns = body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ;
         this.body = physics.createRigidBody(body);
@@ -32,7 +31,7 @@ export class PositionEntity extends Entity {
     beforePhysics() {
         if (!this.turns) {
             const { body, rotation } = this;
-            body?.setRotation(eulerToQuaternion(rotation.x, rotation.y, rotation.z, PositionEntity.quaternion), false);
+            body?.setRotation(rotation, false);
         }
     }
     afterPhysics() {
@@ -40,8 +39,7 @@ export class PositionEntity extends Entity {
         const { x, y, z } = body.translation();
         this.position.set(x, y, z);
         if (this.turns) {
-            const [pitch, yaw, roll] = quaternionToEuler(body.rotation(), PositionEntity.euler);
-            this.rotation.set(pitch, yaw, roll);
+            this.rotation.set(body.rotation());
         }
     }
     onDestroy() {
@@ -61,27 +59,18 @@ export class PositionEntity extends Entity {
         writer.writeFloat32(position.x);
         writer.writeFloat32(position.y);
         writer.writeFloat32(position.z);
-        const rx = BufferWriter.toPrecision(wrap(rotation.x, 0, 2 * Math.PI), 2 * Math.PI, 8);
-        const ry = BufferWriter.toPrecision(wrap(rotation.y, 0, 2 * Math.PI), 2 * Math.PI, 8);
-        const rz = BufferWriter.toPrecision(wrap(rotation.z, 0, 2 * Math.PI), 2 * Math.PI, 8);
-        writer.writeUint8(rx);
-        writer.writeUint8(ry);
-        writer.writeUint8(rz);
+        writer.writeUint32(rotation.pack());
     }
     serializeUpdate(writer) {
         const { position, rotation } = this;
         const px = position.hasUpdatedX(POSITION_EPSILON);
         const py = position.hasUpdatedY(POSITION_EPSILON);
         const pz = position.hasUpdatedZ(POSITION_EPSILON);
-        const rx = rotation.hasUpdatedX(ROTATION_EPSILON);
-        const ry = rotation.hasUpdatedY(ROTATION_EPSILON);
-        const rz = rotation.hasUpdatedZ(ROTATION_EPSILON);
+        const turned = rotation.hasUpdated(ROTATION_EPSILON);
         writer.writeBoolean(px);
         writer.writeBoolean(py);
         writer.writeBoolean(pz);
-        writer.writeBoolean(rx);
-        writer.writeBoolean(ry);
-        writer.writeBoolean(rz);
+        writer.writeBoolean(turned);
         if (px) {
             writer.writeFloat32(position.x);
         }
@@ -91,31 +80,20 @@ export class PositionEntity extends Entity {
         if (pz) {
             writer.writeFloat32(position.z);
         }
-        if (rx) {
-            const rotation = BufferWriter.toPrecision(wrap(this.rotation.x, 0, 2 * Math.PI), 2 * Math.PI, 8);
-            writer.writeUint8(rotation);
-        }
-        if (ry) {
-            const rotation = BufferWriter.toPrecision(wrap(this.rotation.y, 0, 2 * Math.PI), 2 * Math.PI, 8);
-            writer.writeUint8(rotation);
-        }
-        if (rz) {
-            const rotation = BufferWriter.toPrecision(wrap(this.rotation.z, 0, 2 * Math.PI), 2 * Math.PI, 8);
-            writer.writeUint8(rotation);
+        if (turned) {
+            writer.writeUint32(rotation.pack());
         }
     }
     get room() {
         return this.world;
     }
     get yaw() {
-        return this.rotation.y;
+        return this.rotation.yaw;
     }
     set yaw(value) {
-        this.rotation.y = value;
+        this.rotation.setFromYaw(value);
     }
     get isDirty() {
         return this.position.hasUpdated(POSITION_EPSILON) || this.rotation.hasUpdated(ROTATION_EPSILON);
     }
 }
-PositionEntity.quaternion = { x: 0, y: 0, z: 0, w: 1 };
-PositionEntity.euler = [0, 0, 0];

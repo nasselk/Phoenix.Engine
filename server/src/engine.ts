@@ -129,12 +129,12 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		return rooms;
 	}
 
-	/** The public room with the most players that still has a free seat, for quick play. Undefined when none has one. */
-	public fullestRoom(): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {
+	/** The public room with the most players that still has a free seat, for quick play, leaving out the rooms whose invite codes are in `exclude`. Undefined when none has one. */
+	public fullestRoom(...exclude: string[]): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {
 		let fullest: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
 
 		for (const room of this.rooms.values()) {
-			if (room.public && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+			if (room.public && !exclude.includes(room.inviteCode) && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
 				fullest = room;
 			}
 		}

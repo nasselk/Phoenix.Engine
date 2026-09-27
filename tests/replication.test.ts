@@ -5,7 +5,8 @@ import { World as ClientWorld } from "../client/src/world/world";
 import { MovingEntity } from "../server/src/world/entities/moving";
 import { Seen } from "../server/src/world/replication";
 import { World as ServerWorld } from "../server/src/world/world";
-import { RAPIER, eulerToQuaternion, initPhysics } from "../shared/physics/rapier";
+import { RAPIER, initPhysics } from "../shared/physics/rapier";
+import { Quaternion } from "../shared/math/quaternion";
 import { defineEntities } from "../shared/world/registry";
 
 class ServerBox extends MovingEntity<undefined> {
@@ -151,25 +152,29 @@ describe("replication", () => {
 		expect(second.get(box.id, ClientBox)?.position.x).toBe(7);
 	});
 
-	test("each rotation axis arrives on its own axis", () => {
+	test("a rotation arrives as the same rotation, within 0.25°", () => {
 		const { server, client, socket } = createRooms();
 		const box = server.spawn("box", { fixed: true });
 
 		send(server, client, socket);
 
-		const turns = [0.4, 1.1, -0.7];
+		const turned = new Quaternion().setFromEuler(0.4, 1.1, -0.7);
 
-		box.body!.setRotation(eulerToQuaternion(turns[0]!, turns[1]!, turns[2]!, { x: 0, y: 0, z: 0, w: 1 }), false);
+		box.body!.setRotation(turned, false);
 		server.update(1 / 60);
 		send(server, client, socket);
 
-		const { targetRotation } = client.get(box.id, ClientBox)!;
-		const step = (2 * Math.PI) / 255;
+		expect(client.get(box.id, ClientBox)!.targetRotation.angleTo(turned)).toBeLessThan((0.25 * Math.PI) / 180);
+	});
 
-		for (const [axis, angle] of [targetRotation.x, targetRotation.y, targetRotation.z].entries()) {
-			const difference = Math.abs(Math.atan2(Math.sin(angle - turns[axis]!), Math.cos(angle - turns[axis]!)));
+	test("a spawn arrives turned the way it is", () => {
+		const { server, client, socket } = createRooms();
+		const box = server.spawn("box", { fixed: true });
 
-			expect(difference).toBeLessThan(step);
-		}
+		box.body!.setRotation(new Quaternion().setFromEuler(1.2, -2.5, 0.3), false);
+		server.update(1 / 60);
+		send(server, client, socket);
+
+		expect(client.get(box.id, ClientBox)!.rotation.angleTo(box.rotation)).toBeLessThan((0.25 * Math.PI) / 180);
 	});
 });

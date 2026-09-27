@@ -65,13 +65,13 @@ The engine is installed from GitHub, with its peer dependencies installed by the
 
 ```sh
 bun add github:nasselk/Phoenix.Engine
-bun add @dimforge/rapier3d-compat   # server: physics
+bun add @dimforge/rapier3d-simd-compat   # server: physics
 bun add three svelte                # client: rendering and UI
 ```
 
 | Peer dependency | Version | Needed by |
 | --- | --- | --- |
-| `@dimforge/rapier3d-compat` | `^0.20.0` | the server |
+| `@dimforge/rapier3d-simd-compat` | `^0.20.0` | the server |
 | `three` | `^0.186.0` | the client |
 | `svelte` | `^5.57.1` | the client, when using the UI kit |
 
@@ -84,7 +84,7 @@ A bouncing ball, simulated on the server and drawn on every connected client.
 ### Server
 
 ```ts
-import { ColliderDesc, RigidBodyDesc } from "@dimforge/rapier3d-compat";
+import { ColliderDesc, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
 import { defineEntities, Engine, MovingEntity, type MovingEntityOptions, type World } from "phoenix.engine/server";
 
 class Ball extends MovingEntity<unknown> {

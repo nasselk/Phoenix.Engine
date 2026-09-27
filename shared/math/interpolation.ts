@@ -2,6 +2,7 @@ import { Vector3Like } from "three";
 import { extractRGBA } from "../utils/color";
 
 import { normalizeAnglePI } from "./angle";
+import type { Quaternion } from "./quaternion";
 
 const view = (globalThis as any).document; // Check if running in a browser environment
 
@@ -48,6 +49,17 @@ export function lerpVector(start: Vector3Like, end: Vector3Like, factor: number,
 	start.x = lerp(start.x, end.x, factor, deltaTime, limit);
 	start.y = lerp(start.y, end.y, factor, deltaTime, limit);
 	start.z = lerp(start.z, end.z, factor, deltaTime, limit);
+}
+
+/** Turn `start` toward `end` the way `lerp` moves a number, and snap once less than `limit` radians apart. */
+export function slerpQuaternion(start: Quaternion, end: Quaternion, factor: number, deltaTime: number = 1, limit: number = 0): void {
+	if (start.angleTo(end) < limit || view?.hidden) {
+		start.set(end);
+
+		return;
+	}
+
+	start.slerp(end, 1 - Math.pow(1 - factor, deltaTime));
 }
 
 function lerpColor(start: string, end: string, factor: number = 0.05, deltaTime: number = 1, limit: number = 0): string {
@@ -115,6 +127,7 @@ export const Interpolator = {
 	lerp,
 	lerpAngle,
 	lerpVector,
+	slerpQuaternion,
 	lerpColor,
 	clampedLerp,
 	tween,

@@ -1,4 +1,5 @@
 import { Vector3Like } from "three";
+import type { Quaternion } from "./quaternion";
 export declare const enum InterpolationCurve {
     LINEAR = 0,
     EASE_IN = 1,
@@ -8,6 +9,7 @@ export declare const enum InterpolationCurve {
 declare function lerp(start: number, end: number, factor: number, deltaTime?: number, limit?: number): number;
 declare function lerpAngle(start: number, end: number, factor: number, deltaTime?: number, limit?: number): number;
 export declare function lerpVector(start: Vector3Like, end: Vector3Like, factor: number, deltaTime?: number, limit?: number): void;
+export declare function slerpQuaternion(start: Quaternion, end: Quaternion, factor: number, deltaTime?: number, limit?: number): void;
 declare function lerpColor(start: string, end: string, factor?: number, deltaTime?: number, limit?: number): string;
 declare function clampedLerp(start: number, end: number, t: number, startT: number, endT: number): number;
 declare function tween(start: number, end: number, duration: number, elapsed: number, curve?: InterpolationCurve): number;
@@ -18,6 +20,7 @@ export declare const Interpolator: {
     lerp: typeof lerp;
     lerpAngle: typeof lerpAngle;
     lerpVector: typeof lerpVector;
+    slerpQuaternion: typeof slerpQuaternion;
     lerpColor: typeof lerpColor;
     clampedLerp: typeof clampedLerp;
     tween: typeof tween;

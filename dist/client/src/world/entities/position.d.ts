@@ -1,5 +1,6 @@
 import { BufferReader } from "@nasselk/binarypack";
 import { Vector3 } from "../../../../shared/math/vector3";
+import { Quaternion } from "../../../../shared/math/quaternion";
 import { Group } from "three";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
@@ -19,8 +20,8 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     private static readonly SNAP_ANGLE;
     readonly position: Vector3;
     readonly targetPosition: Vector3;
-    readonly rotation: Vector3;
-    readonly targetRotation: Vector3;
+    readonly rotation: Quaternion;
+    readonly targetRotation: Quaternion;
     readonly group: Group;
     positionSmoothing: boolean;
     smoothing: number;
@@ -33,4 +34,5 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     protected syncGroup(): void;
     deserialize(reader: BufferReader): void;
     deserializeUpdate(reader: BufferReader): void;
+    get yaw(): number;
 }

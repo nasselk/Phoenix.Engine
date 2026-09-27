@@ -1,6 +1,7 @@
 import { BufferReader } from "@nasselk/binarypack";
 import { Interpolator } from "../../../../shared/math/interpolation";
 import { Vector3 } from "../../../../shared/math/vector3";
+import { Quaternion } from "../../../../shared/math/quaternion";
 import { Group } from "three";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
@@ -24,8 +25,8 @@ export abstract class PositionEntity<C> extends Entity<C> {
 	public readonly position: Vector3;
 	public readonly targetPosition: Vector3;
 
-	public readonly rotation: Vector3;
-	public readonly targetRotation: Vector3;
+	public readonly rotation: Quaternion;
+	public readonly targetRotation: Quaternion;
 
 	/**
 	 * This entity in the scene. What it draws goes in as children, placed in its local space, and
@@ -44,7 +45,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 		this.position = new Vector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
 		this.targetPosition = this.position.clone();
-		this.rotation = new Vector3(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
+		this.rotation = new Quaternion().setFromEuler(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
 		this.targetRotation = this.rotation.clone();
 
 		this.group = new Group();
@@ -81,7 +82,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		if (this.rotationInterpolation) {
 			const { rotation, targetRotation, rotationSmoothing } = this;
 
-			rotation.set(Interpolator.lerpAngle(rotation.x, targetRotation.x, rotationSmoothing, frames, SNAP_ANGLE), Interpolator.lerpAngle(rotation.y, targetRotation.y, rotationSmoothing, frames, SNAP_ANGLE), Interpolator.lerpAngle(rotation.z, targetRotation.z, rotationSmoothing, frames, SNAP_ANGLE));
+			Interpolator.slerpQuaternion(rotation, targetRotation, rotationSmoothing, frames, SNAP_ANGLE);
 		} else {
 			this.rotation.set(this.targetRotation);
 		}
@@ -94,7 +95,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		const { position, rotation, group } = this;
 
 		group.position.set(position.x, position.y, position.z);
-		group.rotation.set(rotation.x, rotation.y, rotation.z);
+		group.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w);
 	}
 
 	public override deserialize(reader: BufferReader): void {
@@ -102,12 +103,8 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		const y = reader.readFloat32();
 		const z = reader.readFloat32();
 
-		const pitch = BufferReader.fromPrecision(reader.readUint8(), 2 * Math.PI, 8);
-		const yaw = BufferReader.fromPrecision(reader.readUint8(), 2 * Math.PI, 8);
-		const roll = BufferReader.fromPrecision(reader.readUint8(), 2 * Math.PI, 8);
-
 		this.targetPosition.set(x, y, z);
-		this.targetRotation.set(pitch, yaw, roll);
+		this.targetRotation.unpack(reader.readUint32());
 
 		this.position.set(this.targetPosition);
 		this.rotation.set(this.targetRotation);
@@ -117,11 +114,9 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		const px = reader.readBoolean();
 		const py = reader.readBoolean();
 		const pz = reader.readBoolean();
-		const rx = reader.readBoolean();
-		const ry = reader.readBoolean();
-		const rz = reader.readBoolean();
+		const turned = reader.readBoolean();
 
-		const { targetPosition, targetRotation } = this;
+		const { targetPosition } = this;
 
 		if (px) {
 			targetPosition.x = reader.readFloat32();
@@ -135,22 +130,13 @@ export abstract class PositionEntity<C> extends Entity<C> {
 			targetPosition.z = reader.readFloat32();
 		}
 
-		if (rx) {
-			const rotation = reader.readUint8();
-
-			targetRotation.x = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
+		if (turned) {
+			this.targetRotation.unpack(reader.readUint32());
 		}
+	}
 
-		if (ry) {
-			const rotation = reader.readUint8();
-
-			targetRotation.y = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
-		}
-
-		if (rz) {
-			const rotation = reader.readUint8();
-
-			targetRotation.z = BufferReader.fromPrecision(rotation, 2 * Math.PI, 8);
-		}
+	/** Which way it faces on the ground. */
+	public get yaw(): number {
+		return this.rotation.yaw;
 	}
 }

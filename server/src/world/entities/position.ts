@@ -1,11 +1,10 @@
-import type { ColliderDesc, RigidBody, RigidBodyDesc, Rotation } from "@dimforge/rapier3d-compat";
+import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
 import { BufferWriter } from "@nasselk/binarypack";
 import { ObservableVector3 } from "../../../../shared/math/vector3";
-import { eulerToQuaternion, quaternionToEuler } from "../../../../shared/physics/rapier";
+import { ObservableQuaternion } from "../../../../shared/math/quaternion";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";
-import { wrap } from "../../../../shared";
 
 export const POSITION_EPSILON = 0.000001;
 
@@ -21,12 +20,9 @@ export type PositionEntityOptions = EntityOptions & {
 };
 
 export abstract class PositionEntity<C> extends Entity<C> {
-	/** Scratch space for the rotation conversions, which run for every body every tick. */
-	private static readonly quaternion: Rotation = { x: 0, y: 0, z: 0, w: 1 };
-	private static readonly euler: [number, number, number] = [0, 0, 0];
-
 	public readonly position: ObservableVector3;
-	public readonly rotation: ObservableVector3;
+	/** Which way it is turned. Set it with `setFromEuler` or `yaw`; read which way it faces with `yaw`. */
+	public readonly rotation: ObservableQuaternion;
 
 	/**
 	 * Its body in the room's physics, once `embody` has given it one. From then on the physics moves
@@ -44,7 +40,8 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		super(world, context, options);
 
 		this.position = new ObservableVector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
-		this.rotation = new ObservableVector3(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
+		this.rotation = new ObservableQuaternion().setFromEuler(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
+		this.rotation.store();
 	}
 
 	/**
@@ -62,7 +59,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		}
 
 		body.setTranslation(position.x, position.y, position.z);
-		body.setRotation(eulerToQuaternion(rotation.x, rotation.y, rotation.z, { x: 0, y: 0, z: 0, w: 1 }));
+		body.setRotation(rotation.clone());
 		body.userData = this;
 
 		this.turns = body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ;
@@ -82,7 +79,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		if (!this.turns) {
 			const { body, rotation } = this;
 
-			body?.setRotation(eulerToQuaternion(rotation.x, rotation.y, rotation.z, PositionEntity.quaternion), false);
+			body?.setRotation(rotation, false);
 		}
 	}
 
@@ -94,9 +91,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		this.position.set(x, y, z);
 
 		if (this.turns) {
-			const [pitch, yaw, roll] = quaternionToEuler(body.rotation(), PositionEntity.euler);
-
-			this.rotation.set(pitch, yaw, roll);
+			this.rotation.set(body.rotation());
 		}
 	}
 
@@ -122,14 +117,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		writer.writeFloat32(position.x);
 		writer.writeFloat32(position.y);
 		writer.writeFloat32(position.z);
-
-		const rx = BufferWriter.toPrecision(wrap(rotation.x, 0, 2 * Math.PI), 2 * Math.PI, 8);
-		const ry = BufferWriter.toPrecision(wrap(rotation.y, 0, 2 * Math.PI), 2 * Math.PI, 8);
-		const rz = BufferWriter.toPrecision(wrap(rotation.z, 0, 2 * Math.PI), 2 * Math.PI, 8);
-
-		writer.writeUint8(rx);
-		writer.writeUint8(ry);
-		writer.writeUint8(rz);
+		writer.writeUint32(rotation.pack());
 	}
 
 	public override serializeUpdate(writer: BufferWriter): void {
@@ -138,16 +126,12 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		const px = position.hasUpdatedX(POSITION_EPSILON);
 		const py = position.hasUpdatedY(POSITION_EPSILON);
 		const pz = position.hasUpdatedZ(POSITION_EPSILON);
-		const rx = rotation.hasUpdatedX(ROTATION_EPSILON);
-		const ry = rotation.hasUpdatedY(ROTATION_EPSILON);
-		const rz = rotation.hasUpdatedZ(ROTATION_EPSILON);
+		const turned = rotation.hasUpdated(ROTATION_EPSILON);
 
 		writer.writeBoolean(px);
 		writer.writeBoolean(py);
 		writer.writeBoolean(pz);
-		writer.writeBoolean(rx);
-		writer.writeBoolean(ry);
-		writer.writeBoolean(rz);
+		writer.writeBoolean(turned);
 
 		if (px) {
 			writer.writeFloat32(position.x);
@@ -161,22 +145,8 @@ export abstract class PositionEntity<C> extends Entity<C> {
 			writer.writeFloat32(position.z);
 		}
 
-		if (rx) {
-			const rotation = BufferWriter.toPrecision(wrap(this.rotation.x, 0, 2 * Math.PI), 2 * Math.PI, 8);
-
-			writer.writeUint8(rotation);
-		}
-
-		if (ry) {
-			const rotation = BufferWriter.toPrecision(wrap(this.rotation.y, 0, 2 * Math.PI), 2 * Math.PI, 8);
-
-			writer.writeUint8(rotation);
-		}
-
-		if (rz) {
-			const rotation = BufferWriter.toPrecision(wrap(this.rotation.z, 0, 2 * Math.PI), 2 * Math.PI, 8);
-
-			writer.writeUint8(rotation);
+		if (turned) {
+			writer.writeUint32(rotation.pack());
 		}
 	}
 
@@ -184,12 +154,13 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		return this.world as World<any, any>;
 	}
 
+	/** Which way it faces on the ground. Setting it turns it upright to face that way. */
 	public get yaw(): number {
-		return this.rotation.y;
+		return this.rotation.yaw;
 	}
 
 	public set yaw(value: number) {
-		this.rotation.y = value;
+		this.rotation.setFromYaw(value);
 	}
 
 	public override get isDirty(): boolean {

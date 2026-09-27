@@ -26,6 +26,13 @@ export function lerpVector(start, end, factor, deltaTime, limit) {
     start.y = lerp(start.y, end.y, factor, deltaTime, limit);
     start.z = lerp(start.z, end.z, factor, deltaTime, limit);
 }
+export function slerpQuaternion(start, end, factor, deltaTime = 1, limit = 0) {
+    if (start.angleTo(end) < limit || view?.hidden) {
+        start.set(end);
+        return;
+    }
+    start.slerp(end, 1 - Math.pow(1 - factor, deltaTime));
+}
 function lerpColor(start, end, factor = 0.05, deltaTime = 1, limit = 0) {
     const startChannels = extractRGBA(start);
     const endChannels = extractRGBA(end);
@@ -77,6 +84,7 @@ export const Interpolator = {
     lerp,
     lerpAngle,
     lerpVector,
+    slerpQuaternion,
     lerpColor,
     clampedLerp,
     tween,

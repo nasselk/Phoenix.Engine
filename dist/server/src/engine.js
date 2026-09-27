@@ -49,10 +49,10 @@ export class Engine extends EventEmitter {
         }
         return rooms;
     }
-    fullestRoom() {
+    fullestRoom(...exclude) {
         let fullest;
         for (const room of this.rooms.values()) {
-            if (room.public && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+            if (room.public && !exclude.includes(room.inviteCode) && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
                 fullest = room;
             }
         }

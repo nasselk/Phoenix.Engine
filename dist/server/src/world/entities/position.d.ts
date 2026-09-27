@@ -1,6 +1,7 @@
-import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-compat";
+import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
 import { BufferWriter } from "@nasselk/binarypack";
 import { ObservableVector3 } from "../../../../shared/math/vector3";
+import { ObservableQuaternion } from "../../../../shared/math/quaternion";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";
@@ -15,10 +16,8 @@ export type PositionEntityOptions = EntityOptions & {
     readonly roll?: number;
 };
 export declare abstract class PositionEntity<C> extends Entity<C> {
-    private static readonly quaternion;
-    private static readonly euler;
     readonly position: ObservableVector3;
-    readonly rotation: ObservableVector3;
+    readonly rotation: ObservableQuaternion;
     body?: RigidBody;
     private turns;
     constructor(world: World<any, any>, context: C, options?: PositionEntityOptions);

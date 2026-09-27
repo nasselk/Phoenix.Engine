@@ -58,6 +58,18 @@ describe("rooms", () => {
 		expect(engine.fullestRoom()).toBeUndefined();
 	});
 
+	test("quick play leaves out the invite codes it is told to", () => {
+		const engine = createEngine();
+		const busy = engine.createRoom(4);
+		const quiet = engine.createRoom(4);
+
+		fill(busy, 3);
+		fill(quiet, 1);
+
+		expect(engine.fullestRoom(busy.inviteCode)).toBe(quiet);
+		expect(engine.fullestRoom(busy.inviteCode, quiet.inviteCode)).toBeUndefined();
+	});
+
 	test("occupancy reports players and seats per room", () => {
 		const engine = createEngine();
 		const room = engine.createRoom(6, undefined, false, "ABCDEF");
