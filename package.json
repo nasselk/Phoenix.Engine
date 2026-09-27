@@ -62,7 +62,8 @@
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
 		"stats.js": "^0.17.0",
-		"@types/stats.js": "^0.17.4"
+		"@types/stats.js": "^0.17.4",
+		"troika-three-text": "^0.53.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.14",
