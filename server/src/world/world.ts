@@ -14,6 +14,7 @@ import { Replication } from "./replication";
 export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contract = Contract> = WorldOptions<D, C> & {
 	readonly inviteCode: string;
 	readonly maxPlayers?: number;
+	readonly public?: boolean;
 	readonly network: NetworkSystem<any, any, any, any, N>;
 };
 
@@ -32,6 +33,9 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 
 	/** The maximum number of players that can join this room. */
 	public readonly maxPlayers: number;
+
+	/** Whether quick play may put players in this room. A private one is joined only by its invite code. */
+	public readonly public: boolean;
 	/**
 	 * This room's physics: every body its entities were given, stepped once a tick. Its `gravity` pulls
 	 * on every body, each as hard as its own `gravityScale` says.
@@ -58,6 +62,7 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		}
 
 		this.inviteCode = options.inviteCode;
+		this.public = options.public ?? true;
 		this.network = options.network;
 		this.replication = new Replication(this.registry);
 		this.physics = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 });

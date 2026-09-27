@@ -16,6 +16,7 @@ export class World extends BaseWorld {
             throw new Error(`World maxPlayers must be at most its capacity of ${this.capacity}, got ${this.maxPlayers}`);
         }
         this.inviteCode = options.inviteCode;
+        this.public = options.public ?? true;
         this.network = options.network;
         this.replication = new Replication(this.registry);
         this.physics = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 });

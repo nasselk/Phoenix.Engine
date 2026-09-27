@@ -7,4 +7,5 @@ export const INVITE_CODE_LENGTH = 6;
 export type RoomOccupancy = {
 	readonly players: number;
 	readonly maxPlayers: number;
+	readonly public: boolean;
 };

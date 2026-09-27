@@ -43,12 +43,27 @@ describe("rooms", () => {
 		expect(engine.fullestRoom()).toBeUndefined();
 	});
 
+	test("quick play skips private rooms, however full", () => {
+		const engine = createEngine();
+		const open = engine.createRoom(4);
+		const invited = engine.createRoom(4, undefined, false);
+
+		fill(open, 1);
+		fill(invited, 3);
+
+		expect(engine.fullestRoom()).toBe(open);
+
+		fill(open, 3);
+
+		expect(engine.fullestRoom()).toBeUndefined();
+	});
+
 	test("occupancy reports players and seats per room", () => {
 		const engine = createEngine();
-		const room = engine.createRoom(6, undefined, "ABCDEF");
+		const room = engine.createRoom(6, undefined, false, "ABCDEF");
 
 		fill(room, 2);
 
-		expect(engine.occupancy()).toEqual({ ABCDEF: { players: 2, maxPlayers: 6 } });
+		expect(engine.occupancy()).toEqual({ ABCDEF: { players: 2, maxPlayers: 6, public: false } });
 	});
 });

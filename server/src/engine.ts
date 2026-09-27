@@ -102,7 +102,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	 * characters from INVITE_CODE_ALPHABET. Whatever it needs beyond entities — a sync loop, a round
 	 * timer — is built by the caller against the room it just got, and listens for `room.on("update")`.
 	 */
-	public createRoom(maxPlayers?: number, capacity?: number, inviteCode: string = this.freeInviteCode()): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> {
+	public createRoom(maxPlayers?: number, capacity?: number, isPublic: boolean = true, inviteCode: string = this.freeInviteCode()): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> {
 		if (this.rooms.has(inviteCode)) {
 			throw new Error(`A room with invite code "${inviteCode}" already exists`);
 		}
@@ -111,7 +111,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 			throw new Error(`The engine is at its maximum of ${this.maxRooms} rooms`);
 		}
 
-		const room = new World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>({ inviteCode, maxPlayers, capacity, entities: this.entities, context: this.context, network: this.network });
+		const room = new World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>({ inviteCode, maxPlayers, capacity, public: isPublic, entities: this.entities, context: this.context, network: this.network });
 
 		this.rooms.set(inviteCode, room);
 
@@ -123,18 +123,18 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		const rooms: Record<string, RoomOccupancy> = {};
 
 		for (const [code, room] of this.rooms) {
-			rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers };
+			rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers, public: room.public };
 		}
 
 		return rooms;
 	}
 
-	/** The room with the most players that still has a free seat, for quick play. Undefined when every room is full or none is open. */
+	/** The public room with the most players that still has a free seat, for quick play. Undefined when none has one. */
 	public fullestRoom(): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {
 		let fullest: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
 
 		for (const room of this.rooms.values()) {
-			if (room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+			if (room.public && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
 				fullest = room;
 			}
 		}

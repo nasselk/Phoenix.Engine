@@ -31,28 +31,28 @@ export class Engine extends EventEmitter {
         log("Phoenix Server", "Successfully initiated the engine");
         this.emit("init");
     }
-    createRoom(maxPlayers, capacity, inviteCode = this.freeInviteCode()) {
+    createRoom(maxPlayers, capacity, isPublic = true, inviteCode = this.freeInviteCode()) {
         if (this.rooms.has(inviteCode)) {
             throw new Error(`A room with invite code "${inviteCode}" already exists`);
         }
         if (this.rooms.size === this.maxRooms) {
             throw new Error(`The engine is at its maximum of ${this.maxRooms} rooms`);
         }
-        const room = new World({ inviteCode, maxPlayers, capacity, entities: this.entities, context: this.context, network: this.network });
+        const room = new World({ inviteCode, maxPlayers, capacity, public: isPublic, entities: this.entities, context: this.context, network: this.network });
         this.rooms.set(inviteCode, room);
         return room;
     }
     occupancy() {
         const rooms = {};
         for (const [code, room] of this.rooms) {
-            rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers };
+            rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers, public: room.public };
         }
         return rooms;
     }
     fullestRoom() {
         let fullest;
         for (const room of this.rooms.values()) {
-            if (room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+            if (room.public && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
                 fullest = room;
             }
         }

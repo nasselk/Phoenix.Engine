@@ -10,6 +10,7 @@ import type { PositionEntity } from "./entities/position";
 export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contract = Contract> = WorldOptions<D, C> & {
     readonly inviteCode: string;
     readonly maxPlayers?: number;
+    readonly public?: boolean;
     readonly network: NetworkSystem<any, any, any, any, N>;
 };
 export declare const MAX_SERVER_WORLD_SIZE: number;
@@ -17,6 +18,7 @@ export declare class World<D extends EntityDefinitions, C, N extends Contract = 
     readonly inviteCode: string;
     readonly sockets: Set<Socket<N>>;
     readonly maxPlayers: number;
+    readonly public: boolean;
     readonly physics: RAPIER.World;
     readonly bodies: Set<PositionEntity<any>>;
     private readonly network;
