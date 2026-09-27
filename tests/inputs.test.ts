@@ -122,4 +122,56 @@ describe("inputs", () => {
 
 		expect(() => inputs.mapActionToKeys("nope" as never, "KeyX")).toThrow('Unknown action "nope"');
 	});
+
+	describe("mouse buttons", () => {
+		const pointer = (type: string, button = 0) => Object.assign(new Event(type), { button });
+
+		function listening() {
+			const previous = (globalThis as { window?: unknown }).window;
+			const page = new EventTarget();
+			const view = new EventTarget();
+
+			(globalThis as { window?: unknown }).window = page;
+
+			const inputs = new InputSystem({ binds: { fire: ["Pointer0"] } });
+
+			inputs.init(view as unknown as HTMLElement);
+
+			return {
+				inputs,
+				page,
+				view,
+				restore: () => {
+					inputs.destroy();
+					(globalThis as { window?: unknown }).window = previous;
+				},
+			};
+		}
+
+		test("count only when pressed on the view, not on the interface around it", () => {
+			const { inputs, page, view, restore } = listening();
+
+			page.dispatchEvent(pointer("pointerdown"));
+			expect(inputs.isActionRunning("fire")).toBe(false);
+
+			view.dispatchEvent(pointer("pointerdown"));
+			expect(inputs.isActionRunning("fire")).toBe(true);
+
+			page.dispatchEvent(pointer("pointerup"));
+			expect(inputs.isActionRunning("fire")).toBe(false);
+
+			restore();
+		});
+
+		test("let go when the browser cancels the pointer", () => {
+			const { inputs, page, view, restore } = listening();
+
+			view.dispatchEvent(pointer("pointerdown"));
+			page.dispatchEvent(pointer("pointercancel"));
+
+			expect(inputs.isActionRunning("fire")).toBe(false);
+
+			restore();
+		});
+	});
 });

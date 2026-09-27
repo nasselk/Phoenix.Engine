@@ -133,7 +133,7 @@ export class NetworkSystem extends EventEmitter {
                     "/ping": {
                         GET: this.middleware(() => Response.json("pong")),
                     },
-                    ...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware(handler) }])),
+                    ...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware((_, request) => handler(request)) }])),
                 },
                 fetch: () => new Response("Not Found", { status: 404 }),
                 websocket: {

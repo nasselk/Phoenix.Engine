@@ -177,4 +177,22 @@ describe("replication", () => {
 
 		expect(client.get(box.id, ClientBox)!.rotation.angleTo(box.rotation)).toBeLessThan((0.25 * Math.PI) / 180);
 	});
+
+	test("a slow turn while moving still arrives, however small each tick's share of it", () => {
+		const { server, client, socket } = createRooms();
+		const box = server.spawn("box", { fixed: true });
+
+		send(server, client, socket);
+
+		const turned = new Quaternion();
+
+		for (let tick = 1; tick <= 300; tick++) {
+			box.body!.setTranslation({ x: tick * 0.01, y: 0, z: 0 }, false);
+			box.body!.setRotation(turned.setFromYaw(tick * 0.005), false);
+			server.update(1 / 60);
+			send(server, client, socket);
+		}
+
+		expect(client.get(box.id, ClientBox)!.targetRotation.angleTo(box.rotation)).toBeLessThan(0.011);
+	});
 });

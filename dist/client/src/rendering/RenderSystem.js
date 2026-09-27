@@ -59,7 +59,13 @@ export class RenderSystem extends EventEmitter {
         this.three.render(this.scene, this.camera);
     }
     async setFullscreen(fullScreen = !this.isFullscreen) {
+        if (fullScreen === this.isFullscreen) {
+            return this;
+        }
         await waitForUserGesture();
+        if (fullScreen === this.isFullscreen) {
+            return this;
+        }
         if (fullScreen) {
             await document.documentElement.requestFullscreen();
         }
@@ -145,6 +151,6 @@ export class RenderSystem extends EventEmitter {
         return bounds.height;
     }
     get isFullscreen() {
-        return document.fullscreenElement === this.canvas;
+        return document.fullscreenElement !== null;
     }
 }

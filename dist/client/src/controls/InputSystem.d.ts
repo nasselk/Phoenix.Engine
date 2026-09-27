@@ -9,9 +9,10 @@ export declare class InputSystem<const Action extends string = never> {
     private readonly held;
     private readonly listeners;
     private readonly handlers;
+    private element?;
     private initialized;
     constructor(options?: InputSystemOptions<Action>);
-    init(): void;
+    init(element?: HTMLElement | Window): void;
     mapActionToKeys(action: Action, ...codes: readonly string[]): this;
     unmapActionFromKeys(action: Action, ...codes: readonly string[]): this;
     onActionStart(action: Action, cb: ActionCallback): () => void;

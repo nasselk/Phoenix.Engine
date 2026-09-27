@@ -26,14 +26,16 @@ export class InputSystem {
             this.mapActionToKeys(action, ...binds[action]);
         }
     }
-    init() {
+    init(element = window) {
         if (this.initialized) {
             throw new Error("InputSystem is already initialized");
         }
+        this.element = element;
         window.addEventListener("keydown", this.handlers.keydown);
         window.addEventListener("keyup", this.handlers.keyup);
-        window.addEventListener("pointerdown", this.handlers.pointerdown);
+        element.addEventListener("pointerdown", this.handlers.pointerdown);
         window.addEventListener("pointerup", this.handlers.pointerup);
+        window.addEventListener("pointercancel", this.handlers.pointerup);
         window.addEventListener("blur", this.handlers.blur);
         this.initialized = true;
     }
@@ -173,8 +175,9 @@ export class InputSystem {
         }
         window.removeEventListener("keydown", this.handlers.keydown);
         window.removeEventListener("keyup", this.handlers.keyup);
-        window.removeEventListener("pointerdown", this.handlers.pointerdown);
+        this.element?.removeEventListener("pointerdown", this.handlers.pointerdown);
         window.removeEventListener("pointerup", this.handlers.pointerup);
+        window.removeEventListener("pointercancel", this.handlers.pointerup);
         window.removeEventListener("blur", this.handlers.blur);
         this.listeners.start.clear();
         this.listeners.stop.clear();

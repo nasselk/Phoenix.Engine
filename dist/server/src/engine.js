@@ -14,7 +14,10 @@ export class Engine extends EventEmitter {
         this.context = (options.context ?? this);
         this.network = new NetworkSystem(options.network);
         this.loop = new GameLoop(options.loop);
-        this.network.route("/rooms", () => Response.json(this.occupancy()));
+        this.network.route("/rooms/:code", (request) => {
+            const room = this.getRoom(request.params.code ?? "");
+            return room === undefined ? new Response(null, { status: 404 }) : Response.json(this.occupancyOf(room));
+        });
         this.maxRooms = options.rooms?.maximum ?? Infinity;
     }
     async init() {
@@ -23,8 +26,13 @@ export class Engine extends EventEmitter {
         await initPhysics();
         this.network.init();
         this.loop.on("tick", (deltaTime) => {
-            for (const room of this.rooms.values()) {
-                room.update(deltaTime);
+            for (const [code, room] of this.rooms) {
+                if (room.destroyed) {
+                    this.rooms.delete(code);
+                }
+                else {
+                    room.update(deltaTime);
+                }
             }
         });
         this.loop.resume();
@@ -45,21 +53,27 @@ export class Engine extends EventEmitter {
     occupancy() {
         const rooms = {};
         for (const [code, room] of this.rooms) {
-            rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers, public: room.public };
+            if (!room.destroyed) {
+                rooms[code] = this.occupancyOf(room);
+            }
         }
         return rooms;
+    }
+    occupancyOf(room) {
+        return { players: room.sockets.size, maxPlayers: room.maxPlayers, public: room.public };
     }
     fullestRoom(...exclude) {
         let fullest;
         for (const room of this.rooms.values()) {
-            if (room.public && !exclude.includes(room.inviteCode) && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+            if (!room.destroyed && room.public && !exclude.includes(room.inviteCode) && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
                 fullest = room;
             }
         }
         return fullest;
     }
     getRoom(inviteCode) {
-        return this.rooms.get(inviteCode);
+        const room = this.rooms.get(inviteCode);
+        return room?.destroyed ? undefined : room;
     }
     destroyRoom(inviteCode) {
         const room = this.rooms.get(inviteCode);

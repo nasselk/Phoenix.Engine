@@ -75,6 +75,9 @@ export class NetworkSystem<
 	public readonly protocol: Protocol<C>;
 	private readonly messages: Array<(data: any) => void>;
 	private socket?: WebSocket | null;
+
+	/** Bumped by every `connect` and `disconnect`, so a connect still waiting on its session knows it was overtaken. */
+	private attempt = 0;
 	private baseURL?: string;
 	private promise?: Promise<WebSocket>;
 	private reconnectTimeout?: Timeout;
@@ -129,7 +132,9 @@ export class NetworkSystem<
 	 * @returns A promise that resolves to the WebSocket instance when the connection is established.
 	 */
 	public async connect(url: URL | string, data?: Record<string, unknown>): Promise<WebSocket> {
-		await this.disconnect();
+		const attempt = ++this.attempt;
+
+		await this.close();
 
 		// A trailing slash would double up against the route, which starts with one.
 		const baseURL = (this.baseURL = (url instanceof URL ? url.toString() : url).replace(/\/+$/, ""));
@@ -146,6 +151,10 @@ export class NetworkSystem<
 				tries: 5,
 			},
 		);
+
+		if (attempt !== this.attempt) {
+			throw new Error("Connection superseded by a later connect or disconnect");
+		}
 
 		if (!response.success) {
 			throw new Error(`Failed to initialize session: ${response.error?.message ?? "unknown error"}`);
@@ -169,6 +178,12 @@ export class NetworkSystem<
 	 * @returns A promise that resolves when the disconnection is complete.
 	 */
 	public async disconnect(code?: number, reason?: string): Promise<this> {
+		this.attempt++;
+
+		return this.close(code, reason);
+	}
+
+	private async close(code?: number, reason?: string): Promise<this> {
 		// A pending retry would otherwise reconnect right after a deliberate disconnect.
 		this.reconnectTimeout?.clear();
 		this.reconnectTimeout = undefined;
@@ -214,7 +229,9 @@ export class NetworkSystem<
 			});
 
 			socket.addEventListener("message", async (message: MessageEvent) => {
-				await this.handle(message.data);
+				if (socket === this.socket) {
+					await this.handle(message.data);
+				}
 			});
 
 			socket.addEventListener("close", (event: CloseEvent) => {
@@ -222,7 +239,9 @@ export class NetworkSystem<
 					reject(new Error(`WebSocket closed before opening (code ${event.code}${event.reason ? `: ${event.reason}` : ""})`));
 				}
 
-				this.onDisconnect(event.code, event.reason);
+				if (socket === this.socket) {
+					this.onDisconnect(event.code, event.reason);
+				}
 			});
 		});
 

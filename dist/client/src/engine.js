@@ -40,7 +40,7 @@ export class Engine extends EventEmitter {
         })
             .then((three) => this.assets.init(three));
         const audio = this.audio.init(this.sound);
-        this.inputs.init();
+        this.inputs.init(this.renderer.view);
         this.loop.on("frame", (deltaTime, now) => {
             this.world.update(deltaTime);
             this.renderer.render(deltaTime, now);

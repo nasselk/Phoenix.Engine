@@ -1,12 +1,27 @@
 const gesturePromise = waitForUserGesture(true);
+function isActivation(event) {
+    if (event.type === "keydown") {
+        return true;
+    }
+    const pointer = event.pointerType;
+    return event.type === "pointerdown" ? pointer === "mouse" : pointer !== "mouse";
+}
 export async function waitForUserGesture(enforceNewGesture = false) {
     if (enforceNewGesture) {
         return new Promise((resolve) => {
-            function handler() {
+            const events = ["keydown", "pointerdown", "pointerup"];
+            function handler(event) {
+                if (!isActivation(event)) {
+                    return;
+                }
+                for (const type of events) {
+                    window.removeEventListener(type, handler);
+                }
                 resolve();
             }
-            window.addEventListener("pointerdown", handler, { once: true });
-            window.addEventListener("keydown", handler, { once: true });
+            for (const type of events) {
+                window.addEventListener(type, handler);
+            }
         });
     }
     else {

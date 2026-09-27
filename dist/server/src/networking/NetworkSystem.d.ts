@@ -2,6 +2,7 @@ import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
 import { Socket } from "./socket";
+import type { BunRequest } from "bun";
 type NetworkSystemEvents<C extends Contract> = {
     listening: [port: number];
     connection: [socket: Socket<C>];
@@ -90,7 +91,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private handle;
     private withinLimits;
     private static resolveLimit;
-    route(path: string, handler: () => Response | Promise<Response>): this;
+    route(path: string, handler: (request: BunRequest) => Response | Promise<Response>): this;
     onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): this;
     broadcast<K extends OutboundEvent<C>>(topic: string, event: K, ...[data]: SendPayload<C, K>): this;
     private handleUpgrade;

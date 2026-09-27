@@ -106,9 +106,25 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		}
 	}
 
+	/** Only what `serializeUpdate` sent counts as sent: a change still under its epsilon keeps adding up until it is. */
 	public override clean(): void {
-		this.position.store();
-		this.rotation.store();
+		const { position, rotation } = this;
+
+		if (position.hasUpdatedX(POSITION_EPSILON)) {
+			position.storeX();
+		}
+
+		if (position.hasUpdatedY(POSITION_EPSILON)) {
+			position.storeY();
+		}
+
+		if (position.hasUpdatedZ(POSITION_EPSILON)) {
+			position.storeZ();
+		}
+
+		if (rotation.hasUpdated(ROTATION_EPSILON)) {
+			rotation.store();
+		}
 	}
 
 	public override serialize(writer: BufferWriter): void {

@@ -70,7 +70,11 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		this.network = new NetworkSystem<In, Out, InSchemas, OutSchemas>(options.network);
 		this.loop = new GameLoop(options.loop);
 
-		this.network.route("/rooms", () => Response.json(this.occupancy()));
+		this.network.route("/rooms/:code", (request) => {
+			const room = this.getRoom(request.params.code ?? "");
+
+			return room === undefined ? new Response(null, { status: 404 }) : Response.json(this.occupancyOf(room));
+		});
 		this.maxRooms = options.rooms?.maximum ?? Infinity;
 	}
 
@@ -85,8 +89,12 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		this.network.init();
 
 		this.loop.on("tick", (deltaTime) => {
-			for (const room of this.rooms.values()) {
-				room.update(deltaTime);
+			for (const [code, room] of this.rooms) {
+				if (room.destroyed) {
+					this.rooms.delete(code);
+				} else {
+					room.update(deltaTime);
+				}
 			}
 		});
 
@@ -118,15 +126,24 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		return room;
 	}
 
-	/** Every open room's invite code, how many players are in it and how many it takes: what `GET /rooms` answers, so a client can find which server has a room. */
+	/**
+	 * Every open room's invite code, how many players are in it and how many it takes. For the server's
+	 * own use: it lists private rooms' codes, so it is never served. `GET /rooms/:code` answers for one code.
+	 */
 	public occupancy(): Record<string, RoomOccupancy> {
 		const rooms: Record<string, RoomOccupancy> = {};
 
 		for (const [code, room] of this.rooms) {
-			rooms[code] = { players: room.sockets.size, maxPlayers: room.maxPlayers, public: room.public };
+			if (!room.destroyed) {
+				rooms[code] = this.occupancyOf(room);
+			}
 		}
 
 		return rooms;
+	}
+
+	private occupancyOf(room: World<any, any, any>): RoomOccupancy {
+		return { players: room.sockets.size, maxPlayers: room.maxPlayers, public: room.public };
 	}
 
 	/** The public room with the most players that still has a free seat, for quick play, leaving out the rooms whose invite codes are in `exclude`. Undefined when none has one. */
@@ -134,7 +151,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		let fullest: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
 
 		for (const room of this.rooms.values()) {
-			if (room.public && !exclude.includes(room.inviteCode) && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
+			if (!room.destroyed && room.public && !exclude.includes(room.inviteCode) && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
 				fullest = room;
 			}
 		}
@@ -143,10 +160,12 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	}
 
 	public getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {
-		return this.rooms.get(inviteCode);
+		const room = this.rooms.get(inviteCode);
+
+		return room?.destroyed ? undefined : room;
 	}
 
-	/** Tears the room down — every system's destroy() runs, every entity goes — and frees its code. */
+	/** Tears the room down — every system's destroy() runs, every entity goes — and frees its code. Safe from inside the room's own tick. */
 	public destroyRoom(inviteCode: string): boolean {
 		const room = this.rooms.get(inviteCode);
 

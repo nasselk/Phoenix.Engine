@@ -169,7 +169,7 @@ export class NetworkSystem<
 	/** Known session ids, valued by the epoch ms they stop being reclaimable (`Infinity` while connected). */
 	private readonly sessions: Map<string, number>;
 	/** GET routes added with `route`, served next to the built-in ones. */
-	private readonly extraRoutes = new Map<string, () => Response | Promise<Response>>();
+	private readonly extraRoutes = new Map<string, (request: BunRequest) => Response | Promise<Response>>();
 	private sweep?: Interval;
 	private server?: Server<SocketUserData>;
 
@@ -316,7 +316,7 @@ export class NetworkSystem<
 					"/ping": {
 						GET: this.middleware(() => Response.json("pong")),
 					},
-					...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware(handler) }])),
+					...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware((_, request) => handler(request)) }])),
 				},
 
 				fetch: () => new Response("Not Found", { status: 404 }),
@@ -493,10 +493,11 @@ export class NetworkSystem<
 	}
 
 	/**
-	 * Serve a GET route next to the built-in ones, with the same CORS and rate limits. Added before
+	 * Serve a GET route next to the built-in ones, with the same CORS and rate limits. The path can have
+	 * parameters (`/rooms/:code`), read from `request.params`. Added before
 	 * `init`, which is when the server starts listening.
 	 */
-	public route(path: string, handler: () => Response | Promise<Response>): this {
+	public route(path: string, handler: (request: BunRequest) => Response | Promise<Response>): this {
 		if (this.server !== undefined) {
 			throw new Error(`Route "${path}" added after the server started; add it before init()`);
 		}

@@ -111,7 +111,7 @@ export class Engine<
 
 		const audio = this.audio.init(this.sound);
 
-		this.inputs.init();
+		this.inputs.init(this.renderer.view);
 
 		// The world first, then the draw, so the renderer sees this frame's positions.
 		this.loop.on("frame", (deltaTime, now) => {

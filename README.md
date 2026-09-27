@@ -232,9 +232,11 @@ There is one `Engine` per process on each side, and it owns every subsystem.
 | `createRoom(maxPlayers?, capacity?, isPublic = true, inviteCode?)` | Opens a room. `maxPlayers` is how many sockets can join it (defaults to its capacity); `capacity` how many entities it holds at once (default 65535); a room that is not public is left out of `fullestRoom`; the invite code defaults to a free random one of `INVITE_CODE_LENGTH` characters from `INVITE_CODE_ALPHABET`. |
 | `fullestRoom(...exclude)` | The public room with the most players that still has a free seat, skipping the invite codes given. For quick play. |
 | `getRoom(code)`, `destroyRoom(code)`, `rooms` | Look up, close, and every open room by code. |
-| `occupancy()` | `{ [code]: { players, maxPlayers, public } }` for every room: what `GET /rooms` answers, so a client can find which server has a room. |
+| `occupancy()` | `{ [code]: { players, maxPlayers, public } }` for every open room, for the server's own use: it lists private rooms' codes, so it is never served. |
 
-Besides WebSockets, the server answers HTTP: its session routes, `GET /rooms`, and any GET route a game adds with `engine.network.route(path, () => Response)` before `init`. All of them get the network's CORS and rate limits.
+Besides WebSockets, the server answers HTTP: its session routes, `GET /rooms/:code` (that room's `{ players, maxPlayers, public }`, or 404, so a client can find which server has a room without any server listing its codes), and any GET route a game adds with `engine.network.route(path, (request) => Response)` before `init` (path parameters are in `request.params`). All of them get the network's CORS and rate limits.
+
+A room is safe to destroy from inside its own tick, with `engine.destroyRoom(code)` or `room.destroy()`: the tick finishes without running anything else of it, its physics is freed afterwards, and the engine drops it. A spawn into a full room throws before the entity is built, so it leaves no body behind.
 
 **Client** — `new Engine(options)`:
 

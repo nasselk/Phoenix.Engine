@@ -51,8 +51,19 @@ export class PositionEntity extends Entity {
         }
     }
     clean() {
-        this.position.store();
-        this.rotation.store();
+        const { position, rotation } = this;
+        if (position.hasUpdatedX(POSITION_EPSILON)) {
+            position.storeX();
+        }
+        if (position.hasUpdatedY(POSITION_EPSILON)) {
+            position.storeY();
+        }
+        if (position.hasUpdatedZ(POSITION_EPSILON)) {
+            position.storeZ();
+        }
+        if (rotation.hasUpdated(ROTATION_EPSILON)) {
+            rotation.store();
+        }
     }
     serialize(writer) {
         const { position, rotation } = this;

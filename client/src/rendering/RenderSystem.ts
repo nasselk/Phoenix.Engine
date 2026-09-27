@@ -150,7 +150,15 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 * @returns A promise resolving to the current instance of the RenderSystem.
 	 */
 	public async setFullscreen(fullScreen: boolean = !this.isFullscreen): Promise<this> {
+		if (fullScreen === this.isFullscreen) {
+			return this;
+		}
+
 		await waitForUserGesture();
+
+		if (fullScreen === this.isFullscreen) {
+			return this;
+		}
 
 		if (fullScreen) {
 			await document.documentElement.requestFullscreen();
@@ -311,6 +319,6 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 * Checks if the application is currently in fullscreen mode.
 	 */
 	public get isFullscreen(): boolean {
-		return document.fullscreenElement === this.canvas;
+		return document.fullscreenElement !== null;
 	}
 }

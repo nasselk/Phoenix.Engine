@@ -1,6 +1,8 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Engine } from "../server/src/engine";
-import { initPhysics } from "../shared/physics/rapier";
+import { MovingEntity } from "../server/src/world/entities/moving";
+import type { World } from "../server/src/world/world";
+import { initPhysics, RAPIER } from "../shared/physics/rapier";
 import { defineEntities } from "../shared/world/registry";
 
 let nextSocket = 1;
@@ -11,8 +13,25 @@ function fill(room: { join(socket: never): boolean }, players: number): void {
 	}
 }
 
+class Crate extends MovingEntity<unknown> {
+	public constructor(world: World<any, unknown>, context: unknown, options = {}) {
+		super(world, context, options);
+
+		this.embody(RAPIER.RigidBodyDesc.fixed(), RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5));
+	}
+}
+
+/** Ends its own room from inside the room's tick, the way a referee ending a match would. */
+class Referee extends Crate {
+	public override update(deltaTime: number): void {
+		(this.context as Engine<any, any>).destroyRoom(this.room.inviteCode);
+
+		super.update(deltaTime);
+	}
+}
+
 function createEngine() {
-	return new Engine({ entities: defineEntities({}) });
+	return new Engine({ entities: defineEntities({ crate: Crate, referee: Referee }) });
 }
 
 beforeAll(async () => {
@@ -77,5 +96,42 @@ describe("rooms", () => {
 		fill(room, 2);
 
 		expect(engine.occupancy()).toEqual({ ABCDEF: { players: 2, maxPlayers: 6, public: false } });
+	});
+
+	test("a room destroyed during its own tick finishes the tick, then is gone", () => {
+		const engine = createEngine();
+		const room = engine.createRoom();
+
+		room.spawn("crate");
+		room.spawn("referee");
+
+		expect(() => room.update(1 / 60)).not.toThrow();
+		expect(room.destroyed).toBe(true);
+		expect(engine.getRoom(room.inviteCode)).toBeUndefined();
+		expect(() => room.update(1 / 60)).not.toThrow();
+	});
+
+	test("a room destroyed directly is no longer found or offered", () => {
+		const engine = createEngine();
+		const room = engine.createRoom(4);
+
+		expect(engine.fullestRoom()).toBe(room);
+
+		room.destroy();
+
+		expect(engine.getRoom(room.inviteCode)).toBeUndefined();
+		expect(engine.fullestRoom()).toBeUndefined();
+		expect(engine.occupancy()).toEqual({});
+	});
+
+	test("a spawn into a full room leaves no body behind", () => {
+		const engine = createEngine();
+		const room = engine.createRoom(1, 1);
+
+		room.spawn("crate");
+
+		expect(() => room.spawn("crate")).toThrow("World is full");
+		expect(room.bodies.size).toBe(1);
+		expect(room.physics.colliders.len()).toBe(1);
 	});
 });

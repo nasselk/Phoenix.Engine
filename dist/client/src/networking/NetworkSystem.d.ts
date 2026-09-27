@@ -41,6 +41,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     readonly protocol: Protocol<C>;
     private readonly messages;
     private socket?;
+    private attempt;
     private baseURL?;
     private promise?;
     private reconnectTimeout?;
@@ -54,6 +55,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     constructor(options?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>);
     connect(url: URL | string, data?: Record<string, unknown>): Promise<WebSocket>;
     disconnect(code?: number, reason?: string): Promise<this>;
+    private close;
     private setupWebSocket;
     send<K extends OutboundEvent<C>>(event: K, ...[data]: SendPayload<C, K>): Promise<this>;
     private handle;

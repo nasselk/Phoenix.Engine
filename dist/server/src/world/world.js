@@ -8,6 +8,8 @@ export class World extends BaseWorld {
         super({ ...options, capacity: options.capacity ?? MAX_SERVER_WORLD_SIZE });
         this.sockets = new Set();
         this.bodies = new Set();
+        this.destroyed = false;
+        this.ticking = false;
         this.maxPlayers = options.maxPlayers ?? this.capacity;
         if (this.capacity > MAX_SERVER_WORLD_SIZE) {
             throw new Error(`World capacity must be at most ${MAX_SERVER_WORLD_SIZE}, got ${this.capacity}`);
@@ -54,15 +56,39 @@ export class World extends BaseWorld {
     spawn(kind, ...args) {
         const Kind = this.registry.class(kind);
         const options = (args[0] ?? {});
+        if (this.size >= this.capacity) {
+            throw new Error(`World is full (capacity ${this.capacity})`);
+        }
         const entity = new Kind(this, this.context, options);
-        return this.insert(kind, entity, options.id);
+        try {
+            return this.insert(kind, entity, options.id);
+        }
+        catch (error) {
+            entity.onDestroy();
+            throw error;
+        }
     }
     update(deltaTime) {
+        if (this.destroyed) {
+            return;
+        }
         this.replication.reset();
-        super.update(deltaTime);
+        this.ticking = true;
+        try {
+            super.update(deltaTime);
+        }
+        finally {
+            this.ticking = false;
+            if (this.destroyed) {
+                this.physics.free();
+            }
+        }
     }
     simulate(deltaTime) {
         const { physics, bodies } = this;
+        if (this.destroyed) {
+            return;
+        }
         for (const entity of bodies) {
             if (entity.alive) {
                 entity.beforePhysics();
@@ -95,11 +121,17 @@ export class World extends BaseWorld {
         this.replication.reset();
     }
     destroy() {
+        if (this.destroyed) {
+            return;
+        }
+        this.destroyed = true;
         for (const socket of [...this.sockets]) {
             this.leave(socket);
         }
         super.destroy();
         this.replication.reset();
-        this.physics.free();
+        if (!this.ticking) {
+            this.physics.free();
+        }
     }
 }

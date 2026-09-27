@@ -16,6 +16,7 @@ export var NetworkState;
 export class NetworkSystem extends EventEmitter {
     constructor(options) {
         super();
+        this.attempt = 0;
         this.protocol = new Protocol(options);
         this.messages = [];
         this.manuallyDisconnected = false;
@@ -39,7 +40,8 @@ export class NetworkSystem extends EventEmitter {
         this.statsTimer.pause();
     }
     async connect(url, data) {
-        await this.disconnect();
+        const attempt = ++this.attempt;
+        await this.close();
         const baseURL = (this.baseURL = (url instanceof URL ? url.toString() : url).replace(/\/+$/, ""));
         const response = await post(baseURL, "/session/init", {
             reconnectionToken: this.sessionID ?? null,
@@ -48,6 +50,9 @@ export class NetworkSystem extends EventEmitter {
             timeout: 5000,
             tries: 5,
         });
+        if (attempt !== this.attempt) {
+            throw new Error("Connection superseded by a later connect or disconnect");
+        }
         if (!response.success) {
             throw new Error(`Failed to initialize session: ${response.error?.message ?? "unknown error"}`);
         }
@@ -57,6 +62,10 @@ export class NetworkSystem extends EventEmitter {
         return this.setupWebSocket(baseURL.replace(/^http/, "ws") + "/ws", session.ticket);
     }
     async disconnect(code, reason) {
+        this.attempt++;
+        return this.close(code, reason);
+    }
+    async close(code, reason) {
         this.reconnectTimeout?.clear();
         this.reconnectTimeout = undefined;
         return new Promise((resolve) => {
@@ -83,13 +92,17 @@ export class NetworkSystem extends EventEmitter {
                 this.onConnect();
             });
             socket.addEventListener("message", async (message) => {
-                await this.handle(message.data);
+                if (socket === this.socket) {
+                    await this.handle(message.data);
+                }
             });
             socket.addEventListener("close", (event) => {
                 if (!opened) {
                     reject(new Error(`WebSocket closed before opening (code ${event.code}${event.reason ? `: ${event.reason}` : ""})`));
                 }
-                this.onDisconnect(event.code, event.reason);
+                if (socket === this.socket) {
+                    this.onDisconnect(event.code, event.reason);
+                }
             });
         });
         return this.promise;

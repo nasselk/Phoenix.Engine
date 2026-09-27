@@ -45,9 +45,14 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 	/** The entities with a body, which are the ones a step moves. */
 	public readonly bodies = new Set<PositionEntity<any>>();
 
+	/** Whether it was destroyed. A destroyed room never ticks again, and its engine lets go of it. */
+	public destroyed = false;
+
 	private readonly network: NetworkSystem<any, any, any, any, N>;
 
 	private readonly replication: Replication;
+
+	private ticking = false;
 
 	public constructor(options: ServerWorldOptions<D, C, N>) {
 		super({ ...options, capacity: options.capacity ?? MAX_SERVER_WORLD_SIZE });
@@ -137,21 +142,48 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		const Kind = this.registry.class(kind);
 		const options = (args[0] ?? {}) as OptionsOf<D[K], 2> & EntityOptions;
 
+		if (this.size >= this.capacity) {
+			throw new Error(`World is full (capacity ${this.capacity})`);
+		}
+
 		const entity = new Kind(this, this.context, options) as InstanceType<D[K]>;
 
-		return this.insert(kind, entity, options.id);
+		try {
+			return this.insert(kind, entity, options.id);
+		} catch (error) {
+			entity.onDestroy();
+
+			throw error;
+		}
 	}
 
 	/** Records written before this tick describe entities that are about to change. */
 	public override update(deltaTime: number): void {
-		this.replication.reset();
+		if (this.destroyed) {
+			return;
+		}
 
-		super.update(deltaTime);
+		this.replication.reset();
+		this.ticking = true;
+
+		try {
+			super.update(deltaTime);
+		} finally {
+			this.ticking = false;
+
+			if (this.destroyed) {
+				this.physics.free();
+			}
+		}
 	}
 
 	/** What code decided goes into the bodies, the physics steps, and where it put them comes back out. */
 	protected override simulate(deltaTime: number): void {
 		const { physics, bodies } = this;
+
+		if (this.destroyed) {
+			return;
+		}
 
 		for (const entity of bodies) {
 			if (entity.alive) {
@@ -206,7 +238,14 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		this.replication.reset();
 	}
 
+	/** Safe from inside its own tick: the physics is freed once the tick is over, and nothing else of it runs. */
 	public override destroy(): void {
+		if (this.destroyed) {
+			return;
+		}
+
+		this.destroyed = true;
+
 		for (const socket of [...this.sockets]) {
 			this.leave(socket);
 		}
@@ -216,6 +255,8 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		this.replication.reset();
 
 		// Every entity took its body out as it went; what is left is the world's own memory, outside JavaScript's.
-		this.physics.free();
+		if (!this.ticking) {
+			this.physics.free();
+		}
 	}
 }

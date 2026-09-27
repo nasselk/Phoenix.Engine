@@ -21,8 +21,10 @@ export declare class World<D extends EntityDefinitions, C, N extends Contract = 
     readonly public: boolean;
     readonly physics: RAPIER.World;
     readonly bodies: Set<PositionEntity<any>>;
+    destroyed: boolean;
     private readonly network;
     private readonly replication;
+    private ticking;
     constructor(options: ServerWorldOptions<D, C, N>);
     protected allocateID(): number;
     join(socket: Socket<N>): boolean;
