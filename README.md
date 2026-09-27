@@ -2,7 +2,7 @@
 
 A TypeScript engine for **server-authoritative, real-time multiplayer 3D games on the web**. It is a library, not an application: a game installs it, builds its own client and server on top, and the engine supplies the machinery in between — rooms, physics, replication, a typed binary protocol, rendering, input, audio and assets.
 
-The fastest way to start a game is the [Phoenix Engine Template](https://github.com/nasselk/Phoenix.Engine-Template), which is a complete, playable game wired to this engine.
+The fastest way to start a game is the [Phoenix Engine Template](https://github.com/nasselk/Phoenix.Engine-Template), which is a complete, playable game wired to this engine. Rules for AI agents working on the engine itself are in [AGENTS.md](./AGENTS.md).
 
 ## Table of contents
 
@@ -52,12 +52,14 @@ One package, several subpath exports. Each side's entry point re-exports everyth
 
 | Import | Runs on | Contains |
 | --- | --- | --- |
-| `phoenix.engine` | both | The shared surface: `defineEntities`, math (`Vector3`, `ObservableVector3`, `Interpolator`), binary `BufferReader`/`BufferWriter`, protocol types, timers, `EventEmitter`, logger, text validation. For code a game shares between its client and server. |
-| `phoenix.engine/server` | Bun | Everything shared, plus the server `Engine`, `World` (a room), `Entity`/`PositionEntity`/`MovingEntity` that **write** themselves, `NetworkSystem`, `Socket`, `GameLoop`, `initPhysics`. |
-| `phoenix.engine/client` | browser | Everything shared, plus the client `Engine`, `World` (a mirror), `Entity`/`PositionEntity`/`MovingEntity` that **read** themselves, `RenderSystem`, cameras, `InputSystem`, `AudioSystem`, `AssetManager`, `NetworkSystem`, `EditorView`, `storage`. |
+| `phoenix.engine` | both | The shared surface: `defineEntities`, math (`Vector3`, `Quaternion`, their observable versions, `Interpolator`, `clamp`, `wrap`, random helpers), binary `BufferReader`/`BufferWriter`, protocol types, `INVITE_CODE_*` and `RoomOccupancy`, timers, `EventEmitter`, logger, text validation, HTTP helpers (`get`, `post`, `put`, `del`). For code a game shares between its client and server. |
+| `phoenix.engine/server` | Bun | Everything shared, plus the server `Engine`, `World` (a room), `Entity`/`PositionEntity`/`MovingEntity` that **write** themselves, `NetworkSystem`, `Socket`, `GameLoop`, `initPhysics`, `setExitListeners`. |
+| `phoenix.engine/client` | browser | Everything shared, plus the client `Engine`, `World` (a mirror), `Entity`/`PositionEntity`/`MovingEntity` that **read** themselves, `RenderSystem`, cameras, `InputSystem`, `AudioSystem`, `AssetManager`, `NetworkSystem`, `EditorView`, `storage`, `isMobileDevice`. |
 | `phoenix.engine/text` | browser | `Text`: crisp signed-distance-field text in the scene, optionally facing the camera. Separate so a game that draws no text bundles none. |
 | `phoenix.engine/native.css` | browser | Default styles that make the page behave like an app (no selection, no overscroll, no tap highlight). |
 | `phoenix.engine/ui/<Name>.svelte` | browser | Svelte 5 components: `Joystick`, `GridLayout`. |
+
+The game imports Rapier, three.js and Svelte from their own packages; the engine re-exports none of them.
 
 ## Installation
 
@@ -71,11 +73,11 @@ bun add three svelte                # client: rendering and UI
 
 | Peer dependency | Version | Needed by |
 | --- | --- | --- |
-| `@dimforge/rapier3d-simd-compat` | `^0.20.0` | the server |
-| `three` | `^0.186.0` | the client |
-| `svelte` | `^5.57.1` | the client, when using the UI kit |
+| `@dimforge/rapier3d-simd-compat` | `^0.21.0` | the server, and a client that simulates physics |
+| `three` | `^0.186.0` | the client (optional peer) |
+| `svelte` | `^5.57.1` | the client, when using the UI kit (optional peer) |
 
-They are peers so that the engine and the game share **one copy** of each. With Rapier this is not a nicety: two copies means two WebAssembly instances, one of which is never initialised, and objects from one cannot be used in the other. Import Rapier, three.js and Svelte **directly from their own packages** in game code; the engine does not re-export them.
+Rapier is the SIMD build (faster collision detection and solving; every modern browser, Bun and Node support WebAssembly SIMD) in its *compat* form (the WebAssembly is embedded in the JavaScript and loaded by `initPhysics()`, so it works in Bun and in any bundler without plugins). They are peers so that the engine and the game share **one copy** of each. With Rapier this is not a nicety: two copies means two WebAssembly instances, one of which is never initialised, and objects from one cannot be used in the other. Import Rapier, three.js and Svelte **directly from their own packages** in game code; the engine does not re-export them.
 
 ## Quick start
 
@@ -221,9 +223,18 @@ There is one `Engine` per process on each side, and it owns every subsystem.
 | `context` | Handed to every entity as `this.context`. Defaults to the engine; a game passes itself. |
 | `network` | `in`/`out` event lists and schemas, `limits` per event, `port`, `origins`, `TLS`, `proxied`, and `ws`/`http` transport limits. |
 | `loop` | `TPS` (ticks per second), `turbo`, `speed`. |
-| `rooms` | `maximum` rooms per process. |
+| `rooms` | `maximum` rooms per process: `createRoom` throws past it. |
 
-`await engine.init()` loads Rapier, opens the network and starts the loop. Rooms: `createRoom(capacity?, code?)` — `capacity` is how many entities the room holds at once (default 65535) —, `getRoom(code)`, `destroyRoom(code)`, `rooms`.
+`await engine.init()` loads Rapier, opens the network and starts the loop.
+
+| Rooms | |
+| --- | --- |
+| `createRoom(maxPlayers?, capacity?, isPublic = true, inviteCode?)` | Opens a room. `maxPlayers` is how many sockets can join it (defaults to its capacity); `capacity` how many entities it holds at once (default 65535); a room that is not public is left out of `fullestRoom`; the invite code defaults to a free random one of `INVITE_CODE_LENGTH` characters from `INVITE_CODE_ALPHABET`. |
+| `fullestRoom(...exclude)` | The public room with the most players that still has a free seat, skipping the invite codes given. For quick play. |
+| `getRoom(code)`, `destroyRoom(code)`, `rooms` | Look up, close, and every open room by code. |
+| `occupancy()` | `{ [code]: { players, maxPlayers, public } }` for every room: what `GET /rooms` answers, so a client can find which server has a room. |
+
+Besides WebSockets, the server answers HTTP: its session routes, `GET /rooms`, and any GET route a game adds with `engine.network.route(path, () => Response)` before `init`. All of them get the network's CORS and rate limits.
 
 **Client** — `new Engine(options)`:
 
@@ -253,7 +264,7 @@ room.clear("crate");
 room.on("spawn" | "destroy" | "update", …);
 ```
 
-On the **server**, a world is a **room**: it also has an `inviteCode`, the `sockets` that joined it, a Rapier `physics` world, and `spawn`, `join`, `leave`, `frame`, `clean` and `broadcast`. `socket.room` says which room a socket is in; `socket.data` is the game's own per-socket data, typed by augmenting `SocketData`:
+On the **server**, a world is a **room**: it also has an `inviteCode`, `maxPlayers`, `public`, the `sockets` that joined it, a Rapier `physics` world, and `spawn`, `join`, `leave`, `frame`, `clean` and `broadcast`. `room.join(socket)` returns `false` when the socket is already in it or it is full, and takes the socket out of any other room first. `socket.room` says which room a socket is in; `socket.data` is the game's own per-socket data, typed by augmenting `SocketData`:
 
 ```ts
 declare module "phoenix.engine/server" {
@@ -272,7 +283,7 @@ Every game object is a class. Each side has its own chain, and they differ in ex
 | | Server (`phoenix.engine/server`) | Client (`phoenix.engine/client`) |
 | --- | --- | --- |
 | `Entity` | `update(dt)`, `serialize(writer)`, `serializeUpdate(writer)`, `isDirty`, `clean()` | `update(dt)`, `deserialize(reader)`, `deserializeUpdate(reader)`, and `render(dt)`: a hook for the game to refresh visuals (after a size change, say); the engine never calls it |
-| `PositionEntity` | `position`/`rotation` (observable vectors), a Rapier `body`, `embody(desc, ...shapes)`, `beforePhysics()`/`afterPhysics()` | `position`/`rotation` smoothed toward the server's, a three.js `group` placed there every frame |
+| `PositionEntity` | `position` (an `ObservableVector3`), `rotation` (an `ObservableQuaternion`), `yaw` (get and set), a Rapier `body`, `embody(desc, ...shapes)`, `beforePhysics()`/`afterPhysics()` | `position` (lerped) and `rotation` (a `Quaternion`, slerped) smoothed toward `targetPosition`/`targetRotation`, `yaw`, a three.js `group` placed there every frame |
 | `MovingEntity` | Options for a starting `velocity`, `gravityScale`, `damping`; `applyImpulse` | — |
 
 A **box, a crate, a player are the game's classes**, written once per side, extending these. Behaviour goes in the entity's own `update`. Lifecycle hooks are `onSpawn` and `onDestroy`; `destroy()` removes an entity.
@@ -307,7 +318,7 @@ this.embody(RigidBodyDesc.dynamic(), ColliderDesc.cuboid(0.5, 0.5, 0.5).setFrict
 - **Rapier owns the motion.** Velocity, mass and gravity live on `entity.body`; read and change them there. Pass `wakeUp: true` when changing a sleeping body (`setLinvel(v, true)`), or the change is ignored.
 - **Body types**: `dynamic` (moved by forces and contacts), `fixed` (floors, walls), `kinematicPositionBased`/`kinematicVelocityBased` (moved by code, pushes others, is never pushed).
 - **Mass** comes from the colliders: `density × volume`, or `ColliderDesc.setMass(m)`.
-- **Rotation**: a body with all rotations locked (`lockRotations()`) is turned by code — set `entity.yaw` and it goes into the body before each step. Otherwise the physics turns it, and its rotation comes back out.
+- **Rotation** is a quaternion, `entity.rotation`, copied to and from Rapier's as it is. A body with all rotations locked (`lockRotations()`) is turned by code: set `entity.yaw` (a turn about the vertical axis, standing it upright) or `entity.rotation.setFromEuler(pitch, yaw, roll)`, and it goes into the body before each step. Otherwise the physics turns it, and its rotation comes back out after. Spawn options take `pitch`, `yaw`, `roll` in radians, applied yaw, then pitch, then roll.
 - **`body.userData`** is the entity, so a raycast or contact can find what it hit: `hit.collider.parent()?.userData`.
 - **Sleeping**: a body at rest sleeps; its position stops changing, so it drops out of every frame.
 
@@ -322,6 +333,7 @@ this.embody(RigidBodyDesc.dynamic(), ColliderDesc.cuboid(0.5, 0.5, 0.5).setFrict
 - **What a socket sees is the game's call**: all entities, a chunk, a view cone. What leaves `visible` despawns; what enters it spawns.
 - **Each entity is encoded once per tick** into a shared buffer; every socket's frame copies those bytes.
 - **Records carry no length**: each entity reads exactly what its server side wrote. `serialize`/`deserialize` must write and read the same fields in the same order, `super` first.
+- **`PositionEntity`'s part**: a spawn writes the position (3 × `Float32`) and the rotation packed into a `Uint32` ("smallest three": the largest component dropped, the other three at 10 bits each, within 0.25°). An update writes 4 flags (x, y, z, rotation), then only what changed: a position axis past `POSITION_EPSILON`, the rotation once it turned more than `ROTATION_EPSILON` radians.
 - **A still room sends nothing**: an entity is only in the updates while `isDirty`; `frame` returns `undefined` when there is nothing to say.
 - **`room.clean()` counts the changes as sent** — call it once every socket had its frame this tick.
 
@@ -353,8 +365,8 @@ Socket API: `socket.send(event, data)`, `socket.cork(fn)` (batch), `socket.disco
 
 | System | |
 | --- | --- |
-| `engine.renderer` | three.js `scene`, `camera` (an `OrbitCamera`: `target`, `detach()`/`reattach()`, zoom), `view` (the canvas to mount), `resolution`, `setFullscreen()`. `DesktopCamera` orbits with the mouse and flies with WASD when detached; `TouchCamera` drags and pinches. |
-| `engine.inputs` | Actions over physical key codes: `mapActionToKeys(action, ...codes)`, `unmapActionFromKeys(action, ...codes)`, `onActionStart`, `onActionStop`, `isActionRunning`, `isInputPressed`, `onPressInput`. Mouse buttons bind as `"Pointer0"`… Keys typed into a text field never reach actions; losing focus releases everything. |
+| `engine.renderer` | three.js `scene`, `camera` (an `OrbitCamera`: `target`, `yaw`/`pitch`, `detach()`/`reattach()`, zoom), `view` (the canvas to mount), `resolution`, `setFullscreen()`. The camera keeps its vertical field of view (`fov`, default 75°) and widens it on narrow screens so at least `minHorizontalFov` (default 60°) stays visible across, which keeps phones in portrait playable. `DesktopCamera` orbits with the mouse and flies with WASD when detached; `TouchCamera` drags and pinches. |
+| `engine.inputs` | Actions over physical key codes, declared by the `binds` option: `mapActionToKeys(action, ...codes)`, `unmapActionFromKeys(action, ...codes)` (no codes clears the action), `onActionStart`, `onActionStop`, `isActionRunning`, `isInputPressed`, `onPressInput`. Mouse buttons bind as `"Pointer0"`… Keys typed into a text field never reach actions; losing focus releases everything. |
 | `engine.network` | `connect(url)`, `send`, `onMessage`, `on("connection" \| "disconnection" \| "reconnection" \| "stats")`, `stats`, and simulated `latency`/`loss` for testing under bad conditions. |
 | `engine.assets` | `load(kind, id, source)`, `loadAll(manifest)`, `get`, `instance(id)` for model copies, `release`. Kinds: `model` (glTF), `texture`, `sound`, plus `material` and `geometry` for ones built in code and shared through `assets.cache`. |
 | `engine.audio` | `play(id)`, `pause`, `stop`, `volume`, `muted`. The context unlocks on the first user gesture. |
@@ -368,13 +380,17 @@ Socket API: `socket.send(event, data)`, `socket.cork(fn)` (batch), `socket.disco
 ```ts
 import "phoenix.engine/native.css";                        // first, so the game's styles override it
 import Joystick from "phoenix.engine/ui/Joystick.svelte";  // multi-touch virtual stick
+import GridLayout from "phoenix.engine/ui/GridLayout.svelte";
 ```
+
+- **`Joystick`**: placed with `top`/`left`/`right`/`bottom`, with a `deadZone` (default 0.15). `onmove` gives `{ x, y, angle, distance }`: `angle` counterclockwise from the right, `distance` from 0 to 1 with the dead zone already taken out. Use these as they are. `onstart` and `onstop` bracket a touch.
+- **`GridLayout`**: a full-screen 3 × 3 grid filled through snippets (`top_left`, `top_center`, … `bottom_right`), with a `padding`.
 
 The engine's `native` option (on by default) blocks the context menu, pinch zoom and dragging out of the page; `native.css` makes the page unselectable and removes overscroll and tap highlights.
 
 ### Shared utilities
 
-`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`), `Interpolator` (`lerp`, `lerpAngle`, tweens), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`, `EventEmitter` (`on` returns an unsubscribe function), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText`/`validateText`/`censorText`, and `log`/`warn`/`error`.
+`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`), `Quaternion` and `ObservableQuaternion` (`setFromEuler`, `setFromYaw`, `setFromAxisAngle`, `toEuler`, `yaw`, `multiply`, `invert`, `slerp`, `angleTo`, `pack`/`unpack`, `hasUpdated(angle)`; `q` and `-q` count as the same rotation), `Interpolator` (`lerp`, `lerpAngle`, `lerpVector`, `slerpQuaternion`, tweens), `BufferWriter.toPrecision`/`BufferReader.fromPrecision` (a value in a range to and from a few bits), `get`/`post`/`put`/`del` (JSON over HTTP with a timeout and retries), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`, `EventEmitter` (`on` returns an unsubscribe function), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText`/`validateText`/`censorText`, and `log`/`warn`/`error`.
 
 ## Design principles
 
@@ -404,8 +420,12 @@ The repository is a Bun workspace: `client/`, `server/` and `shared/` build sepa
 
 [`tests/`](./tests) runs against the engine's source, with Bun's test runner:
 
-- [`replication.test.ts`](./tests/replication.test.ts) — a real server room and a real client world: spawns, updates, each rotation axis, despawns, leaving and re-entering view, hundreds of entities in a frame, several sockets.
-- [`inputs.test.ts`](./tests/inputs.test.ts) — actions, repeats, several keys per action, rebinding while held, focus loss.
+- [`replication.test.ts`](./tests/replication.test.ts): a real server room and a real client world: spawns, updates, rotations on spawn and on update, despawns, leaving and re-entering view, hundreds of entities in a frame, several sockets.
+- [`quaternion.test.ts`](./tests/quaternion.test.ts): packing within 0.25°, Euler and yaw round trips, `q` equal to `-q`, slerp the short way, composition, and a crate tipping past its side turning straight there.
+- [`rooms.test.ts`](./tests/rooms.test.ts): `fullestRoom` (fullest with a seat, private rooms skipped, excluded codes) and `occupancy`.
+- [`inputs.test.ts`](./tests/inputs.test.ts): actions, repeats, several keys per action, rebinding while held, focus loss.
+- [`camera.test.ts`](./tests/camera.test.ts): the field of view widening on narrow screens.
+- [`loop.test.ts`](./tests/loop.test.ts): the server loop's rate, its steps adding up to real time, and the cap after a stall.
 
 Gameplay behaviour — how the physics feels — is tested in the game, against its own entities (see the template's `server/tests`).
 
@@ -422,9 +442,10 @@ Every runtime dependency of `dist/` must be listed in the **root** `package.json
 
 ### Pitfalls
 
-- **Two copies of Rapier** (`undefined is not an object (evaluating 'mA.rawshape_cuboid')`): the game and the engine resolve different copies. Happens under `bun link`, or when the versions stop overlapping. Check `bun pm ls --all | grep rapier3d`.
+- **Two copies of Rapier** (`undefined is not an object (evaluating 'mA.rawshape_cuboid')`): the game and the engine resolve different copies. Happens under `bun link`, when the versions stop overlapping, or when the game imports another Rapier package (`rapier3d-compat` instead of `rapier3d-simd-compat`). Check `bun pm ls --all | grep rapier3d`.
 - **Vite and CommonJS dependencies** (`does not provide an export named 'Howl'`): a game that excludes `phoenix.engine` from Vite's `optimizeDeps` must include its CommonJS dependencies through it: `"phoenix.engine > howler"`, `"phoenix.engine > stats.js"`.
 - **A stale `dist/`**: the game runs the built engine, not its source. Rebuild after every change.
+- **A stale dev server**: a game's dev servers do not reload `node_modules`. After `bun update phoenix.engine`, restart them, or client and server run different engine builds and no frame decodes.
 
 ## License
 

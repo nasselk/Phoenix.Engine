@@ -493,16 +493,6 @@ export class NetworkSystem<
 	}
 
 	/**
-	 * Registers a handler for an incoming event.
-	 *
-	 * One handler per event: registering again replaces it. Listen on the `message` event instead
-	 * when several places need to see the same traffic.
-	 *
-	 * @param event The event to listen for. Must be one of the names declared in `settings.in.events`.
-	 * @param callback Receives the sending socket, then the decoded data when the event has an
-	 *   inbound schema or the raw reader otherwise.
-	 */
-	/**
 	 * Serve a GET route next to the built-in ones, with the same CORS and rate limits. Added before
 	 * `init`, which is when the server starts listening.
 	 */
@@ -516,6 +506,16 @@ export class NetworkSystem<
 		return this;
 	}
 
+	/**
+	 * Registers a handler for an incoming event.
+	 *
+	 * One handler per event: registering again replaces it. Listen on the `message` event instead
+	 * when several places need to see the same traffic.
+	 *
+	 * @param event The event to listen for. Must be one of the names declared in `settings.in.events`.
+	 * @param callback Receives the sending socket, then the decoded data when the event has an
+	 *   inbound schema or the raw reader otherwise.
+	 */
 	public onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): this {
 		this.messages[this.protocol.in.code(event)] = callback;
 

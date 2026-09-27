@@ -106,7 +106,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 		this.three.setClearColor(settings.backgroundColor ?? "black");
 
 		if (settings.fullscreen) {
-			waitForUserGesture().then(() => this.setFullscreen(true));
+			this.setFullscreen(settings.fullscreen);
 		}
 
 		this.initialized = RenderSystemState.INITIALIZED;
@@ -150,6 +150,8 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 * @returns A promise resolving to the current instance of the RenderSystem.
 	 */
 	public async setFullscreen(fullScreen: boolean = !this.isFullscreen): Promise<this> {
+		await waitForUserGesture();
+
 		if (fullScreen) {
 			await document.documentElement.requestFullscreen();
 		} else {

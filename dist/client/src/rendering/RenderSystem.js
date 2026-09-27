@@ -40,7 +40,7 @@ export class RenderSystem extends EventEmitter {
         }
         this.three.setClearColor(settings.backgroundColor ?? "black");
         if (settings.fullscreen) {
-            waitForUserGesture().then(() => this.setFullscreen(true));
+            this.setFullscreen(settings.fullscreen);
         }
         this.initialized = 2;
         this.resize();
@@ -59,6 +59,7 @@ export class RenderSystem extends EventEmitter {
         this.three.render(this.scene, this.camera);
     }
     async setFullscreen(fullScreen = !this.isFullscreen) {
+        await waitForUserGesture();
         if (fullScreen) {
             await document.documentElement.requestFullscreen();
         }
