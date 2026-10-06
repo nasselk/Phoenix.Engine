@@ -1,11 +1,14 @@
-import { CanvasTexture } from "three";
+import { SRGBColorSpace, Texture } from "three";
+import { AssetCache } from "../../assets/AssetCache";
 
 export class TextureBuilder {
 	private readonly canvas: OffscreenCanvas;
 	private readonly context: OffscreenCanvasRenderingContext2D;
+	private readonly cache: AssetCache;
 
-	public constructor(width: number = 1, height: number = width) {
+	public constructor(cache: AssetCache, width: number = 1, height: number = width) {
 		this.canvas = new OffscreenCanvas(width, height);
+		this.cache = cache;
 
 		const ctx = this.canvas.getContext("2d");
 
@@ -16,8 +19,12 @@ export class TextureBuilder {
 		this.context = ctx;
 	}
 
-	public draw(callback: (context: OffscreenCanvasRenderingContext2D) => void, reset: boolean = true): OffscreenCanvasRenderingContext2D {
-		if (reset) {
+	public draw(callback: (context: OffscreenCanvasRenderingContext2D) => void, clear: boolean = true, width?: number, height: number | undefined = width): OffscreenCanvasRenderingContext2D {
+		if (width && height) {
+			this.resize(width, height);
+		}
+
+		if (clear) {
 			this.context.resetTransform();
 			this.context.scale(1, 1);
 			this.context.rotate(0);
@@ -34,11 +41,21 @@ export class TextureBuilder {
 		return this.context;
 	}
 
-	public save(name?: string): CanvasTexture<OffscreenCanvas> {
-		const texture = new CanvasTexture(this.canvas);
+	public async save(name?: string): Promise<Texture> {
+		const bitmap = await createImageBitmap(this.canvas, { imageOrientation: "flipY" });
+		const texture = new Texture(bitmap);
+
+		texture.flipY = false;
+		texture.colorSpace = SRGBColorSpace;
+		texture.needsUpdate = true;
 
 		if (name) {
+			texture.name = name;
+
+			this.cache.set("texture", name, texture);
 		}
+
+		texture.addEventListener("dispose", () => bitmap.close());
 
 		return texture;
 	}
@@ -55,7 +72,9 @@ export class TextureBuilder {
 		setTimeout(() => URL.revokeObjectURL(url), 0);
 	}
 
-	public resize(width: number, height: number): this {
+	public resize(size: number): this;
+	public resize(width: number, height: number): this;
+	public resize(width: number = this.canvas.width, height: number = width ?? this.canvas.height): this {
 		this.canvas.width = width;
 		this.canvas.height = height;
 

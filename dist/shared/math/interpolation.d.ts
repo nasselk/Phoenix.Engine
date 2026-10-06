@@ -1,6 +1,6 @@
 import { Vector3Like } from "three";
 import type { Quaternion } from "./quaternion";
-export declare const enum InterpolationCurve {
+export declare enum InterpolationCurve {
     LINEAR = 0,
     EASE_IN = 1,
     EASE_OUT = 2,

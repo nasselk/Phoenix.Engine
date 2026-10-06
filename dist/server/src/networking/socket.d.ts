@@ -16,7 +16,7 @@ export type SocketUserData = {
     readonly sessionID: string;
     readonly reconnectionToken?: string;
 };
-export declare const enum SocketState {
+export declare enum SocketState {
     CONNECTING = 0,
     OPEN = 1,
     CLOSING = 2,

@@ -109,90 +109,85 @@ export class NetworkSystem extends EventEmitter {
             }
             : undefined;
         log("Networking Server", `Starting ${settings.TLS ? "secure" : "non-secure"} WebSocket server on port ${settings.port}...`);
-        try {
-            this.server = Bun.serve({
-                hostname: "0.0.0.0",
-                port: settings.port,
-                tls: certs,
-                maxRequestBodySize: settings.http.maxRequestBodySize,
-                routes: {
-                    ["/ws"]: {
-                        GET: (req, server) => this.handleUpgrade(req, server),
-                    },
-                    ["/session/init"]: {
-                        OPTIONS: this.preflight(),
-                        POST: this.middleware((state) => this.initSession(state)),
-                    },
-                    "/infos": {
-                        GET: this.middleware(() => Response.json({
-                            players: this.sockets.size,
-                            maxPlayers: settings.ws.maxSessions,
-                            uptime: process.uptime(),
-                        })),
-                    },
-                    "/ping": {
-                        GET: this.middleware(() => Response.json("pong")),
-                    },
-                    ...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware((_, request) => handler(request)) }])),
+        this.server = Bun.serve({
+            hostname: "0.0.0.0",
+            port: settings.port,
+            tls: certs,
+            maxRequestBodySize: settings.http.maxRequestBodySize,
+            routes: {
+                ["/ws"]: {
+                    GET: (req, server) => this.handleUpgrade(req, server),
                 },
-                fetch: () => new Response("Not Found", { status: 404 }),
-                websocket: {
-                    idleTimeout: settings.ws.idleTimeout,
-                    maxPayloadLength: settings.ws.maxMessageSize,
-                    backpressureLimit: settings.ws.maxBackPressure,
-                    closeOnBackpressureLimit: true,
-                    open: (ws) => {
-                        const data = ws.data;
-                        const sessionsCount = this.IPList.getCount(data.ip);
-                        if (this.sockets.size >= settings.ws.maxSessions || sessionsCount >= settings.ws.maxSessionsPerIP) {
-                            ws.close(1013, "Too many connections");
-                        }
-                        else {
-                            this.IPList.increment(data.ip);
-                            const socket = (data.socket = new Socket(this.protocol, ws, this.socketIDs.allocate()));
-                            this.sockets.set(socket.id, socket);
-                            this.sessions.set(socket.sessionID, Infinity);
-                            log("Networking Server", `${socket.ip} connected (session ${socket.sessionID})`);
-                            this.emit("connection", socket);
-                        }
-                    },
-                    message: (ws, message) => {
-                        const socket = ws.data.socket;
-                        if (!socket) {
-                            return;
-                        }
-                        if (typeof message === "string" || message.byteLength === 0) {
-                            socket.disconnect(false, "Malformed message", 1003);
-                            return;
-                        }
-                        this.handle(socket, message);
-                    },
-                    close: (ws, code, reason) => {
-                        const socket = ws.data.socket;
-                        if (!socket) {
-                            return;
-                        }
-                        ws.data.socket = undefined;
-                        this.sockets.delete(socket.id);
-                        this.socketIDs.free(socket.id);
-                        this.IPList.decrement(socket.ip);
-                        this.sessions.set(socket.sessionID, Date.now() + SESSION_TTL);
-                        socket.disconnection(code, reason);
-                        this.emit("disconnection", socket, code, reason);
-                        socket.room?.leave(socket);
-                    },
+                ["/session/init"]: {
+                    OPTIONS: this.preflight(),
+                    POST: this.middleware((state) => this.initSession(state)),
                 },
-                error: (err) => {
-                    error("Networking Server", `HTTP server error: ${err instanceof Error ? err.message : String(err)}`);
-                    return new Response("Internal Server Error", { status: 500 });
+                "/infos": {
+                    GET: this.middleware(() => Response.json({
+                        players: this.sockets.size,
+                        maxPlayers: settings.ws.maxSessions,
+                        uptime: process.uptime(),
+                    })),
                 },
-            });
-            log("Networking Server", "Successfully started the WebSocket server.");
-            this.emit("listening", this.server.port ?? settings?.port);
-        }
-        catch (err) {
-            error("Networking Server", `Failed to start networking server: ${err instanceof Error ? err.message : String(err)}`);
-        }
+                "/ping": {
+                    GET: this.middleware(() => Response.json("pong")),
+                },
+                ...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware((_, request) => handler(request)) }])),
+            },
+            fetch: () => new Response("Not Found", { status: 404 }),
+            websocket: {
+                idleTimeout: settings.ws.idleTimeout,
+                maxPayloadLength: settings.ws.maxMessageSize,
+                backpressureLimit: settings.ws.maxBackPressure,
+                closeOnBackpressureLimit: true,
+                open: (ws) => {
+                    const data = ws.data;
+                    const sessionsCount = this.IPList.getCount(data.ip);
+                    if (this.sockets.size >= settings.ws.maxSessions || sessionsCount >= settings.ws.maxSessionsPerIP) {
+                        ws.close(1013, "Too many connections");
+                    }
+                    else {
+                        this.IPList.increment(data.ip);
+                        const socket = (data.socket = new Socket(this.protocol, ws, this.socketIDs.allocate()));
+                        this.sockets.set(socket.id, socket);
+                        this.sessions.set(socket.sessionID, Infinity);
+                        log("Networking Server", `${socket.ip} connected (session ${socket.sessionID})`);
+                        this.emit("connection", socket);
+                    }
+                },
+                message: (ws, message) => {
+                    const socket = ws.data.socket;
+                    if (!socket) {
+                        return;
+                    }
+                    if (typeof message === "string" || message.byteLength === 0) {
+                        socket.disconnect(false, "Malformed message", 1003);
+                        return;
+                    }
+                    this.handle(socket, message);
+                },
+                close: (ws, code, reason) => {
+                    const socket = ws.data.socket;
+                    if (!socket) {
+                        return;
+                    }
+                    ws.data.socket = undefined;
+                    this.sockets.delete(socket.id);
+                    this.socketIDs.free(socket.id);
+                    this.IPList.decrement(socket.ip);
+                    this.sessions.set(socket.sessionID, Date.now() + SESSION_TTL);
+                    socket.disconnection(code, reason);
+                    this.emit("disconnection", socket, code, reason);
+                    socket.room?.leave(socket);
+                },
+            },
+            error: (err) => {
+                error("Networking Server", `HTTP server error: ${err instanceof Error ? err.message : String(err)}`);
+                return new Response("Internal Server Error", { status: 500 });
+            },
+        });
+        log("Networking Server", "Successfully started the WebSocket server.");
+        this.emit("listening", this.server.port ?? settings?.port);
     }
     handle(socket, message) {
         socket.lastMessage = performance.now();
@@ -304,9 +299,9 @@ export class NetworkSystem extends EventEmitter {
     }
     getRequestIP(req) {
         if (this.settings.proxied) {
-            const forwarded = req.headers.get("CF-Connecting-IP");
+            const forwarded = req.headers.get("X-Forwarded-For")?.split(",").at(-1)?.trim();
             if (forwarded) {
-                return forwarded.split(",")[0].trim();
+                return forwarded;
             }
         }
         return this.server?.requestIP(req)?.address ?? "";

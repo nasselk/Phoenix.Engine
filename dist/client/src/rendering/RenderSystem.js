@@ -1,62 +1,75 @@
-import { Scene, WebGLRenderer } from "three";
+import { NoToneMapping, Scene, WebGLRenderer } from "three";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
 import { waitForUserGesture } from "../utils/gesture";
 import { DesktopCamera } from "./lib/camera/DesktopCamera";
 import { TextureBuilder } from "./lib/TextureBuilder";
+import { Batcher } from "./lib/Batcher";
 import { TouchCamera } from "./lib/camera/TouchCamera";
+export var RenderSystemState;
+(function (RenderSystemState) {
+    RenderSystemState[RenderSystemState["NULL"] = 0] = "NULL";
+    RenderSystemState[RenderSystemState["INITIALIZING"] = 1] = "INITIALIZING";
+    RenderSystemState[RenderSystemState["INITIALIZED"] = 2] = "INITIALIZED";
+    RenderSystemState[RenderSystemState["DESTROYED"] = 3] = "DESTROYED";
+})(RenderSystemState || (RenderSystemState = {}));
 export class RenderSystem extends EventEmitter {
-    constructor(view, touch = false) {
+    constructor(cache, view, touch = false) {
         super();
         this.view = view ?? this.createRenderingView();
-        this.initialized = 0;
+        this.initialized = RenderSystemState.NULL;
         this.resolution = 1;
         this.scene = new Scene();
         this.camera = touch ? new TouchCamera() : new DesktopCamera();
-        this.textureBuilder = new TextureBuilder();
+        this.textureBuilder = new TextureBuilder(cache);
+        this.batcher = new Batcher();
         this.camera.connect(this.canvas);
     }
     async init(settings = {}) {
-        if (this.initialized !== 0) {
+        if (this.initialized !== RenderSystemState.NULL) {
             throw new Error("Renderer is already initialized or destroyed");
         }
-        this.initialized = 1;
+        this.initialized = RenderSystemState.INITIALIZING;
         this.resolution = settings.resolution ?? 1;
         switch (settings.renderer) {
             case "WebGPU":
                 throw new Error("WebGPU is not yet supported");
-                this.three = new WebGLRenderer({
+                this.internals = new WebGLRenderer({
                     powerPreference: "high-performance",
                     ...settings.three,
                     canvas: this.canvas,
                 });
             case "WebGL":
             default:
-                this.three = new WebGLRenderer({
+                this.internals = new WebGLRenderer({
                     powerPreference: "high-performance",
                     ...settings.three,
                     canvas: this.canvas,
                 });
         }
-        this.three.setClearColor(settings.backgroundColor ?? "black");
+        this.internals.setClearColor(settings.backgroundColor ?? "black");
+        this.internals.shadowMap.enabled = settings.shadows !== undefined;
+        this.internals.shadowMap.type = settings.shadows ?? this.internals.shadowMap.type;
+        this.internals.toneMapping = settings.toneMapping ?? NoToneMapping;
+        this.internals.toneMappingExposure = settings.exposure ?? 1;
         if (settings.fullscreen) {
             this.setFullscreen(settings.fullscreen);
         }
-        this.initialized = 2;
+        this.initialized = RenderSystemState.INITIALIZED;
         this.resize();
         this.observer = new ResizeObserver(() => this.resize());
         this.observer.observe(this.canvas);
         this.emit("init", this.canvas);
         log("Renderer", "Successfully initialized WebGL renderer");
-        return this.three;
+        return this.internals;
     }
     render(deltaTime, now = performance.now()) {
-        if (this.initialized !== 2) {
+        if (this.initialized !== RenderSystemState.INITIALIZED) {
             throw new Error("Renderer is not initialized. Call init() before starting the rendering loop.");
         }
         this.emit("render", deltaTime, now);
         this.camera.update(deltaTime);
-        this.three.render(this.scene, this.camera);
+        this.internals.render(this.scene, this.camera);
     }
     async setFullscreen(fullScreen = !this.isFullscreen) {
         if (fullScreen === this.isFullscreen) {
@@ -86,34 +99,36 @@ export class RenderSystem extends EventEmitter {
         return canvas;
     }
     get ready() {
-        return this.initialized === 2;
+        return this.initialized === RenderSystemState.INITIALIZED;
     }
     resize(width, height = width) {
-        if (this.initialized !== 2) {
+        if (this.initialized !== RenderSystemState.INITIALIZED) {
             throw new Error("Renderer is not initialized. Call init() before starting the rendering loop.");
         }
         const bounds = this.canvas.getBoundingClientRect();
         width ?? (width = bounds.width * devicePixelRatio);
         height ?? (height = bounds.height * devicePixelRatio);
         this.emit("resize", width, height);
-        this.three.setSize(width * this.resolution, height * this.resolution, false);
+        this.internals.setSize(width * this.resolution, height * this.resolution, false);
         this.camera.fit(width / height);
         return this;
     }
     destroy(view = false) {
-        if (this.initialized === 0) {
+        if (this.initialized === RenderSystemState.NULL) {
             throw new Error("Renderer is not initialized");
         }
-        if (this.initialized === 3) {
+        if (this.initialized === RenderSystemState.DESTROYED) {
             throw new Error("Renderer is already destroyed");
         }
         this.observer?.disconnect();
         this.camera.destroy();
+        this.batcher.destroy();
         if (view) {
             this.canvas.remove();
         }
-        this.three.dispose();
-        this.three.forceContextLoss();
+        this.internals.dispose();
+        this.internals.forceContextLoss();
+        this.initialized = RenderSystemState.DESTROYED;
         this.emit("destroy");
         this.removeAllListeners();
     }

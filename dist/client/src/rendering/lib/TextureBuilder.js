@@ -1,15 +1,19 @@
-import { CanvasTexture } from "three";
+import { SRGBColorSpace, Texture } from "three";
 export class TextureBuilder {
-    constructor(width = 1, height = width) {
+    constructor(cache, width = 1, height = width) {
         this.canvas = new OffscreenCanvas(width, height);
+        this.cache = cache;
         const ctx = this.canvas.getContext("2d");
         if (!ctx) {
             throw new Error("Failed to get 2D context for texture builder");
         }
         this.context = ctx;
     }
-    draw(callback, reset = true) {
-        if (reset) {
+    draw(callback, clear = true, width, height = width) {
+        if (width && height) {
+            this.resize(width, height);
+        }
+        if (clear) {
             this.context.resetTransform();
             this.context.scale(1, 1);
             this.context.rotate(0);
@@ -22,10 +26,17 @@ export class TextureBuilder {
         callback(this.context);
         return this.context;
     }
-    save(name) {
-        const texture = new CanvasTexture(this.canvas);
+    async save(name) {
+        const bitmap = await createImageBitmap(this.canvas, { imageOrientation: "flipY" });
+        const texture = new Texture(bitmap);
+        texture.flipY = false;
+        texture.colorSpace = SRGBColorSpace;
+        texture.needsUpdate = true;
         if (name) {
+            texture.name = name;
+            this.cache.set("texture", name, texture);
         }
+        texture.addEventListener("dispose", () => bitmap.close());
         return texture;
     }
     async download(name) {
@@ -37,7 +48,7 @@ export class TextureBuilder {
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 0);
     }
-    resize(width, height) {
+    resize(width = this.canvas.width, height = width ?? this.canvas.height) {
         this.canvas.width = width;
         this.canvas.height = height;
         return this;

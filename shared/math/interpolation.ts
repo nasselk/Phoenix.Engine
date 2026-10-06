@@ -6,7 +6,7 @@ import type { Quaternion } from "./quaternion";
 
 const view = (globalThis as any).document; // Check if running in a browser environment
 
-export const enum InterpolationCurve {
+export enum InterpolationCurve {
 	LINEAR,
 	EASE_IN,
 	EASE_OUT,

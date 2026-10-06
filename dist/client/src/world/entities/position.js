@@ -17,7 +17,6 @@ export class PositionEntity extends Entity {
         this.group = new Group();
         this.group.rotation.order = "YXZ";
         this.group.userData.entity = this;
-        this.syncGroup();
     }
     onSpawn() {
         this.syncGroup();
@@ -25,6 +24,16 @@ export class PositionEntity extends Entity {
     }
     onDestroy() {
         this.group.removeFromParent();
+    }
+    teleport(a, b, c) {
+        if (typeof a === "number") {
+            this.targetPosition.set(a, b, c);
+            this.position.set(a, b, c);
+        }
+        else {
+            this.targetPosition.set(a);
+            this.position.set(a);
+        }
     }
     update(deltaTime) {
         const { FRAMES_PER_SECOND, SNAP_DISTANCE, SNAP_ANGLE } = PositionEntity;
@@ -34,7 +43,7 @@ export class PositionEntity extends Entity {
             Interpolator.lerpVector(position, targetPosition, smoothing, frames, SNAP_DISTANCE);
         }
         else {
-            this.position.set(this.targetPosition);
+            this.teleport(this.targetPosition);
         }
         if (this.rotationInterpolation) {
             const { rotation, targetRotation, rotationSmoothing } = this;

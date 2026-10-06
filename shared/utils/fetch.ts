@@ -5,20 +5,20 @@ import { wait } from "./timers/wait";
 import { error } from "./logger";
 import type { JsonValue } from "./types";
 
-type ResponseError = {
+export type ResponseError = {
 	message: string;
 	status: number;
 	attempts: number;
 	url: string;
 };
 
-type Response<T> = {
+export type Response<T> = {
 	success: boolean;
 	error?: ResponseError;
 	data: T;
 };
 
-type RequestSettings = {
+export type RequestSettings = {
 	params?: string;
 	timeout?: number;
 	tries?: number;

@@ -5,6 +5,7 @@ const MAX_FRAME = 0.1;
 export class OrbitCamera extends PerspectiveCamera {
     constructor(options = {}) {
         super(options.fov ?? 75, 1, options.near ?? 0.1, options.far ?? 1000);
+        this.turn = 0;
         this.orbiting = false;
         this.free = false;
         this.verticalFovDegrees = this.fov;
@@ -17,6 +18,7 @@ export class OrbitCamera extends PerspectiveCamera {
         this.minDistance = options.minDistance ?? 4;
         this.maxDistance = options.maxDistance ?? 40;
         this.rotateSpeed = options.rotateSpeed ?? 0.0025;
+        this.turnSpeed = options.turnSpeed ?? 2.5;
         this.zoomSpeed = options.zoomSpeed ?? 0.001;
         this.dragging = options.dragging ?? true;
         this.zooming = options.zooming ?? true;
@@ -113,6 +115,9 @@ export class OrbitCamera extends PerspectiveCamera {
         const target = this.target;
         if (target === undefined) {
             return this;
+        }
+        if (this.turn !== 0) {
+            this.rotate(-this.turn * this.turnSpeed * Math.min(deltaTime, MAX_FRAME), 0);
         }
         const flat = Math.cos(this.pitch) * this.distance;
         const { x, y, z } = target;

@@ -76,8 +76,8 @@ export class Engine<
 		this.sound = options.audio ?? {};
 
 		this.loop = new GameLoop(options.loop);
-		this.renderer = new RenderSystem(undefined, this.isMobile);
 		this.assets = new AssetManager(options.assets);
+		this.renderer = new RenderSystem(this.assets.cache, undefined, this.isMobile);
 		this.network = new NetworkSystem<In, Out, InSchemas, OutSchemas>(options.network);
 		this.inputs = new InputSystem<Action>(options.inputs);
 		this.audio = new AudioSystem(this.assets);
@@ -131,15 +131,18 @@ export class Engine<
 	/**
 	 * Destroys the engine, including the renderer, audio system, network system, input system, and any event emitters.
 	 */
-	public destroy(): void {
+	public async destroy(): Promise<void> {
+		const promise = this.audio.destroy();
+
 		this.network.destroy();
 		this.inputs.destroy();
 		this.loop.destroy();
 		this.world.destroy();
-		this.audio.destroy();
 		this.assets.destroy();
 		this.renderer.destroy();
 		this.ordinary?.();
+
+		await promise;
 
 		this.emit("destroy");
 

@@ -5,6 +5,7 @@ import { ObservableQuaternion } from "../../../../shared/math/quaternion";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";
+import { Vector3Like } from "three";
 export declare const POSITION_EPSILON = 0.000001;
 export declare const ROTATION_EPSILON = 0.01;
 export type PositionEntityOptions = EntityOptions & {
@@ -25,6 +26,8 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     beforePhysics(): void;
     afterPhysics(): void;
     onDestroy(): void;
+    teleport(position: Vector3Like): void;
+    teleport(x: number, y: number, z: number): void;
     clean(): void;
     serialize(writer: BufferWriter): void;
     serializeUpdate(writer: BufferWriter): void;

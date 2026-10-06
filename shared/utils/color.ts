@@ -1,3 +1,8 @@
+/** A colour as a number, `0xff8800`, written the way CSS takes it, `"#ff8800"`. */
+export function hex(color: number): string {
+	return `#${(color & 0xffffff).toString(16).padStart(6, "0")}`;
+}
+
 export function getRandomColor(r: boolean = true, g: boolean = true, b: boolean = true, alpha: boolean = false): string {
 	const colors = "0123456789ABCDEF";
 

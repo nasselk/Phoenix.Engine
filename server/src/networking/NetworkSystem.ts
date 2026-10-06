@@ -62,7 +62,11 @@ export type NetworkSystemOptions<In extends readonly string[], Out extends reado
 		readonly cert: string | URL;
 	};
 	readonly port?: number;
-	/** Behind a reverse proxy: take the client address from the forwarding header instead of the socket. */
+	/**
+	 * Behind one reverse proxy (nginx, Cloudflare): take the client address from the last `X-Forwarded-For`
+	 * entry, the one the proxy appended, instead of the socket. Earlier entries are whatever the client sent.
+	 * Leave it off when players connect directly: the header could then claim any address.
+	 */
 	readonly proxied?: boolean;
 	readonly origins?: string[] | string;
 	/** Budgets for the plain HTTP routes — the session handshake and the status endpoints. */
@@ -289,119 +293,115 @@ export class NetworkSystem<
 
 		log("Networking Server", `Starting ${settings.TLS ? "secure" : "non-secure"} WebSocket server on port ${settings.port}...`);
 
-		try {
-			this.server = Bun.serve<SocketUserData, string>({
-				hostname: "0.0.0.0",
-				port: settings.port,
-				tls: certs,
-				maxRequestBodySize: settings.http.maxRequestBodySize,
+		this.server = Bun.serve<SocketUserData, string>({
+			hostname: "0.0.0.0",
+			port: settings.port,
+			tls: certs,
+			maxRequestBodySize: settings.http.maxRequestBodySize,
 
-				routes: {
-					[ServerRoutes.WS]: {
-						GET: (req: BunRequest, server: Server<SocketUserData>) => this.handleUpgrade(req, server),
-					},
-					[ServerRoutes.SESSION]: {
-						OPTIONS: this.preflight(),
-						POST: this.middleware((state) => this.initSession(state)),
-					},
-					"/infos": {
-						GET: this.middleware(() =>
-							Response.json({
-								players: this.sockets.size,
-								maxPlayers: settings.ws.maxSessions,
-								uptime: process.uptime(),
-							}),
-						),
-					},
-					"/ping": {
-						GET: this.middleware(() => Response.json("pong")),
-					},
-					...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware((_, request) => handler(request)) }])),
+			routes: {
+				[ServerRoutes.WS]: {
+					GET: (req: BunRequest, server: Server<SocketUserData>) => this.handleUpgrade(req, server),
+				},
+				[ServerRoutes.SESSION]: {
+					OPTIONS: this.preflight(),
+					POST: this.middleware((state) => this.initSession(state)),
+				},
+				"/infos": {
+					GET: this.middleware(() =>
+						Response.json({
+							players: this.sockets.size,
+							maxPlayers: settings.ws.maxSessions,
+							uptime: process.uptime(),
+						}),
+					),
+				},
+				"/ping": {
+					GET: this.middleware(() => Response.json("pong")),
+				},
+				...Object.fromEntries([...this.extraRoutes].map(([path, handler]) => [path, { GET: this.middleware((_, request) => handler(request)) }])),
+			},
+
+			fetch: () => new Response("Not Found", { status: 404 }),
+
+			websocket: {
+				idleTimeout: settings.ws.idleTimeout,
+				maxPayloadLength: settings.ws.maxMessageSize,
+				backpressureLimit: settings.ws.maxBackPressure,
+				closeOnBackpressureLimit: true,
+
+				open: (ws): void => {
+					const data = ws.data;
+					const sessionsCount = this.IPList.getCount(data.ip);
+
+					if (this.sockets.size >= settings.ws.maxSessions || sessionsCount >= settings.ws.maxSessionsPerIP) {
+						ws.close(1013, "Too many connections"); // 1013 = Try Again Later
+					} else {
+						this.IPList.increment(data.ip);
+
+						const socket = (data.socket = new Socket<C>(this.protocol, ws, this.socketIDs.allocate()));
+
+						this.sockets.set(socket.id, socket);
+						// Held for as long as the connection lives, so a reconnect can reclaim the id.
+						this.sessions.set(socket.sessionID, Infinity);
+
+						log("Networking Server", `${socket.ip} connected (session ${socket.sessionID})`);
+
+						this.emit("connection", socket);
+					}
 				},
 
-				fetch: () => new Response("Not Found", { status: 404 }),
+				message: (ws, message): void => {
+					const socket = ws.data.socket as Socket<C> | undefined;
 
-				websocket: {
-					idleTimeout: settings.ws.idleTimeout,
-					maxPayloadLength: settings.ws.maxMessageSize,
-					backpressureLimit: settings.ws.maxBackPressure,
-					closeOnBackpressureLimit: true,
+					if (!socket) {
+						return;
+					}
 
-					open: (ws): void => {
-						const data = ws.data;
-						const sessionsCount = this.IPList.getCount(data.ip);
+					// Binary frames arrive as a Buffer; strings and empty frames are malformed for us.
+					if (typeof message === "string" || message.byteLength === 0) {
+						socket.disconnect(false, "Malformed message", 1003);
 
-						if (this.sockets.size >= settings.ws.maxSessions || sessionsCount >= settings.ws.maxSessionsPerIP) {
-							ws.close(1013, "Too many connections"); // 1013 = Try Again Later
-						} else {
-							this.IPList.increment(data.ip);
+						return;
+					}
 
-							const socket = (data.socket = new Socket<C>(this.protocol, ws, this.socketIDs.allocate()));
-
-							this.sockets.set(socket.id, socket);
-							// Held for as long as the connection lives, so a reconnect can reclaim the id.
-							this.sessions.set(socket.sessionID, Infinity);
-
-							log("Networking Server", `${socket.ip} connected (session ${socket.sessionID})`);
-
-							this.emit("connection", socket);
-						}
-					},
-
-					message: (ws, message): void => {
-						const socket = ws.data.socket as Socket<C> | undefined;
-
-						if (!socket) {
-							return;
-						}
-
-						// Binary frames arrive as a Buffer; strings and empty frames are malformed for us.
-						if (typeof message === "string" || message.byteLength === 0) {
-							socket.disconnect(false, "Malformed message", 1003);
-
-							return;
-						}
-
-						this.handle(socket, message);
-					},
-
-					close: (ws, code, reason): void => {
-						const socket = ws.data.socket as Socket<C> | undefined;
-
-						if (!socket) {
-							return;
-						}
-
-						ws.data.socket = undefined;
-
-						this.sockets.delete(socket.id);
-						this.socketIDs.free(socket.id);
-						this.IPList.decrement(socket.ip);
-						// The id stays claimable for a while so a dropped client keeps its identity.
-						this.sessions.set(socket.sessionID, Date.now() + SESSION_TTL);
-
-						socket.disconnection(code, reason);
-
-						this.emit("disconnection", socket, code, reason);
-
-						// After the game's own handlers, which may still need to know the room it was in.
-						socket.room?.leave(socket);
-					},
+					this.handle(socket, message);
 				},
 
-				error: (err): Response => {
-					error("Networking Server", `HTTP server error: ${err instanceof Error ? err.message : String(err)}`);
+				close: (ws, code, reason): void => {
+					const socket = ws.data.socket as Socket<C> | undefined;
 
-					return new Response("Internal Server Error", { status: 500 });
+					if (!socket) {
+						return;
+					}
+
+					ws.data.socket = undefined;
+
+					this.sockets.delete(socket.id);
+					this.socketIDs.free(socket.id);
+					this.IPList.decrement(socket.ip);
+					// The id stays claimable for a while so a dropped client keeps its identity.
+					this.sessions.set(socket.sessionID, Date.now() + SESSION_TTL);
+
+					socket.disconnection(code, reason);
+
+					this.emit("disconnection", socket, code, reason);
+
+					// After the game's own handlers, which may still need to know the room it was in.
+					socket.room?.leave(socket);
 				},
-			});
+			},
 
-			log("Networking Server", "Successfully started the WebSocket server.");
+			error: (err): Response => {
+				error("Networking Server", `HTTP server error: ${err instanceof Error ? err.message : String(err)}`);
 
-			this.emit("listening", this.server.port ?? settings?.port);
-		} catch (err) {
-			error("Networking Server", `Failed to start networking server: ${err instanceof Error ? err.message : String(err)}`);
-		}
+				return new Response("Internal Server Error", { status: 500 });
+			},
+		});
+
+		log("Networking Server", "Successfully started the WebSocket server.");
+
+		this.emit("listening", this.server.port ?? settings?.port);
 	}
 
 	/**
@@ -607,11 +607,10 @@ export class NetworkSystem<
 
 	private getRequestIP(req: BunRequest): string {
 		if (this.settings.proxied) {
-			// Behind a reverse proxy: trust the left-most entry (the real client).
-			const forwarded = req.headers.get("CF-Connecting-IP");
+			const forwarded = req.headers.get("X-Forwarded-For")?.split(",").at(-1)?.trim();
 
 			if (forwarded) {
-				return forwarded.split(",")[0]!.trim();
+				return forwarded;
 			}
 		}
 

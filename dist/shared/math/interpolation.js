@@ -1,12 +1,19 @@
 import { extractRGBA } from "../utils/color";
 import { normalizeAnglePI } from "./angle";
 const view = globalThis.document;
+export var InterpolationCurve;
+(function (InterpolationCurve) {
+    InterpolationCurve[InterpolationCurve["LINEAR"] = 0] = "LINEAR";
+    InterpolationCurve[InterpolationCurve["EASE_IN"] = 1] = "EASE_IN";
+    InterpolationCurve[InterpolationCurve["EASE_OUT"] = 2] = "EASE_OUT";
+    InterpolationCurve[InterpolationCurve["EASE_IN_OUT"] = 3] = "EASE_IN_OUT";
+})(InterpolationCurve || (InterpolationCurve = {}));
 const curves = [];
-curves[0] = (f) => f;
-curves[1] = (f) => f * f;
-curves[2] = (f) => f * (2 - f);
-curves[3] = (f) => (f < 0.5 ? 2 * f * f : -1 + (4 - 2 * f) * f);
-function applyCurve(f, curve = 0) {
+curves[InterpolationCurve.LINEAR] = (f) => f;
+curves[InterpolationCurve.EASE_IN] = (f) => f * f;
+curves[InterpolationCurve.EASE_OUT] = (f) => f * (2 - f);
+curves[InterpolationCurve.EASE_IN_OUT] = (f) => (f < 0.5 ? 2 * f * f : -1 + (4 - 2 * f) * f);
+function applyCurve(f, curve = InterpolationCurve.LINEAR) {
     return curves[curve](f);
 }
 function lerp(start, end, factor, deltaTime = 1, limit = 0) {

@@ -26,6 +26,7 @@ export type LoopStats = {
     };
 };
 export declare class GameLoop extends EventEmitter<GameLoopEvents> {
+    private static readonly MAX_TICK_ID;
     lastTickTime: number;
     speed: number;
     maxTickRate: number;

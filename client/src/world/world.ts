@@ -39,6 +39,9 @@ export class World<D extends EntityDefinitions, C> extends BaseWorld<D, C, Entit
 	 */
 	public sync(reader: BufferReader): void {
 		const registry = this.registry;
+
+		const serverTime = reader.readUint32() / 1000;
+
 		const despawns = reader.readUint16();
 
 		for (let i = 0; i < despawns; i++) {

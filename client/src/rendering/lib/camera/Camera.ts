@@ -21,6 +21,7 @@ export type OrbitCameraOptions = Partial<{
 	readonly minDistance: number;
 	readonly maxDistance: number;
 	readonly rotateSpeed: number;
+	readonly turnSpeed: number;
 	readonly zoomSpeed: number;
 	readonly dragging: boolean;
 	readonly zooming: boolean;
@@ -56,6 +57,14 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 	public rotateSpeed: number;
 	public zoomSpeed: number;
 
+	/**
+	 * Turns the camera around its target every frame, like a mouse dragged sideways: -1 to the left, 1 to
+	 * the right, 0 still. Set from held keys, a gamepad stick, anything; the camera does not read input itself.
+	 */
+	public turn = 0;
+	/** How fast `turn` at 1 goes round, in radians per second. */
+	public turnSpeed: number;
+
 	public dragging: boolean;
 	public zooming: boolean;
 
@@ -87,6 +96,7 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		this.minDistance = options.minDistance ?? 4;
 		this.maxDistance = options.maxDistance ?? 40;
 		this.rotateSpeed = options.rotateSpeed ?? 0.0025;
+		this.turnSpeed = options.turnSpeed ?? 2.5;
 		this.zoomSpeed = options.zoomSpeed ?? 0.001;
 		this.dragging = options.dragging ?? true;
 		this.zooming = options.zooming ?? true;
@@ -238,6 +248,10 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 
 		if (target === undefined) {
 			return this;
+		}
+
+		if (this.turn !== 0) {
+			this.rotate(-this.turn * this.turnSpeed * Math.min(deltaTime, MAX_FRAME), 0);
 		}
 
 		const flat = Math.cos(this.pitch) * this.distance;

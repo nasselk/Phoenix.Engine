@@ -5,6 +5,7 @@ import { ObservableQuaternion } from "../../../../shared/math/quaternion";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";
+import { Vector3Like } from "three";
 
 export const POSITION_EPSILON = 0.000001;
 
@@ -104,6 +105,18 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 			this.body = undefined;
 		}
+	}
+
+	public teleport(position: Vector3Like): void;
+	public teleport(x: number, y: number, z: number): void;
+	public teleport(a: number | Vector3Like, b?: number, c?: number): void {
+		if (typeof a === "number") {
+			this.position.set(a, b, c);
+		} else {
+			this.position.set(a.x, a.y, a.z);
+		}
+
+		this.body?.setTranslation(this.position, false);
 	}
 
 	/** Only what `serializeUpdate` sent counts as sent: a change still under its epsilon keeps adding up until it is. */

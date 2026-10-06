@@ -16,6 +16,7 @@ export class World extends BaseWorld {
     }
     sync(reader) {
         const registry = this.registry;
+        const serverTime = reader.readUint32() / 1000;
         const despawns = reader.readUint16();
         for (let i = 0; i < despawns; i++) {
             this.get(reader.readUint16())?.destroy();

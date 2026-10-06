@@ -2,7 +2,7 @@ import { BufferReader } from "@nasselk/binarypack";
 import { Interpolator } from "../../../../shared/math/interpolation";
 import { Vector3 } from "../../../../shared/math/vector3";
 import { Quaternion } from "../../../../shared/math/quaternion";
-import { Group } from "three";
+import { Group, Vector3Like } from "three";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";
@@ -52,8 +52,6 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 		this.group.rotation.order = "YXZ";
 		this.group.userData.entity = this;
-
-		this.syncGroup();
 	}
 
 	public override onSpawn(): void {
@@ -66,6 +64,18 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		this.group.removeFromParent();
 	}
 
+	public teleport(position: Vector3Like): void;
+	public teleport(x: number, y: number, z: number): void;
+	public teleport(a: number | Vector3Like, b?: number, c?: number): void {
+		if (typeof a === "number") {
+			this.targetPosition.set(a, b, c);
+			this.position.set(a, b, c);
+		} else {
+			this.targetPosition.set(a);
+			this.position.set(a);
+		}
+	}
+
 	public override update(deltaTime: number): void {
 		const { FRAMES_PER_SECOND, SNAP_DISTANCE, SNAP_ANGLE } = PositionEntity;
 
@@ -76,7 +86,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 			Interpolator.lerpVector(position, targetPosition, smoothing, frames, SNAP_DISTANCE);
 		} else {
-			this.position.set(this.targetPosition);
+			this.teleport(this.targetPosition);
 		}
 
 		if (this.rotationInterpolation) {

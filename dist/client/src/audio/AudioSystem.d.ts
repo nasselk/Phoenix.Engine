@@ -9,7 +9,7 @@ type AudioSystemEvents = {
     volume: [level: number];
     destroy: [];
 };
-export declare const enum AudioSystemState {
+export declare enum AudioSystemState {
     NULL = 0,
     INITIALIZING = 1,
     INITIALIZED = 2,

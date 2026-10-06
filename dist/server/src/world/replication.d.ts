@@ -22,7 +22,7 @@ export declare class Replication {
     private generation;
     constructor(registry: EntityRegistry<any>);
     reset(): void;
-    frame(seen: Seen, visible: Iterable<Entity<any>>): Uint8Array<ArrayBuffer> | undefined;
+    frame(seen: Seen, visible: Iterable<Entity<any>>, time: number): Uint8Array<ArrayBuffer> | undefined;
     private slot;
     private spawn;
     private update;

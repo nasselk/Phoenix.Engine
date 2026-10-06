@@ -70,4 +70,4 @@ declare class HashGrid3D<T extends Entity, Types extends Record<string, Construc
     clear(clean?: Map<number, T>): this;
     get cellCount(): number;
 }
-export { HashGrid3D as HashGrid, type QueryCallbackValue as QueryCallback, type PairQueryCallbackValue as PairQueryCallback };
+export { HashGrid3D, type QueryCallbackValue as QueryCallback, type PairQueryCallbackValue as PairQueryCallback };

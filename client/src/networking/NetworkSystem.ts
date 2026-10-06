@@ -108,7 +108,7 @@ export class NetworkSystem<
 		this.stats = {
 			in: { bps: 0, mps: 0 },
 			out: { bps: 0, mps: 0 },
-			latency: 10,
+			latency: 0,
 		};
 
 		this.state = {

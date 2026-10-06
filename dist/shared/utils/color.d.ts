@@ -1,3 +1,4 @@
+export declare function hex(color: number): string;
 export declare function getRandomColor(r?: boolean, g?: boolean, b?: boolean, alpha?: boolean): string;
 export declare function hexToRgba(hex: string, alpha?: number): string;
 export declare function rgbaToHex(rgba: string): string;

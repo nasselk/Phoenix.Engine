@@ -1,11 +1,13 @@
-import { type ColorRepresentation, Scene, WebGLRenderer, type WebGLRendererParameters } from "three";
+import { type ColorRepresentation, NoToneMapping, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
 import { waitForUserGesture } from "../utils/gesture";
 import type { OrbitCamera } from "./lib/camera/Camera";
 import { DesktopCamera } from "./lib/camera/DesktopCamera";
 import { TextureBuilder } from "./lib/TextureBuilder";
+import { Batcher } from "./lib/Batcher";
 import { TouchCamera } from "./lib/camera/TouchCamera";
+import { AssetCache } from "../assets/AssetCache";
 
 type RenderSystemEvents = {
 	init: [renderer: HTMLCanvasElement];
@@ -19,10 +21,16 @@ export type RenderSystemOptions = {
 	readonly resolution?: number;
 	readonly fullscreen?: boolean;
 	readonly backgroundColor?: ColorRepresentation;
+	/** How shadow edges are filtered, e.g. `PCFShadowMap`. Unset, nothing casts a shadow. */
+	readonly shadows?: ShadowMapType;
+	/** How lit colours past white are brought back into range, e.g. `NeutralToneMapping`. Unset, they are clipped. */
+	readonly toneMapping?: ToneMapping;
+	/** Brightness before tone mapping. Defaults to 1. */
+	readonly exposure?: number;
 	readonly three?: Omit<WebGLRendererParameters, "canvas">;
 };
 
-export const enum RenderSystemState {
+export enum RenderSystemState {
 	NULL,
 	INITIALIZING,
 	INITIALIZED,
@@ -33,7 +41,7 @@ export const enum RenderSystemState {
 export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	protected canvas!: HTMLCanvasElement;
 
-	private three!: WebGLRenderer;
+	public readonly internals!: WebGLRenderer;
 
 	/** The 3D scene */
 	public readonly scene: Scene;
@@ -44,10 +52,13 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	/** The texture builder for creating textures in the 3D scene */
 	public readonly textureBuilder: TextureBuilder;
 
+	/** Draws static scenery in few draw calls: `batcher.batch(scenery)`. What it makes is freed with the renderer. */
+	public readonly batcher: Batcher;
+
 	/** The current state of the rendering system. */
 	public initialized: RenderSystemState;
 
-	/** The resolution of the renderer. */
+	/** A fraction of the screen's native resolution: 1 draws one pixel per device pixel, 0.5 half as many across. Call `resize()` after changing it. */
 	public resolution: number;
 
 	private observer?: ResizeObserver;
@@ -56,7 +67,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 * @param touch Fingers rather than a mouse: the camera then turns on a drag and zooms on a pinch,
 	 *   where a desktop one waits for a held button and a wheel. The engine passes what it detected.
 	 */
-	public constructor(view?: HTMLCanvasElement, touch: boolean = false) {
+	public constructor(cache: AssetCache, view?: HTMLCanvasElement, touch: boolean = false) {
 		super();
 
 		this.view = view ?? this.createRenderingView();
@@ -65,7 +76,8 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.scene = new Scene();
 		this.camera = touch ? new TouchCamera() : new DesktopCamera();
-		this.textureBuilder = new TextureBuilder();
+		this.textureBuilder = new TextureBuilder(cache);
+		this.batcher = new Batcher();
 
 		this.camera.connect(this.canvas);
 	}
@@ -88,7 +100,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 			case "WebGPU":
 				throw new Error("WebGPU is not yet supported");
 
-				this.three = new WebGLRenderer({
+				(this.internals as any) = new WebGLRenderer({
 					powerPreference: "high-performance",
 					...settings.three,
 					canvas: this.canvas,
@@ -96,14 +108,19 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 			case "WebGL":
 			default:
-				this.three = new WebGLRenderer({
+				(this.internals as any) = new WebGLRenderer({
 					powerPreference: "high-performance",
 					...settings.three,
 					canvas: this.canvas,
 				});
 		}
 
-		this.three.setClearColor(settings.backgroundColor ?? "black");
+		this.internals.setClearColor(settings.backgroundColor ?? "black");
+
+		this.internals.shadowMap.enabled = settings.shadows !== undefined;
+		this.internals.shadowMap.type = settings.shadows ?? this.internals.shadowMap.type;
+		this.internals.toneMapping = settings.toneMapping ?? NoToneMapping;
+		this.internals.toneMappingExposure = settings.exposure ?? 1;
 
 		if (settings.fullscreen) {
 			this.setFullscreen(settings.fullscreen);
@@ -120,7 +137,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		log("Renderer", "Successfully initialized WebGL renderer");
 
-		return this.three;
+		return this.internals;
 	}
 
 	/**
@@ -140,7 +157,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.camera.update(deltaTime);
 
-		this.three.render(this.scene, this.camera);
+		this.internals.render(this.scene, this.camera);
 	}
 
 	/**
@@ -213,7 +230,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.emit("resize", width, height);
 
-		this.three.setSize(width * this.resolution, height * this.resolution, false);
+		this.internals.setSize(width * this.resolution, height * this.resolution, false);
 
 		this.camera.fit(width / height);
 
@@ -232,13 +249,16 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 		this.observer?.disconnect();
 
 		this.camera.destroy();
+		this.batcher.destroy();
 
 		if (view) {
 			this.canvas.remove();
 		}
 
-		this.three.dispose();
-		this.three.forceContextLoss();
+		this.internals.dispose();
+		this.internals.forceContextLoss();
+
+		this.initialized = RenderSystemState.DESTROYED;
 
 		this.emit("destroy");
 

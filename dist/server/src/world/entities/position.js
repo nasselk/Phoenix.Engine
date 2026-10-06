@@ -50,6 +50,15 @@ export class PositionEntity extends Entity {
             this.body = undefined;
         }
     }
+    teleport(a, b, c) {
+        if (typeof a === "number") {
+            this.position.set(a, b, c);
+        }
+        else {
+            this.position.set(a.x, a.y, a.z);
+        }
+        this.body?.setTranslation(this.position, false);
+    }
     clean() {
         const { position, rotation } = this;
         if (position.hasUpdatedX(POSITION_EPSILON)) {

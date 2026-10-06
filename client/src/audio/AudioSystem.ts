@@ -13,7 +13,7 @@ type AudioSystemEvents = {
 	destroy: [];
 };
 
-export const enum AudioSystemState {
+export enum AudioSystemState {
 	NULL,
 	INITIALIZING,
 	INITIALIZED,
@@ -71,6 +71,7 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 		this.assertInitialized();
 
 		const sound = this.assets.get("sound", id);
+
 		if (!sound) {
 			console.error(`AudioSystem: Cannot play. Sound '${id}' is not loaded.`);
 			return undefined;

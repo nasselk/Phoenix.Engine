@@ -75,7 +75,7 @@ export class Replication {
 	 *
 	 * Byte 0 is left free for the protocol to put the event code in.
 	 */
-	public frame(seen: Seen, visible: Iterable<Entity<any>>): Uint8Array<ArrayBuffer> | undefined {
+	public frame(seen: Seen, visible: Iterable<Entity<any>>, time: number): Uint8Array<ArrayBuffer> | undefined {
 		const { known, next } = seen;
 		const writer = this.writer;
 
@@ -86,6 +86,8 @@ export class Replication {
 		}
 
 		writer.reset(1);
+
+		writer.writeUint32(Math.round(time) * 1000);
 
 		const despawnCountOffset = writer.advanceBytes(2);
 		let despawns = 0;

@@ -33,3 +33,39 @@ describe("camera field of view", () => {
 		expect(camera.fov).toBe(120);
 	});
 });
+
+describe("camera turning", () => {
+	test("turns around its target at turnSpeed, the way a sideways drag does, whatever the frame rate", () => {
+		const camera = new DesktopCamera({ yaw: 0, turnSpeed: 2 });
+
+		camera.target = { x: 0, y: 0, z: 0 };
+		camera.turn = 1;
+
+		for (let frame = 0; frame < 60; frame++) {
+			camera.update(1 / 60);
+		}
+
+		expect(camera.yaw).toBeCloseTo(-2, 5);
+
+		const dragged = new DesktopCamera({ yaw: 0 });
+
+		(dragged as unknown as { drag(x: number, y: number): void }).drag(10, 0);
+
+		expect(Math.sign(dragged.yaw)).toBe(Math.sign(camera.yaw));
+	});
+
+	test("stays put with turn at 0, and with no target to turn around", () => {
+		const still = new DesktopCamera({ yaw: 0.5 });
+
+		still.target = { x: 0, y: 0, z: 0 };
+		still.update(1);
+
+		const untargeted = new DesktopCamera({ yaw: 0.5 });
+
+		untargeted.turn = 1;
+		untargeted.update(1);
+
+		expect(still.yaw).toBe(0.5);
+		expect(untargeted.yaw).toBe(0.5);
+	});
+});

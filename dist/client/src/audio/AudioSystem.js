@@ -1,23 +1,30 @@
 import { Howler } from "howler";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { waitForUserGesture } from "../utils/gesture";
+export var AudioSystemState;
+(function (AudioSystemState) {
+    AudioSystemState[AudioSystemState["NULL"] = 0] = "NULL";
+    AudioSystemState[AudioSystemState["INITIALIZING"] = 1] = "INITIALIZING";
+    AudioSystemState[AudioSystemState["INITIALIZED"] = 2] = "INITIALIZED";
+    AudioSystemState[AudioSystemState["DESTROYED"] = 3] = "DESTROYED";
+})(AudioSystemState || (AudioSystemState = {}));
 export class AudioSystem extends EventEmitter {
     constructor(assets) {
         super();
         this.assets = assets;
-        this.initialized = 0;
+        this.initialized = AudioSystemState.NULL;
     }
     async init(settings = {}) {
-        if (this.initialized !== 0) {
+        if (this.initialized !== AudioSystemState.NULL) {
             throw new Error("AudioSystem is already initialized or destroyed");
         }
-        this.initialized = 1;
+        this.initialized = AudioSystemState.INITIALIZING;
         if (settings.globalVolume !== undefined)
             this.volume = settings.globalVolume;
         if (settings.muteInitial !== undefined)
             this.muted = settings.muteInitial;
         void waitForUserGesture().then(() => Howler.ctx?.resume());
-        this.initialized = 2;
+        this.initialized = AudioSystemState.INITIALIZED;
         this.emit("init");
     }
     play(id, spriteId) {
@@ -61,15 +68,15 @@ export class AudioSystem extends EventEmitter {
         }
     }
     async destroy() {
-        if (this.initialized === 0) {
+        if (this.initialized === AudioSystemState.NULL) {
             throw new Error("AudioSystem is not initialized");
         }
-        if (this.initialized === 3) {
+        if (this.initialized === AudioSystemState.DESTROYED) {
             throw new Error("AudioSystem is already destroyed");
         }
         Howler.stop();
         await Howler.ctx?.suspend();
-        this.initialized = 3;
+        this.initialized = AudioSystemState.DESTROYED;
         this.emit("destroy");
         this.removeAllListeners();
     }
@@ -89,7 +96,7 @@ export class AudioSystem extends EventEmitter {
         return Howler._muted;
     }
     assertInitialized() {
-        if (this.initialized !== 2) {
+        if (this.initialized !== AudioSystemState.INITIALIZED) {
             throw new Error("AudioSystem is not initialized. Call init() before playing sounds.");
         }
     }

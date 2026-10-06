@@ -2,6 +2,13 @@ import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { warn } from "../../../shared/utils/logger";
 import { Seen } from "../world/replication";
+export var SocketState;
+(function (SocketState) {
+    SocketState[SocketState["CONNECTING"] = 0] = "CONNECTING";
+    SocketState[SocketState["OPEN"] = 1] = "OPEN";
+    SocketState[SocketState["CLOSING"] = 2] = "CLOSING";
+    SocketState[SocketState["CLOSED"] = 3] = "CLOSED";
+})(SocketState || (SocketState = {}));
 export class Socket extends EventEmitter {
     constructor(protocol, socket, id) {
         super();
@@ -19,7 +26,7 @@ export class Socket extends EventEmitter {
         this.data = {};
     }
     send(event, ...[data]) {
-        if (this.readyState === 1) {
+        if (this.readyState === SocketState.OPEN) {
             const buffer = this.protocol.encode(event, data);
             this.socket.send(buffer);
         }
@@ -50,7 +57,7 @@ export class Socket extends EventEmitter {
             warn("Game Server", `Disconnecting ${this.ip} with code ${code} - ${reason}`);
         }
         this.manuallyDisconnected = true;
-        if (this.readyState === 0 || this.readyState === 1) {
+        if (this.readyState === SocketState.CONNECTING || this.readyState === SocketState.OPEN) {
             if (forcefully) {
                 this.socket.terminate();
             }
@@ -64,6 +71,6 @@ export class Socket extends EventEmitter {
         this.removeAllListeners();
     }
     get readyState() {
-        return this.socket?.readyState ?? 3;
+        return this.socket?.readyState ?? SocketState.CLOSED;
     }
 }

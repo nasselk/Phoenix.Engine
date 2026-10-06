@@ -20,8 +20,8 @@ export class Engine extends EventEmitter {
         this.rendering = options.renderer ?? {};
         this.sound = options.audio ?? {};
         this.loop = new GameLoop(options.loop);
-        this.renderer = new RenderSystem(undefined, this.isMobile);
         this.assets = new AssetManager(options.assets);
+        this.renderer = new RenderSystem(this.assets.cache, undefined, this.isMobile);
         this.network = new NetworkSystem(options.network);
         this.inputs = new InputSystem(options.inputs);
         this.audio = new AudioSystem(this.assets);
@@ -50,15 +50,16 @@ export class Engine extends EventEmitter {
         log("Phoenix Client", "Successfully initiated the engine");
         this.emit("init");
     }
-    destroy() {
+    async destroy() {
+        const promise = this.audio.destroy();
         this.network.destroy();
         this.inputs.destroy();
         this.loop.destroy();
         this.world.destroy();
-        this.audio.destroy();
         this.assets.destroy();
         this.renderer.destroy();
         this.ordinary?.();
+        await promise;
         this.emit("destroy");
         this.removeAllListeners();
     }

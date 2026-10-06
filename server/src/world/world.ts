@@ -214,7 +214,7 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 			throw new Error(`Socket ${socket.id} is not in room ${this.inviteCode}`);
 		}
 
-		return this.replication.frame(socket.seen, visible);
+		return this.replication.frame(socket.seen, visible, this.time);
 	}
 
 	/** Send an event to every socket in this room. Encoded once, whoever is listening. */

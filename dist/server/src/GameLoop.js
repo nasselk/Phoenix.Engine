@@ -66,7 +66,7 @@ export class GameLoop extends EventEmitter {
         const deltaTime = Math.min(interval, 100) * this.speed;
         if (deltaTime >= deltaTimeCap) {
             this.lastTickTime = now;
-            if (this.tickID === Number.MAX_SAFE_INTEGER) {
+            if (this.tickID === GameLoop.MAX_TICK_ID) {
                 this.tickID = 0;
             }
             else {
@@ -105,3 +105,4 @@ export class GameLoop extends EventEmitter {
         return this.next === undefined;
     }
 }
+GameLoop.MAX_TICK_ID = 2 ** (Uint32Array.BYTES_PER_ELEMENT * 8) - 1;

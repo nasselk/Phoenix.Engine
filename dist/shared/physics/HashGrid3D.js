@@ -463,4 +463,4 @@ class TypedCell extends BaseCell {
         super.clear();
     }
 }
-export { HashGrid3D as HashGrid };
+export { HashGrid3D };

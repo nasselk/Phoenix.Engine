@@ -33,7 +33,7 @@ class HashGrid3D<T extends Entity, Types extends Record<string, Constructor<T>> 
 	 * Per cell, the `activity` counter's value when something was last placed in or
 	 * moved within it. Lets an entity ask whether anything happened in its own cells
 	 * since it last looked — see `activitySince` — which is what a stationary entity
-	 * that reacts to arrivals (a food that splits when water is pushed into it) needs
+	 * that reacts to arrivals needs
 	 * instead of rescanning its neighbourhood on every one of its ticks.
 	 */
 	private cellActivity: Uint32Array;
@@ -706,4 +706,4 @@ class TypedCell<T extends Entity, Types extends Record<string, Constructor<T>>> 
 	}
 }
 
-export { HashGrid3D as HashGrid, type QueryCallbackValue as QueryCallback, type PairQueryCallbackValue as PairQueryCallback };
+export { HashGrid3D, type QueryCallbackValue as QueryCallback, type PairQueryCallbackValue as PairQueryCallback };

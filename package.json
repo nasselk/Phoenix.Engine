@@ -48,9 +48,9 @@
 	"homepage": "https://github.com/nasselk/Phoenix.Engine",
 	"scripts": {
 		"init": "bun install",
-		"build": "bun run build:client && bun run build:server",
-		"build:client": "cd client && bun run build",
-		"build:server": "cd server && bun run build",
+		"build": "rm -rf dist && bun run build:client && bun run build:server",
+		"build:client": "rm -rf dist/client dist/client.tsconfig.tsbuildinfo && cd client && bun run build",
+		"build:server": "rm -rf dist/server dist/server.tsconfig.tsbuildinfo && cd server && bun run build",
 		"test": "bun test tests",
 		"types:check": "cd client && bun run types:check && cd ../server && bun run types:check && cd .. && tsc -p tests",
 		"format": "biome format --write",
@@ -66,7 +66,7 @@
 		"troika-three-text": "^0.53.0"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.14",
+		"@biomejs/biome": "2.5.15",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"@types/bun": "^1.4.2",
 		"@types/three": "^0.186.0",
@@ -75,7 +75,7 @@
 	},
 	"peerDependencies": {
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
-		"three": "^0.186.0",
+		"three": "^0.186.1",
 		"svelte": "^5.57.1"
 	},
 	"peerDependenciesMeta": {

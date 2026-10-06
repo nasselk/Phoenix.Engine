@@ -5,8 +5,7 @@ import { error, warn } from "../../../shared/utils/logger";
  *
  * @param onStop — optional last-chance hook run once, synchronously, before the process
  *   goes away (crash, signal or normal exit). Must be sync: anything async is cut off by
- *   `process.exit`. Used by the core thread to persist unbanked coin deposits to the
- *   durable queue so they survive a restart. Throwing here never blocks the exit.
+ *   `process.exit`.
  */
 export function setExitListeners(source: string, onStop?: () => void): void {
 	let stopped = false;

@@ -17,6 +17,7 @@ export type OrbitCameraOptions = Partial<{
     readonly minDistance: number;
     readonly maxDistance: number;
     readonly rotateSpeed: number;
+    readonly turnSpeed: number;
     readonly zoomSpeed: number;
     readonly dragging: boolean;
     readonly zooming: boolean;
@@ -34,6 +35,8 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     maxDistance: number;
     rotateSpeed: number;
     zoomSpeed: number;
+    turn: number;
+    turnSpeed: number;
     dragging: boolean;
     zooming: boolean;
     minZoom: number;

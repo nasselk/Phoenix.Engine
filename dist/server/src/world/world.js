@@ -106,7 +106,7 @@ export class World extends BaseWorld {
         if (socket.room !== this) {
             throw new Error(`Socket ${socket.id} is not in room ${this.inviteCode}`);
         }
-        return this.replication.frame(socket.seen, visible);
+        return this.replication.frame(socket.seen, visible, this.time);
     }
     broadcast(event, ...data) {
         this.network.broadcast(this.inviteCode, event, ...data);

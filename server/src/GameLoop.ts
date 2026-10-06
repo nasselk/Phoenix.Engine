@@ -35,6 +35,8 @@ export type LoopStats = {
 };
 
 export class GameLoop extends EventEmitter<GameLoopEvents> {
+	private static readonly MAX_TICK_ID = 2 ** (Uint32Array.BYTES_PER_ELEMENT * 8) - 1;
+
 	public lastTickTime: number;
 	public speed: number;
 	public maxTickRate: number;
@@ -145,7 +147,7 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 		if (deltaTime >= deltaTimeCap) {
 			this.lastTickTime = now;
 
-			if (this.tickID === Number.MAX_SAFE_INTEGER) {
+			if (this.tickID === GameLoop.MAX_TICK_ID) {
 				this.tickID = 0;
 			} else {
 				this.tickID++;

@@ -9,7 +9,7 @@ export { AudioSystem } from "./audio/AudioSystem";
 export { InputSystem } from "./controls/InputSystem";
 export { GameLoop } from "./GameLoop";
 export { NetworkState, NetworkSystem } from "./networking/NetworkSystem";
-export { RenderSystem } from "./rendering/RenderSystem";
+export { RenderSystem, RenderSystemState } from "./rendering/RenderSystem";
 export { OrbitCamera } from "./rendering/lib/camera/Camera";
 export { DesktopCamera } from "./rendering/lib/camera/DesktopCamera";
 export { TouchCamera } from "./rendering/lib/camera/TouchCamera";

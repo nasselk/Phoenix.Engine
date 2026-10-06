@@ -38,6 +38,6 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     private readonly ordinary?;
     constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, Action, D, C>);
     init(...promises: Promise<void>[]): Promise<void>;
-    destroy(): void;
+    destroy(): Promise<void>;
 }
 export {};

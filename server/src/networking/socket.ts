@@ -30,7 +30,7 @@ export type SocketUserData = {
 	readonly reconnectionToken?: string;
 };
 
-export const enum SocketState {
+export enum SocketState {
 	CONNECTING,
 	OPEN,
 	CLOSING,

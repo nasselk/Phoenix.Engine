@@ -1,3 +1,6 @@
+export function hex(color) {
+    return `#${(color & 0xffffff).toString(16).padStart(6, "0")}`;
+}
 export function getRandomColor(r = true, g = true, b = true, alpha = false) {
     const colors = "0123456789ABCDEF";
     function randomChannel(enabled = true) {

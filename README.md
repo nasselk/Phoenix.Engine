@@ -246,7 +246,7 @@ A room is safe to destroy from inside its own tick, with `engine.destroyRoom(cod
 | `network` | `in`/`out` event lists and schemas: the mirror of the server's declaration. |
 | `inputs` | `{ binds }`: every action and its default keys. The keys of this object are the only action names the input API accepts. |
 | `loop` | `FPS` cap (`Infinity` for the display's rate), `speed`. |
-| `renderer` | Resolution, background, fullscreen, WebGL/WebGPU, and three.js renderer parameters. |
+| `renderer` | Resolution, background, fullscreen, WebGL/WebGPU, `shadows` (a three.js shadow map type such as `PCFShadowMap`; unset, no shadows), `toneMapping` (such as `NeutralToneMapping`) and `exposure`, and three.js renderer parameters. |
 | `audio` | Initial volume and mute. |
 | `native` | App-like page behaviour (no context menu, no pinch zoom). On by default. |
 
@@ -367,7 +367,7 @@ Socket API: `socket.send(event, data)`, `socket.cork(fn)` (batch), `socket.disco
 
 | System | |
 | --- | --- |
-| `engine.renderer` | three.js `scene`, `camera` (an `OrbitCamera`: `target`, `yaw`/`pitch`, `detach()`/`reattach()`, zoom), `view` (the canvas to mount), `resolution`, `setFullscreen()`. The camera keeps its vertical field of view (`fov`, default 75°) and widens it on narrow screens so at least `minHorizontalFov` (default 60°) stays visible across, which keeps phones in portrait playable. `DesktopCamera` orbits with the mouse and flies with WASD when detached; `TouchCamera` drags and pinches. |
+| `engine.renderer` | three.js `scene`, `camera` (an `OrbitCamera`: `target`, `yaw`/`pitch`, `detach()`/`reattach()`, zoom), `view` (the canvas to mount), `resolution`, `setFullscreen()`. The camera keeps its vertical field of view (`fov`, default 75°) and widens it on narrow screens so at least `minHorizontalFov` (default 60°) stays visible across, which keeps phones in portrait playable. Setting `camera.turn` (-1 to 1) turns it around its target every frame at `turnSpeed` radians per second, the way a sideways drag does, for keys or a gamepad stick. `DesktopCamera` orbits with the mouse and flies with WASD when detached; `TouchCamera` drags and pinches. |
 | `engine.inputs` | Actions over physical key codes, declared by the `binds` option: `mapActionToKeys(action, ...codes)`, `unmapActionFromKeys(action, ...codes)` (no codes clears the action), `onActionStart`, `onActionStop`, `isActionRunning`, `isInputPressed`, `onPressInput`. Mouse buttons bind as `"Pointer0"`… Keys typed into a text field never reach actions; losing focus releases everything. |
 | `engine.network` | `connect(url)`, `send`, `onMessage`, `on("connection" \| "disconnection" \| "reconnection" \| "stats")`, `stats`, and simulated `latency`/`loss` for testing under bad conditions. |
 | `engine.assets` | `load(kind, id, source)`, `loadAll(manifest)`, `get`, `instance(id)` for model copies, `release`. Kinds: `model` (glTF), `texture`, `sound`, plus `material` and `geometry` for ones built in code and shared through `assets.cache`. |
@@ -375,6 +375,7 @@ Socket API: `socket.send(event, data)`, `socket.cork(fn)` (batch), `socket.disco
 | `engine.loop` | `maxFrameRate`, `stats`, `on("frame" \| "frameStart" \| "frameEnd")`. |
 | `Text` | `new Text("name", { fontSize, billboard: true })` from `phoenix.engine/text`. |
 | `EditorView` | A development overlay: grid, axes, FPS/latency/bandwidth panels, **F** for a free camera, **V** for wireframe. |
+| `engine.renderer.batcher` | `batch(root)` draws the static scenery under `root` in few draw calls: plain meshes become instances of one `BatchedMesh` per material, shadow setting and geometry layout, in place. Sprites, `Text`, invisible objects and meshes with `userData.batch = false` stay as they are. For things that never move: a batched mesh no longer exists on its own. The batches are freed with the renderer. |
 | `storage` | `localStorage` that falls back to memory where storage is blocked. |
 
 ### UI kit and native feel
@@ -392,7 +393,7 @@ The engine's `native` option (on by default) blocks the context menu, pinch zoom
 
 ### Shared utilities
 
-`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`), `Quaternion` and `ObservableQuaternion` (`setFromEuler`, `setFromYaw`, `setFromAxisAngle`, `toEuler`, `yaw`, `multiply`, `invert`, `slerp`, `angleTo`, `pack`/`unpack`, `hasUpdated(angle)`; `q` and `-q` count as the same rotation), `Interpolator` (`lerp`, `lerpAngle`, `lerpVector`, `slerpQuaternion`, tweens), `BufferWriter.toPrecision`/`BufferReader.fromPrecision` (a value in a range to and from a few bits), `get`/`post`/`put`/`del` (JSON over HTTP with a timeout and retries), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`, `EventEmitter` (`on` returns an unsubscribe function), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText`/`validateText`/`censorText`, and `log`/`warn`/`error`.
+`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`), `Quaternion` and `ObservableQuaternion` (`setFromEuler`, `setFromYaw`, `setFromAxisAngle`, `toEuler`, `yaw`, `multiply`, `invert`, `slerp`, `angleTo`, `pack`/`unpack`, `hasUpdated(angle)`; `q` and `-q` count as the same rotation), `Interpolator` (`lerp`, `lerpAngle`, `lerpVector`, `slerpQuaternion`, tweens with an `InterpolationCurve`), angles (`angleDistance`, `signedAngleDistance`, `normalizeAnglePI`/`normalizeAngle2PI`, `closestAngle`, degrees ↔ radians), animation curves over time (`wave`, `syncedWave`, `fadeInHoldAndFadeOut`), colours (`hex(0xff8800)` → `"#ff8800"`, `hexToRgba`, `rgbaToHex`, `extractRGBA`), `BufferWriter.toPrecision`/`BufferReader.fromPrecision` (a value in a range to and from a few bits), `get`/`post`/`put`/`del` (JSON over HTTP with a timeout and retries; they return an `HTTPResponse<T>` and take `RequestSettings`), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`, `EventEmitter` (`on` returns an unsubscribe function), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText`/`validateText`/`censorText`, and `log`/`warn`/`error`.
 
 ## Design principles
 

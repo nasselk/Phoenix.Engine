@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { BufferReader } from "@nasselk/binarypack";
+import { Group } from "three";
 import { PositionEntity as ClientPositionEntity } from "../client/src/world/entities/position";
 import { World as ClientWorld } from "../client/src/world/world";
 import { MovingEntity } from "../server/src/world/entities/moving";
@@ -19,6 +20,17 @@ class ServerBox extends MovingEntity<undefined> {
 
 class ClientBox extends ClientPositionEntity<undefined> {
 	public render(): void {}
+}
+
+/** A box that moves something of its own along with its group, which only exists once its constructor has run. */
+class ClientMarkedBox extends ClientBox {
+	public readonly marker = new Group();
+
+	protected override syncGroup(): void {
+		super.syncGroup();
+
+		this.marker.position.copy(this.group.position);
+	}
 }
 
 type TestSocket = { id: number; room?: ServerWorld<any, undefined>; seen: Seen; subscribe(): void; unsubscribe(): void };
@@ -66,6 +78,23 @@ describe("replication", () => {
 
 		expect(copy?.kind).toBe("box");
 		expect([copy!.position.x, copy!.position.y, copy!.position.z]).toEqual([1, 2, 3]);
+	});
+
+	test("a kind whose syncGroup uses its own fields spawns, placed where the server put it", () => {
+		const server = new ServerWorld({ inviteCode: "TEST", entities: defineEntities({ box: ServerBox }), context: undefined, network: {} as never });
+		const client = new ClientWorld({ entities: defineEntities({ box: ClientMarkedBox }), context: undefined });
+		const socket: TestSocket = { id: 1, seen: new Seen(), subscribe() {}, unsubscribe() {} };
+
+		server.join(socket as never);
+
+		const box = server.spawn("box", { x: 1, y: 2, z: 3, fixed: true });
+
+		expect(send(server, client, socket)).toBe(true);
+
+		const copy = client.get(box.id, ClientMarkedBox);
+
+		expect([copy!.group.position.x, copy!.group.position.y, copy!.group.position.z]).toEqual([1, 2, 3]);
+		expect([copy!.marker.position.x, copy!.marker.position.y, copy!.marker.position.z]).toEqual([1, 2, 3]);
 	});
 
 	test("a still world sends nothing after the first frame", () => {
