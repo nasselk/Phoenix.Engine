@@ -159,7 +159,7 @@
     z-index: 1;
   }
 
-  :global(.content > *) {
+  .content > :global(*) {
     pointer-events: auto;
   }
 </style>

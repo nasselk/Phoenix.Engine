@@ -22,6 +22,9 @@ export type OrbitCameraOptions = Partial<{
 	readonly maxDistance: number;
 	readonly rotateSpeed: number;
 	readonly turnSpeed: number;
+	readonly tiltSpeed: number;
+	readonly flySpeed: number;
+	readonly boost: number;
 	readonly zoomSpeed: number;
 	readonly dragging: boolean;
 	readonly zooming: boolean;
@@ -30,6 +33,9 @@ export type OrbitCameraOptions = Partial<{
 }>;
 
 const WORLD_UP = new Vector3(0, 1, 0);
+const FORWARD = new Vector3();
+const RIGHT = new Vector3();
+const STEP = new Vector3();
 
 /** Longest step a single frame may fly, in seconds: a tab coming back from the background should not teleport. */
 const MAX_FRAME = 0.1;
@@ -65,6 +71,21 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 	/** How fast `turn` at 1 goes round, in radians per second. */
 	public turnSpeed: number;
 
+	/** Tilts the camera every frame, like a mouse dragged up or down: 1 looks up, -1 looks down, 0 still. */
+	public tilt = 0;
+	/** How fast `tilt` at 1 tilts, in radians per second. */
+	public tiltSpeed: number;
+
+	/** Flies a detached camera every frame along where it looks: 1 forward, -1 back. Set from the game's input. */
+	public flyForward = 0;
+	/** Flies a detached camera sideways every frame: 1 right, -1 left. */
+	public flyRight = 0;
+	/** Flies `boost` times faster while set. */
+	public flyBoost = false;
+	/** Units per second a detached camera flies at. */
+	public flySpeed: number;
+	public boost: number;
+
 	public dragging: boolean;
 	public zooming: boolean;
 
@@ -97,6 +118,9 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		this.maxDistance = options.maxDistance ?? 40;
 		this.rotateSpeed = options.rotateSpeed ?? 0.0025;
 		this.turnSpeed = options.turnSpeed ?? 2.5;
+		this.tiltSpeed = options.tiltSpeed ?? 1.5;
+		this.flySpeed = options.flySpeed ?? 20;
+		this.boost = options.boost ?? 4;
 		this.zoomSpeed = options.zoomSpeed ?? 0.001;
 		this.dragging = options.dragging ?? true;
 		this.zooming = options.zooming ?? true;
@@ -104,39 +128,23 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		this.maxZoom = options.maxZoom ?? 10;
 	}
 
-	/** Whether the camera flies free instead of orbiting its target. */
+	/**
+	 * Whether the camera flies free instead of orbiting its target. Set it to detach and fly on from
+	 * exactly where the camera is, or clear it to snap back to orbiting the target at the yaw, pitch
+	 * and distance it had before.
+	 */
 	public get detached(): boolean {
 		return this.free;
 	}
 
-	/**
-	 * Detach to fly free from exactly where the camera is, or reattach to snap back to orbiting the
-	 * target at the yaw, pitch and distance it had before.
-	 */
-	public setDetached(detached: boolean): this {
+	public set detached(detached: boolean) {
 		this.free = detached;
-
-		this.onDetached(detached);
 
 		// The lens zoom belongs to free flight: attached, the camera zooms by its distance instead.
 		if (!detached && this.zoom !== 1) {
 			this.zoom = 1;
 			this.updateProjectionMatrix();
 		}
-
-		return this;
-	}
-
-	public detach(): this {
-		return this.setDetached(true);
-	}
-
-	public reattach(): this {
-		return this.setDetached(false);
-	}
-
-	public toggleDetached(): this {
-		return this.setDetached(!this.free);
 	}
 
 	/**
@@ -238,8 +246,15 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 
 	/** @param deltaTime Seconds since the last frame, which is how far a detached camera flies. */
 	public update(deltaTime: number = 0): this {
+		const seconds = Math.min(deltaTime, MAX_FRAME);
+
 		if (this.free) {
-			this.fly(Math.min(deltaTime, MAX_FRAME));
+			if (this.turn !== 0 || this.tilt !== 0) {
+				this.rotateOnWorldAxis(WORLD_UP, -this.turn * this.turnSpeed * seconds);
+				this.rotateX(this.tilt * this.tiltSpeed * seconds);
+			}
+
+			this.fly(seconds);
 
 			return this;
 		}
@@ -250,8 +265,8 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 			return this;
 		}
 
-		if (this.turn !== 0) {
-			this.rotate(-this.turn * this.turnSpeed * Math.min(deltaTime, MAX_FRAME), 0);
+		if (this.turn !== 0 || this.tilt !== 0) {
+			this.rotate(-this.turn * this.turnSpeed * seconds, -this.tilt * this.tiltSpeed * seconds);
 		}
 
 		const flat = Math.cos(this.pitch) * this.distance;
@@ -268,11 +283,26 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 
 	protected abstract unlisten(element: HTMLElement | Window): void;
 
-	/** Where a detached camera goes each frame. Nowhere, without something to fly it. */
-	protected fly(_seconds: number): void {}
+	/** Move along where the camera looks — forward includes pitch, so looking up and flying forward climbs. */
+	private fly(seconds: number): void {
+		const along = this.flyForward;
+		const across = this.flyRight;
 
-	/** Told when the camera detaches or comes back, for whatever a device was holding on to. */
-	protected onDetached(_detached: boolean): void {}
+		if (along === 0 && across === 0) {
+			return;
+		}
+
+		// The camera's own axes in the world: it looks down its -Z, and its +X is its right.
+		this.getWorldDirection(FORWARD);
+		RIGHT.set(1, 0, 0).applyQuaternion(this.quaternion);
+		STEP.set(0, 0, 0).addScaledVector(FORWARD, along).addScaledVector(RIGHT, across);
+
+		if (STEP.lengthSq() > 1) {
+			STEP.normalize();
+		}
+
+		this.position.addScaledVector(STEP, this.flySpeed * (this.flyBoost ? this.boost : 1) * seconds);
+	}
 
 	/**
 	 * A drag of so many pixels, wherever it came from. Attached it swings around the target; free it

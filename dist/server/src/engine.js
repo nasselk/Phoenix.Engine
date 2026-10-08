@@ -39,7 +39,7 @@ export class Engine extends EventEmitter {
         log("Phoenix Server", "Successfully initiated the engine");
         this.emit("init");
     }
-    createRoom(maxPlayers, capacity, isPublic = true, inviteCode = this.freeInviteCode()) {
+    createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.freeInviteCode() } = {}) {
         if (this.rooms.has(inviteCode)) {
             throw new Error(`A room with invite code "${inviteCode}" already exists`);
         }

@@ -21,7 +21,7 @@ class Vector3 {
 	 *
 	 * @example
 	 * // Rotate around origin
-	 * vec.rotate(Math.PI / 2, axis, Vector3D.NULL);
+	 * vec.rotate(Math.PI / 2, axis, Vector3.NULL);
 	 */
 	public static readonly NULL: Vector3 = Object.freeze(new Vector3());
 
@@ -33,13 +33,15 @@ class Vector3 {
 	 *
 	 * @example
 	 * // Use TEMP1 for intermediate calculations
-	 * const result = Vector3D.TEMP1.set(vec1).add(vec2);
+	 * const result = Vector3.TEMP1.set(vec1).add(vec2);
 	 */
 	public static readonly TEMP1: Vector3 = new Vector3();
 	public static readonly TEMP2: Vector3 = new Vector3();
 	public static readonly TEMP3: Vector3 = new Vector3();
 	public static readonly TEMP4: Vector3 = new Vector3();
 	public static readonly TEMP5: Vector3 = new Vector3();
+
+	private static readonly SCRATCH: Vector3 = new Vector3();
 
 	/** The x-coordinate of the vector. */
 	public x: number;
@@ -58,30 +60,30 @@ class Vector3 {
 	 * @param z - Z-coordinate (defaults to y if omitted).
 	 *
 	 * @example
-	 * new Vector3D() // (0, 0, 0)
-	 * new Vector3D(5) // (5, 5, 5)
-	 * new Vector3D(3, 4, 5) // (3, 4, 5)
+	 * new Vector3() // (0, 0, 0)
+	 * new Vector3(5) // (5, 5, 5)
+	 * new Vector3(3, 4, 5) // (3, 4, 5)
 	 */
 	public constructor(x?: number, y?: number, z?: number);
 
 	/**
 	 * Creates a new 3D vector using spherical coordinates.
 	 *
-	 * @param azimuth - Angle around the z-axis in radians, measured in the xy-plane.
-	 * @param elevation - Angle away from the xy-plane in radians.
+	 * @param azimuth - Angle around the y-axis in radians: the yaw that turns +z toward the vector.
+	 * @param elevation - Angle above the horizontal xz-plane in radians.
 	 * @param length - Magnitude (distance from origin).
 	 * @param polar - Must be `true` to use this overload.
 	 *
 	 * @example
-	 * new Vector3D(Math.PI / 4, 0, 10, true) // Azimuth π/4, in the xy-plane, magnitude 10
+	 * new Vector3(Math.PI / 2, 0, 10, true) // (10, 0, 0): a quarter turn from +z, level, magnitude 10
 	 */
 	public constructor(azimuth: number, elevation: number, length: number, polar: true);
 
 	public constructor(a: number = 0, b: number = a, c: number = b, polar: boolean = false) {
 		if (polar) {
-			this.x = c * Math.cos(b) * Math.cos(a);
-			this.y = c * Math.cos(b) * Math.sin(a);
-			this.z = c * Math.sin(b);
+			this.x = c * Math.cos(b) * Math.sin(a);
+			this.y = c * Math.sin(b);
+			this.z = c * Math.cos(b) * Math.cos(a);
 		} else {
 			this.x = a;
 			this.y = b;
@@ -339,44 +341,41 @@ class Vector3 {
 	 * Adds a displacement in a specific direction (spherical coordinates).
 	 * More efficient than creating a spherical vector for one-time directional movement.
 	 *
-	 * @param azimuth - The angle in radians around the z-axis, measured in the xy-plane.
-	 * @param elevation - The angle in radians away from the xy-plane.
+	 * @param azimuth - The angle in radians around the y-axis: the yaw that turns +z toward the direction.
+	 * @param elevation - The angle in radians above the horizontal xz-plane.
 	 * @param distance - The distance to move in that direction.
 	 * @returns This vector for method chaining.
 	 *
 	 * @example
-	 * // Move 10 units to the right (0 radians)
-	 * position.addDirection(0, 0, 10);
+	 * // Move 10 units the way an entity with this yaw faces
+	 * position.addDirection(entity.yaw, 0, 10);
 	 *
 	 * // Move 5 units straight up
 	 * position.addDirection(0, Math.PI / 2, 5);
 	 */
 	public addDirection(azimuth: number, elevation: number, distance: number): this {
-		this.x += distance * Math.cos(elevation) * Math.cos(azimuth);
-		this.y += distance * Math.cos(elevation) * Math.sin(azimuth);
-		this.z += distance * Math.sin(elevation);
+		this.x += distance * Math.cos(elevation) * Math.sin(azimuth);
+		this.y += distance * Math.sin(elevation);
+		this.z += distance * Math.cos(elevation) * Math.cos(azimuth);
 
 		return this;
 	}
 
 	/**
-	 * Moves this vector partially towards another vecto.
+	 * Moves this vector partially towards another vector.
 	 *
-	 * @param otherVec - The vector to interpolate towards.
+	 * @param target - The vector to interpolate towards.
 	 * @param t - The amount to interpolate by. A value of 0 makes no change to this vector, whereas a value of 1 makes this vector copy the other's components.
 	 * @returns This vector for method chaining.
 	 *
 	 * @example
-	 * // Set this vector to the midpoint of it and (5, 5, 5)
-	 * position.interpolate(new Vector3D(5, 5, 5), 0.5);
-	 *
 	 * // Move this vector 10% of the way to (1, 2, 3)
-	 * position.addDirection(new Vector3D(1, 2, 3), 0.1);
+	 * position.interpolate({ x: 1, y: 2, z: 3 }, 0.1);
 	 */
-	public interpolate(otherVec: Vector3, t: number) {
-		this.x += (otherVec.x - this.x) * t;
-		this.y += (otherVec.y - this.y) * t;
-		this.z += (otherVec.z - this.z) * t;
+	public interpolate(target: Vector3Structure, t: number): this {
+		this.x += (target.x - this.x) * t;
+		this.y += (target.y - this.y) * t;
+		this.z += (target.z - this.z) * t;
 
 		return this;
 	}
@@ -384,23 +383,22 @@ class Vector3 {
 	/**
 	 * Sets this vector to a specific direction and distance from the origin.
 	 *
-	 * @param azimuth - The angle in radians around the z-axis, measured in the xy-plane.
-	 * @param elevation - The angle in radians away from the xy-plane.
+	 * @param azimuth - The angle in radians around the y-axis: the yaw that turns +z toward the direction.
+	 * @param elevation - The angle in radians above the horizontal xz-plane.
 	 * @param distance - The distance from the origin.
 	 * @returns This vector for method chaining.
 	 *
 	 * @example
-	 * // Set to 10 units to the right (0 radians)
-	 * position.setDirection(0, 0, 10);
+	 * // 10 units along +z
+	 * velocity.setDirection(0, 0, 10);
 	 *
-	 * // Set to 5 units straight up
-	 * position.setDirection(0, Math.PI / 2, 5);
+	 * // 5 units straight up
+	 * velocity.setDirection(0, Math.PI / 2, 5);
 	 */
-
 	public setDirection(azimuth: number, elevation: number, distance: number): this {
-		this.x = distance * Math.cos(elevation) * Math.cos(azimuth);
-		this.y = distance * Math.cos(elevation) * Math.sin(azimuth);
-		this.z = distance * Math.sin(elevation);
+		this.x = distance * Math.cos(elevation) * Math.sin(azimuth);
+		this.y = distance * Math.sin(elevation);
+		this.z = distance * Math.cos(elevation) * Math.cos(azimuth);
 
 		return this;
 	}
@@ -421,40 +419,39 @@ class Vector3 {
 	 * Returns a vector perpendicular to both, following the right-hand rule.
 	 *
 	 * @param vector - The vector to calculate the cross product with.
-	 * @returns A new Vector3D perpendicular to both vectors.
+	 * @param out - Where to write the result; pass a scratch vector in hot code. A new vector by default.
+	 * @returns `out`, perpendicular to both vectors. `out` may be this vector.
 	 */
-	public cross(vector: Vector3Structure): Vector3 {
-		return new Vector3(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
+	public cross(vector: Vector3Structure, out: Vector3 = new Vector3()): Vector3 {
+		return out.set(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
 	}
 
 	/**
-	 * Calculates the vector difference from this vector to another.
+	 * Calculates the difference between this vector and another.
 	 *
-	 * @param vector - The target vector to calculate the difference to.
-	 * @returns A new Vector3D representing the difference (this - vector).
+	 * @param vector - The vector to subtract from this one.
+	 * @param out - Where to write the result; pass a scratch vector in hot code. A new vector by default.
+	 * @returns `out`, set to `this - vector`.
 	 *
 	 * @example
-	 * const a = new Vector3D(3, 4, 5);
-	 * const b = new Vector3D(1, 2, 3);
-	 * const delta = a.delta(b); // delta is (2, 2, 2)
+	 * new Vector3(3, 4, 5).delta(new Vector3(1, 2, 3)) // (2, 2, 2)
 	 */
-	public delta(vector: Vector3Structure): Vector3 {
-		return new Vector3(vector.x - this.x, vector.y - this.y, vector.z - this.z);
+	public delta(vector: Vector3Structure, out: Vector3 = new Vector3()): Vector3 {
+		return out.set(this.x - vector.x, this.y - vector.y, this.z - vector.z);
 	}
 
 	/**
 	 * Calculates the midpoint between this vector and another.
 	 *
 	 * @param vector - The vector to calculate the midpoint with.
-	 * @returns A new Vector3D representing the midpoint.
+	 * @param out - Where to write the result; pass a scratch vector in hot code. A new vector by default.
+	 * @returns `out`, set to the midpoint.
 	 *
 	 * @example
-	 * const a = new Vector3D(0, 0, 0);
-	 * const b = new Vector3D(4, 4, 4);
-	 * const mid = a.midpoint(b); // mid is (2, 2, 2)
+	 * new Vector3(0, 0, 0).midpoint(new Vector3(4, 4, 4)) // (2, 2, 2)
 	 */
-	public midpoint(vector: Vector3Structure): Vector3 {
-		return new Vector3((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
+	public midpoint(vector: Vector3Structure, out: Vector3 = new Vector3()): Vector3 {
+		return out.set((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
 	}
 
 	/**
@@ -541,22 +538,18 @@ class Vector3 {
 	}
 
 	/**
-	 * Calculates the azimuth from this vector to another point in radians.
-	 * This is the angle around the z-axis, measured in the xy-plane, between -π and π.
+	 * The yaw from this point toward another, between -π and π: `entity.yaw = position.azimuthTo(target)`
+	 * turns an entity whose model faces +z toward the target.
 	 *
 	 * @param vector - The point to calculate the azimuth to.
 	 * @returns The angle in radians.
 	 */
 	public azimuthTo(vector: Vector3Structure): number {
-		const dx = vector.x - this.x;
-		const dy = vector.y - this.y;
-
-		return Math.atan2(dy, dx);
+		return Math.atan2(vector.x - this.x, vector.z - this.z);
 	}
 
 	/**
-	 * Calculates the elevation from this vector to another point in radians.
-	 * This is the angle away from the xy-plane, between -π/2 and π/2.
+	 * How far above the horizontal another point is, seen from this one, between -π/2 and π/2.
 	 *
 	 * @param vector - The point to calculate the elevation to.
 	 * @returns The angle in radians.
@@ -566,7 +559,7 @@ class Vector3 {
 		const dy = vector.y - this.y;
 		const dz = vector.z - this.z;
 
-		return Math.atan2(dz, Math.sqrt(dx ** 2 + dy ** 2));
+		return Math.atan2(dy, Math.sqrt(dx ** 2 + dz ** 2));
 	}
 
 	/**
@@ -576,36 +569,43 @@ class Vector3 {
 	 * @param p2 - Second endpoint of the line segment.
 	 * @returns The shortest distance to the line segment.
 	 */
-	public segmentDistance(p1: Vector3, p2: Vector3): number {
-		const projection = this.projectOnSegment(p1, p2);
-
-		return this.distance(projection);
+	public segmentDistance(p1: Vector3Structure, p2: Vector3Structure): number {
+		return Math.sqrt(this.distanceSquared(this.projectOnSegment(p1, p2, Vector3.SCRATCH)));
 	}
 
 	/**
-	 * Projects this point onto a line segment, clamped between the endpoints.
-	 * Returns the closest point on the segment to this point.
+	 * The closest point to this one on a line segment.
 	 *
 	 * @param p1 - First endpoint of the line segment.
 	 * @param p2 - Second endpoint of the line segment.
-	 * @returns A new Vector3D representing the closest point on the segment.
+	 * @param out - Where to write the result; pass a scratch vector in hot code. A new vector by default.
+	 * @returns `out`, set to the closest point on the segment.
 	 */
-	public projectOnSegment(p1: Vector3, p2: Vector3): Vector3 {
-		const ab = p2.clone().subtract(p1);
-		const t = clamp(this.clone().subtract(p1).dot(ab) / ab.magnitudeSquared, 0, 1);
-		return p1.clone().add(ab.scale(t));
+	public projectOnSegment(p1: Vector3Structure, p2: Vector3Structure, out: Vector3 = new Vector3()): Vector3 {
+		const abx = p2.x - p1.x;
+		const aby = p2.y - p1.y;
+		const abz = p2.z - p1.z;
+		const lengthSquared = abx ** 2 + aby ** 2 + abz ** 2;
+		const t = lengthSquared === 0 ? 0 : clamp(((this.x - p1.x) * abx + (this.y - p1.y) * aby + (this.z - p1.z) * abz) / lengthSquared, 0, 1);
+
+		return out.set(p1.x + abx * t, p1.y + aby * t, p1.z + abz * t);
 	}
 
 	/**
-	 * Projects this point onto a line segment.
-	 * Returns the closest point on the segment to this point.
+	 * Projects this vector onto the line through the origin along `direction`.
 	 *
-	 * @param p - A vector defining the line segment.
-	 * @returns A new Vector3D representing the closest point on the segment.
+	 * @param direction - The direction of the line; any length but zero.
+	 * @param out - Where to write the result; pass a scratch vector in hot code. A new vector by default.
+	 * @returns `out`, set to the projection.
+	 *
+	 * @example
+	 * new Vector3(2, 3, 0).project(new Vector3(5, 0, 0)) // (2, 0, 0)
 	 */
-	public project(p: Vector3): Vector3 {
-		const t = this.clone().dot(p) / p.magnitudeSquared;
-		return p.clone().add(p.scale(t));
+	public project(direction: Vector3Structure, out: Vector3 = new Vector3()): Vector3 {
+		const lengthSquared = direction.x ** 2 + direction.y ** 2 + direction.z ** 2;
+		const t = lengthSquared === 0 ? 0 : this.dot(direction) / lengthSquared;
+
+		return out.set(direction.x * t, direction.y * t, direction.z * t);
 	}
 
 	/**
@@ -662,7 +662,7 @@ class Vector3 {
 	/**
 	 * Creates a new vector with the same components as this one.
 	 *
-	 * @returns A new Vector3D instance with the same x, y and z values.
+	 * @returns A new Vector3 instance with the same x, y and z values.
 	 */
 	public clone(): Vector3 {
 		return new Vector3(this.x, this.y, this.z);
@@ -685,7 +685,7 @@ class Vector3 {
 	 * @throws {Error} If attempting to set the magnitude of a null vector (magnitude of 0).
 	 *
 	 * @example
-	 * const vec = new Vector3D(2, 3, 6); // magnitude is 7
+	 * const vec = new Vector3(2, 3, 6); // magnitude is 7
 	 * vec.magnitude = 14; // Now magnitude is 14, direction unchanged
 	 */
 	public set magnitude(value: number) {
@@ -711,52 +711,36 @@ class Vector3 {
 	}
 
 	/**
-	 * Gets the azimuth of this vector in radians.
-	 * This is the angle around the z-axis, measured in the xy-plane, between -π and π.
-	 *
-	 * @returns The angle in radians.
+	 * The yaw of this vector around the y-axis, between -π and π: 0 along +z, π/2 along +x.
+	 * Setting it turns the vector around the y-axis, keeping its magnitude and elevation.
 	 */
 	public get azimuth(): number {
-		return Math.atan2(this.y, this.x);
+		return Math.atan2(this.x, this.z);
 	}
 
-	/**
-	 * Sets the azimuth of this vector while preserving its magnitude and elevation.
-	 * Rotates the vector to the specified angle around the z-axis.
-	 *
-	 * @param value - The desired angle in radians.
-	 */
 	public set azimuth(value: number) {
-		const planar = Math.sqrt(this.x ** 2 + this.y ** 2);
+		const planar = Math.sqrt(this.x ** 2 + this.z ** 2);
 
-		this.x = planar * Math.cos(value);
-		this.y = planar * Math.sin(value);
+		this.x = planar * Math.sin(value);
+		this.z = planar * Math.cos(value);
 	}
 
 	/**
-	 * Gets the elevation of this vector in radians.
-	 * This is the angle away from the xy-plane, between -π/2 and π/2.
-	 *
-	 * @returns The angle in radians.
+	 * The angle of this vector above the horizontal xz-plane, between -π/2 and π/2.
+	 * Setting it tilts the vector, keeping its magnitude and azimuth.
 	 */
 	public get elevation(): number {
-		return Math.atan2(this.z, Math.sqrt(this.x ** 2 + this.y ** 2));
+		return Math.atan2(this.y, Math.sqrt(this.x ** 2 + this.z ** 2));
 	}
 
-	/**
-	 * Sets the elevation of this vector while preserving its magnitude and azimuth.
-	 * Rotates the vector to the specified angle away from the xy-plane.
-	 *
-	 * @param value - The desired angle in radians.
-	 */
 	public set elevation(value: number) {
 		const magnitude = this.magnitude;
 		const azimuth = this.azimuth;
 		const planar = magnitude * Math.cos(value);
 
-		this.x = planar * Math.cos(azimuth);
-		this.y = planar * Math.sin(azimuth);
-		this.z = magnitude * Math.sin(value);
+		this.x = planar * Math.sin(azimuth);
+		this.y = magnitude * Math.sin(value);
+		this.z = planar * Math.cos(azimuth);
 	}
 
 	/**
@@ -820,22 +804,22 @@ class ObservableVector3 extends Vector3 {
 	 * @param z - Z-coordinate (defaults to y if omitted).
 	 *
 	 * @example
-	 * new Vector3D() // (0, 0, 0)
-	 * new Vector3D(5) // (5, 5, 5)
-	 * new Vector3D(3, 4, 5) // (3, 4, 5)
+	 * new Vector3() // (0, 0, 0)
+	 * new Vector3(5) // (5, 5, 5)
+	 * new Vector3(3, 4, 5) // (3, 4, 5)
 	 */
 	public constructor(x?: number, y?: number, z?: number);
 
 	/**
 	 * Creates a new 3D vector using spherical coordinates.
 	 *
-	 * @param azimuth - Angle around the z-axis in radians, measured in the xy-plane.
-	 * @param elevation - Angle away from the xy-plane in radians.
+	 * @param azimuth - Angle around the y-axis in radians: the yaw that turns +z toward the vector.
+	 * @param elevation - Angle above the horizontal xz-plane in radians.
 	 * @param length - Magnitude (distance from origin).
 	 * @param polar - Must be `true` to use this overload.
 	 *
 	 * @example
-	 * new Vector3D(Math.PI / 4, 0, 10, true) // Azimuth π/4, in the xy-plane, magnitude 10
+	 * new Vector3(Math.PI / 2, 0, 10, true) // (10, 0, 0): a quarter turn from +z, level, magnitude 10
 	 */
 	public constructor(azimuth: number, elevation: number, length: number, polar: true);
 

@@ -1,20 +1,5 @@
-import { Interval, Timer } from "../../shared/utils/timers/timer";
-
-import { log } from "../../shared/utils/logger";
-
-import { EventEmitter } from "../../shared/utils/EventEmitter";
-
-import { createTimings, PerfSampler, toRate, type Timings } from "../../shared/utils/perfStats";
-
-type GameLoopEvents = {
-	frameStart: [now: number];
-	frame: [deltaTime: number, now: number];
-	frameEnd: [frameTime: number, now: number];
-	stats: [stats: LoopStats];
-	resume: [];
-	pause: [];
-	destroy: [];
-};
+import { Loop } from "../../shared/utils/Loop";
+import { createTimings, toRate, type Timings } from "../../shared/utils/perfStats";
 
 export type GameLoopParams = {
 	FPS: number;
@@ -31,26 +16,14 @@ export type LoopStats = {
 	};
 };
 
-export class GameLoop extends EventEmitter<GameLoopEvents> {
-	/** The maximum frame rate for the rendering loop. */
-	public maxFrameRate: number;
-	public frameID: number;
-	public speed: number;
-
-	private lastFrameTime: number;
-	private next?: number;
-
-	private readonly statsTimer: Interval;
-	private readonly samples: PerfSampler;
+/** The client's loop: a frame per display refresh, through `requestAnimationFrame`, capped at `maxFrameRate`. */
+export class GameLoop extends Loop<"frame", LoopStats> {
 	public readonly stats: LoopStats;
 
-	public constructor(config?: Partial<GameLoopParams>) {
-		super();
+	private next?: number;
 
-		this.maxFrameRate = config?.FPS ?? Infinity;
-		this.lastFrameTime = 0;
-		this.speed = config?.speed ?? 1;
-		this.frameID = 0;
+	public constructor(config?: Partial<GameLoopParams>) {
+		super("frame", "Game Loop", config?.FPS ?? Infinity, config?.speed ?? 1);
 
 		this.stats = {
 			FPS: 0,
@@ -61,123 +34,39 @@ export class GameLoop extends EventEmitter<GameLoopEvents> {
 				gpu: createTimings(),
 			},
 		};
-
-		this.samples = new PerfSampler();
-
-		this.statsTimer = new Interval(() => this.computeStats(), 1000, false);
-
-		this.statsTimer.pause();
 	}
 
-	/**
-	 * Resumes the rendering loop, allowing the renderer to continuously update and render the scene.
-	 * If the rendering loop is already running, this method has no effect.
-	 *
-	 * @returns The current instance of the RenderSystem for method chaining.
-	 */
-	public resume(): this {
-		if (this.paused) {
-			this.lastFrameTime = performance.now();
+	/** The maximum frame rate; `Infinity` for the display's. */
+	public get maxFrameRate(): number {
+		return this.maxRate;
+	}
 
-			this.samples.reset(this.lastFrameTime);
+	public set maxFrameRate(value: number) {
+		this.maxRate = value;
+	}
 
-			this.next = requestAnimationFrame((now) => this.frame(now));
+	public get frameID(): number {
+		return this.id;
+	}
 
-			this.statsTimer.resume();
+	protected schedule(run: (now: number) => void): void {
+		this.next = requestAnimationFrame(run);
+	}
 
-			log("Renderer", "The rendering loop has started");
-
-			this.emit("resume");
+	protected cancel(): void {
+		if (this.next !== undefined) {
+			cancelAnimationFrame(this.next);
 		}
 
-		return this;
+		this.next = undefined;
 	}
 
-	/**
-	 * Pauses the rendering loop, halting the continuous update and rendering of the scene.
-	 * If the rendering loop is already paused, this method has no effect.
-	 *
-	 * @returns The current instance of the RenderSystem for method chaining.
-	 */
-	public pause(): this {
-		if (!this.paused) {
-			if (this.next) {
-				cancelAnimationFrame(this.next);
-			}
-
-			this.next = undefined;
-
-			this.statsTimer.pause();
-
-			log("Renderer", "The rendering loop has stopped");
-
-			this.emit("pause");
-		}
-
-		return this;
-	}
-
-	protected frame(now: number = performance.now()): number {
-		this.next = requestAnimationFrame((now) => this.frame(now));
-
-		const deltaTimeCap = (1000 / (this.maxFrameRate || Infinity)) * this.speed;
-		const interval = now - this.lastFrameTime;
-		const deltaTime = Math.min(interval, 100) * this.speed;
-
-		// Account of the FPS cap
-		if (deltaTime >= deltaTimeCap) {
-			this.lastFrameTime = now;
-
-			if (this.frameID === Number.MAX_SAFE_INTEGER) {
-				this.frameID = 0;
-			} else {
-				this.frameID++;
-			}
-
-			this.emit("frameStart", now);
-
-			// Run timers registered in "precise" mode
-			Timer.runAll(now, this.speed);
-
-			// Emit the render event, allowing external listeners to perform actions before the scene is rendered.
-			this.emit("frame", deltaTime / 1000, now);
-
-			const now2 = performance.now();
-			const frameTime = now2 - now;
-
-			this.emit("frameEnd", frameTime, now2);
-
-			this.samples.push(interval, frameTime);
-		}
-
-		return performance.now() - now;
-	}
-
-	private computeStats(): void {
-		const stats = this.stats;
-		const samples = this.samples;
-		const now = performance.now();
+	protected measure(now: number): void {
+		const { stats, samples } = this;
 
 		stats.FPS = samples.rate(now);
 		stats.low99 = toRate(samples.measureIntervals(stats.frames.global).p99);
 
 		samples.measureExecution(stats.frames.cpu);
-		samples.reset(now);
-
-		this.emit("stats", stats);
-	}
-
-	public destroy(): void {
-		this.statsTimer.clear();
-		this.pause();
-
-		this.emit("destroy");
-
-		this.removeAllListeners();
-	}
-
-	/** Indicates whether the rendering loop is currently paused. */
-	public get paused(): boolean {
-		return this.next === undefined;
 	}
 }

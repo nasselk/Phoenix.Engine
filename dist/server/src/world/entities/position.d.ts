@@ -21,6 +21,8 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     readonly rotation: ObservableQuaternion;
     body?: RigidBody;
     private turns;
+    private readonly pushed;
+    private asleep;
     constructor(world: World<any, any>, context: C, options?: PositionEntityOptions);
     protected embody(body: RigidBodyDesc, ...shapes: readonly ColliderDesc[]): RigidBody;
     beforePhysics(): void;

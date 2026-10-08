@@ -27,7 +27,8 @@ export type InboundSchemas<C extends Contract> = NonNullable<C["in"]["schema"]>;
 export type OutboundSchemas<C extends Contract> = NonNullable<C["out"]["schema"]>;
 export type SendPayload<C extends Contract, K extends OutboundEvent<C>> = K extends keyof OutboundSchemas<C> ? [data: EncodedData<Extract<OutboundSchemas<C>[K], Schema>>] : [data?: Buffers];
 export type MessagePayload<C extends Contract, K extends InboundEvent<C>> = K extends keyof InboundSchemas<C> ? DecodedData<Extract<InboundSchemas<C>[K], Schema>> : BufferReader;
-export declare const MAX_EVENTS = 256;
+export declare const MAX_EVENTS = 255;
+export declare const PING_CODE = 255;
 export declare class ProtocolChannel {
     readonly events: readonly string[];
     readonly schemas: Readonly<Record<string, Schema>>;

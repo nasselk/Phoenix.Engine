@@ -39,7 +39,7 @@ export class Replication {
             }
         }
         writer.reset(1);
-        writer.writeUint32(Math.round(time) * 1000);
+        writer.writeUint32(Math.round(time * 1000));
         const despawnCountOffset = writer.advanceBytes(2);
         let despawns = 0;
         for (const entity of known) {

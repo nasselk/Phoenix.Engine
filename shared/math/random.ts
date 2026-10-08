@@ -64,12 +64,13 @@ export function randomAngle(min: number = 0, max: number = 2 * Math.PI, random =
  * Picks a random element from the given array
  *
  * @param array - The array to pick an element from
+ * @param random - The source of randomness, for a seeded generator
  *
  * @example
  * randomElement(["mouse", "rabbit", "pigeon"]) // e.g., "rabbit"
  */
-export function randomElement<T>(array: readonly T[]): T {
-	return array[Math.floor(Math.random() * array.length)];
+export function randomElement<T>(array: readonly T[], random: () => number = Math.random): T {
+	return array[Math.floor(random() * array.length)];
 }
 
 /**
@@ -77,6 +78,7 @@ export function randomElement<T>(array: readonly T[]): T {
  *
  * @param w1 - Weight for returning true (defaults to 0.5).
  * @param w2 - Weight for returning false (defaults to 0.5).
+ * @param random - The source of randomness, for a seeded generator.
  * @returns True if the first weight is selected, false otherwise.
  *
  * @example
@@ -84,8 +86,8 @@ export function randomElement<T>(array: readonly T[]): T {
  * randomBoolean(0.7, 0.3) // 70% true, 30% false
  * randomBoolean(1, 3) // 25% true, 75% false
  */
-export function randomBoolean(w1: number = 0.5, w2: number = 0.5): boolean {
-	return weightedRandom(w1, w2) === 0;
+export function randomBoolean(w1: number = 0.5, w2: number = 0.5, random: () => number = Math.random): boolean {
+	return weightedRandom([w1, w2], random) === 0;
 }
 
 /**
@@ -93,20 +95,21 @@ export function randomBoolean(w1: number = 0.5, w2: number = 0.5): boolean {
  * Weights are automatically normalized - they don't need to sum to 1.
  * Higher weights increase the probability of that index being selected.
  *
- * @param weights - Variable number of weight values (must be positive numbers).
+ * @param weights - One weight per index; zero is allowed, negative is not.
+ * @param random - The source of randomness, for a seeded generator.
  * @returns The randomly selected index (0 to weights.length - 1).
- * @throws {RangeError} If no weights are provided or if any weight is non-positive.
+ * @throws {RangeError} If no weights are provided, if any weight is negative, or if they are all zero.
  *
  * @example
- * weightedRandom(1, 2, 3) // 16.7% index 0, 33.3% index 1, 50% index 2
- * weightedRandom(50, 30, 15, 5) // Loot rarity: 50% common, 30% uncommon, 15% rare, 5% legendary
+ * weightedRandom([1, 2, 3]) // 16.7% index 0, 33.3% index 1, 50% index 2
+ * weightedRandom([50, 30, 15, 5]) // Loot rarity: 50% common, 30% uncommon, 15% rare, 5% legendary
  *
  * @remarks
  * This function divides the probability space proportionally to the weights.
  * For example, weights [1, 2, 3] create ranges [0-1], [1-3], [3-6],
  * then a random value from 0-6 determines which range (index) is selected.
  */
-export function weightedRandom(...weights: number[]): number {
+export function weightedRandom(weights: readonly number[], random: () => number = Math.random): number {
 	if (weights.length === 0) {
 		throw new RangeError("At least one weight must be provided");
 	}
@@ -115,22 +118,26 @@ export function weightedRandom(...weights: number[]): number {
 
 	for (const weight of weights) {
 		if (weight < 0) {
-			throw new RangeError("Weights must be positive numbers");
+			throw new RangeError("Weights must not be negative");
 		}
 
 		total += weight;
 	}
 
-	const value = Math.random() * total;
+	if (total === 0) {
+		throw new RangeError("At least one weight must be above zero");
+	}
+
+	const value = random() * total;
 	let accumulator = 0;
 
 	for (let i = 0; i < weights.length; i++) {
-		accumulator += weights[i];
+		accumulator += weights[i]!;
 
 		if (value < accumulator) {
 			return i;
 		}
 	}
 
-	return weights.length - 1; // Fallback for floating-point edge cases
+	return weights.findLastIndex((weight) => weight > 0);
 }

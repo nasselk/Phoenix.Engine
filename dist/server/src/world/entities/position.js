@@ -1,5 +1,5 @@
 import { ObservableVector3 } from "../../../../shared/math/vector3";
-import { ObservableQuaternion } from "../../../../shared/math/quaternion";
+import { ObservableQuaternion, Quaternion } from "../../../../shared/math/quaternion";
 import { Entity } from "./entity";
 export const POSITION_EPSILON = 0.000001;
 export const ROTATION_EPSILON = 0.01;
@@ -7,6 +7,8 @@ export class PositionEntity extends Entity {
     constructor(world, context, options = {}) {
         super(world, context, options);
         this.turns = true;
+        this.pushed = new Quaternion();
+        this.asleep = false;
         this.position = new ObservableVector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
         this.rotation = new ObservableQuaternion().setFromEuler(options.pitch ?? 0, options.yaw ?? 0, options.roll ?? 0);
         this.rotation.store();
@@ -19,6 +21,8 @@ export class PositionEntity extends Entity {
         }
         body.setTranslation(position.x, position.y, position.z);
         body.setRotation(rotation.clone());
+        this.pushed.set(rotation);
+        this.asleep = false;
         body.userData = this;
         this.turns = body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ;
         this.body = physics.createRigidBody(body);
@@ -29,17 +33,25 @@ export class PositionEntity extends Entity {
         return this.body;
     }
     beforePhysics() {
-        if (!this.turns) {
-            const { body, rotation } = this;
-            body?.setRotation(rotation, false);
+        if (this.turns || this.body === undefined) {
+            return;
+        }
+        const { rotation, pushed } = this;
+        if (rotation.x !== pushed.x || rotation.y !== pushed.y || rotation.z !== pushed.z || rotation.w !== pushed.w) {
+            this.body.setRotation(rotation, true);
+            pushed.set(rotation);
         }
     }
     afterPhysics() {
         const body = this.body;
-        const { x, y, z } = body.translation();
-        this.position.set(x, y, z);
+        const asleep = body.isSleeping();
+        if (asleep && this.asleep) {
+            return;
+        }
+        this.asleep = asleep;
+        body.translation(this.position);
         if (this.turns) {
-            this.rotation.set(body.rotation());
+            body.rotation(this.rotation);
         }
     }
     onDestroy() {

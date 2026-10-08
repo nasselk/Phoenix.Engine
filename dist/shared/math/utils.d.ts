@@ -1,4 +1,3 @@
-export declare const EPSILON = 1e-10;
 export declare function clamp(value: number, minimum: number, maximum: number): number;
 export declare function wrap(value: number, minimum: number, maximum: number): number;
 export declare function sign(value: number): number;

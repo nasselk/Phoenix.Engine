@@ -1,14 +1,5 @@
-import { EventEmitter } from "../../shared/utils/EventEmitter";
+import { Loop } from "../../shared/utils/Loop";
 import { type Timings } from "../../shared/utils/perfStats";
-type GameLoopEvents = {
-    frameStart: [now: number];
-    frame: [deltaTime: number, now: number];
-    frameEnd: [frameTime: number, now: number];
-    stats: [stats: LoopStats];
-    resume: [];
-    pause: [];
-    destroy: [];
-};
 export type GameLoopParams = {
     FPS: number;
     speed: number;
@@ -22,21 +13,14 @@ export type LoopStats = {
         readonly gpu: Timings;
     };
 };
-export declare class GameLoop extends EventEmitter<GameLoopEvents> {
-    maxFrameRate: number;
-    frameID: number;
-    speed: number;
-    private lastFrameTime;
-    private next?;
-    private readonly statsTimer;
-    private readonly samples;
+export declare class GameLoop extends Loop<"frame", LoopStats> {
     readonly stats: LoopStats;
+    private next?;
     constructor(config?: Partial<GameLoopParams>);
-    resume(): this;
-    pause(): this;
-    protected frame(now?: number): number;
-    private computeStats;
-    destroy(): void;
-    get paused(): boolean;
+    get maxFrameRate(): number;
+    set maxFrameRate(value: number);
+    get frameID(): number;
+    protected schedule(run: (now: number) => void): void;
+    protected cancel(): void;
+    protected measure(now: number): void;
 }
-export {};

@@ -19,6 +19,9 @@ export class EditorView extends Group {
 	private readonly unsubscribers: (() => void)[] = [];
 	private readonly wired = new Set<Material & { wireframe: boolean }>();
 	private wireframe = false;
+	private flying = false;
+	private lastFrames = 0;
+	private lastSample = 0;
 
 	public readonly stats: {
 		frames: Stats;
@@ -59,7 +62,7 @@ export class EditorView extends Group {
 
 		const rows = [
 			[this.stats.frames, this.stats.ms, this.stats.memory],
-			[this.stats.latency, this.stats.input, this.stats.output],
+			[this.stats.latency, this.stats.input, this.stats.output, this.stats.tps],
 		];
 
 		for (let row = 0; row < rows.length; row++) {
@@ -74,6 +77,9 @@ export class EditorView extends Group {
 				style.pointerEvents = "none";
 			}
 		}
+
+		this.lastFrames = this.context.world.framesReceived;
+		this.lastSample = performance.now();
 
 		const container = document.querySelector<HTMLDivElement>(stats);
 
@@ -91,6 +97,10 @@ export class EditorView extends Group {
 				if (this.wireframe) {
 					this.wireScene();
 				}
+
+				if (this.flying) {
+					this.steer();
+				}
 			}),
 
 			this.context.loop.on("frameEnd", () => {
@@ -100,9 +110,16 @@ export class EditorView extends Group {
 			}),
 
 			this.context.network.on("stats", (stats) => {
+				const now = performance.now();
+				const frames = this.context.world.framesReceived;
+
 				this.stats.input.update(stats.in.bps, 250);
 				this.stats.output.update(stats.out.bps, 250);
 				this.stats.latency.update(stats.latency, 250);
+				this.stats.tps.update(now > this.lastSample ? ((frames - this.lastFrames) * 1000) / (now - this.lastSample) : 0, 120);
+
+				this.lastFrames = frames;
+				this.lastSample = now;
 			}),
 
 			this.context.inputs.onPressInput((event) => {
@@ -121,14 +138,31 @@ export class EditorView extends Group {
 		);
 	}
 
+	/** Detach the camera to fly it with WASD, Shift and the arrows, or put it back. */
 	public toggleCamera(attach: boolean = this.context.renderer.camera.detached): void {
 		const { camera } = this.context.renderer;
 
+		camera.detached = !attach;
+		this.flying = !attach;
+
 		if (attach) {
-			camera.reattach();
-		} else {
-			camera.detach();
+			camera.flyForward = camera.flyRight = camera.turn = camera.tilt = 0;
+			camera.flyBoost = false;
 		}
+	}
+
+	private steer(): void {
+		const { camera } = this.context.renderer;
+
+		camera.flyForward = this.key("KeyW") - this.key("KeyS");
+		camera.flyRight = this.key("KeyD") - this.key("KeyA");
+		camera.flyBoost = this.key("ShiftLeft") + this.key("ShiftRight") > 0;
+		camera.turn = this.key("ArrowRight") - this.key("ArrowLeft");
+		camera.tilt = this.key("ArrowUp") - this.key("ArrowDown");
+	}
+
+	private key(code: string): number {
+		return this.context.inputs.isInputPressed(code) ? 1 : 0;
 	}
 
 	/** Draws every mesh in the scene as its triangles, except the editor's own and text. */

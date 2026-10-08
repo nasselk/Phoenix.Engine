@@ -1,11 +1,11 @@
-export { defineEntities, Entity, EntityRegistry, MAX_ENTITY_KINDS, World, } from "./world/index";
+export { defineEntities, Entity, EntityRegistry, MAX_ENTITY_KINDS, SpatialGrid, World, } from "./world/index";
 export * from "./physics/index";
 export { BufferReader, BufferWriter } from "@nasselk/binarypack";
 export { MAX_EVENTS, Protocol, ProtocolChannel } from "./networking/protocol";
 export { SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL } from "./networking/session";
 export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "./networking/invite";
 export { CounterMap } from "./utils/CounterMap";
-export { deepCopy, deepMerge, randomValue, removeFromArray } from "./utils/utils";
+export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export { EventEmitter } from "./utils/EventEmitter";
 export { IDAllocator } from "./utils/IDAllocator";
 export { error, log, warn } from "./utils/logger";

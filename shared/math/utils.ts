@@ -1,5 +1,3 @@
-export const EPSILON = 1e-10;
-
 /**
  * Clamps a value between a minimum and maximum value.
  *

@@ -1,4 +1,4 @@
-import { error } from "../../../shared";
+import { error } from "../../../shared/utils/logger";
 class InMemoryStorage {
     constructor() {
         this.store = new Map();

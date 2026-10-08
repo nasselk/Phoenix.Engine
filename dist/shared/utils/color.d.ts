@@ -4,7 +4,7 @@ export declare function hexToRgba(hex: string, alpha?: number): string;
 export declare function rgbaToHex(rgba: string): string;
 export declare function isRGBA(rgba: string): boolean;
 export declare function isHexColor(hex: string): boolean;
-export declare function extractRGBA(rgba: string): {
+export declare function extractRGBA(color: string): {
     r: number;
     g: number;
     b: number;

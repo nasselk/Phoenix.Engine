@@ -11,11 +11,12 @@ export abstract class Timer<T extends any[] = any[]> {
 	private readonly interval: boolean;
 	protected readonly params: T;
 	protected delay: number;
+	/** When the current period began, moved forward by every pause so that paused time never counts. */
 	private start: number;
-	protected timer?: any;
+	protected timer?: ReturnType<typeof setTimeout>;
 	private paused: boolean;
-	private pausedAt?: number;
-	private activeTime: number;
+	private pausedAt: number;
+	private finished: boolean;
 
 	public constructor(callback: TimerCallback, delay: number | [number, number], interval: boolean = false, customLoop: boolean = Timer.useCustomLoop, ...params: T) {
 		this.delay = Array.isArray(delay) ? randomInt(delay[0], delay[1]) : delay;
@@ -25,7 +26,8 @@ export abstract class Timer<T extends any[] = any[]> {
 		this.precise = customLoop;
 		this.params = params;
 		this.paused = false;
-		this.activeTime = 0;
+		this.pausedAt = 0;
+		this.finished = false;
 
 		if (this.delay <= 0) {
 			throw new Error("Timer delay must be positive");
@@ -33,20 +35,15 @@ export abstract class Timer<T extends any[] = any[]> {
 
 		if (this.precise) {
 			Timer.list.add(this);
+		} else {
+			this.arm(this.delay);
 		}
 	}
 
 	public static runAll(now: number = performance.now(), timeScale: number = 1): void {
-		// Run it at each frame/tick manually
-		for (const timeout of Timer.list) {
-			if (now - timeout.start >= timeout.delay / timeScale) {
-				if (timeout.interval) {
-					timeout.start = now;
-				} else {
-					Timer.list.delete(timeout);
-				}
-
-				timeout.callback(...timeout.params);
+		for (const timer of Timer.list) {
+			if (now - timer.start >= timer.delay / timeScale) {
+				timer.fire(now);
 			}
 		}
 	}
@@ -56,58 +53,77 @@ export abstract class Timer<T extends any[] = any[]> {
 	}
 
 	public static clear(): void {
+		for (const timer of Timer.list) {
+			timer.finished = true;
+		}
+
 		Timer.list.clear();
 	}
 
-	public pause(): void {
-		if (!this.paused) {
-			this.paused = true;
-			this.pausedAt = performance.now();
+	private readonly onTimeout = (): void => {
+		this.timer = undefined;
+		this.fire(performance.now());
+	};
 
-			if (this.precise) {
-				Timer.list.delete(this);
-			} else {
-				if (this.interval) {
-					clearInterval(this.timer);
-				} else {
-					clearTimeout(this.timer);
-				}
+	private fire(now: number): void {
+		if (this.interval) {
+			this.start = now;
+
+			if (!this.precise) {
+				this.arm(this.delay);
 			}
+		} else {
+			this.finished = true;
+			Timer.list.delete(this);
 		}
+
+		this.callback(...this.params);
+	}
+
+	private arm(milliseconds: number): void {
+		clearTimeout(this.timer);
+
+		this.timer = setTimeout(this.onTimeout, Math.max(0, milliseconds));
+	}
+
+	private disarm(): void {
+		Timer.list.delete(this);
+		clearTimeout(this.timer);
+
+		this.timer = undefined;
+	}
+
+	public pause(): void {
+		if (this.paused || this.finished) {
+			return;
+		}
+
+		this.paused = true;
+		this.pausedAt = performance.now();
+		this.disarm();
 	}
 
 	public resume(): void {
-		if (this.paused && this.pausedAt) {
-			this.paused = false;
-			this.activeTime += performance.now() - this.pausedAt;
+		if (!this.paused || this.finished) {
+			return;
+		}
 
-			if (this.precise) {
-				Timer.list.add(this);
-			} else {
-				const remaining = Math.max(0, this.delay - this.elapsedTime);
+		this.paused = false;
+		this.start += performance.now() - this.pausedAt;
 
-				if (this.interval) {
-					this.timer = setInterval(this.callback, this.delay, ...this.params);
-				} else {
-					this.timer = setTimeout(this.callback, remaining, ...this.params);
-				}
-			}
+		if (this.precise) {
+			Timer.list.add(this);
+		} else {
+			this.arm(this.remainingTime);
 		}
 	}
 
+	/** Change the delay. The time already elapsed in the current period still counts toward it. */
 	public reschedule(delay: number): void {
 		this.delay = delay;
 
-		if (!this.precise) {
-			if (this.interval) {
-				clearInterval(this.timer);
-				this.timer = setInterval(this.callback, this.delay, ...this.params);
-			} else {
-				clearTimeout(this.timer);
-				if (!this.paused) {
-					this.timer = setTimeout(this.callback, this.delay - this.elapsedTime, ...this.params);
-				}
-			}
+		if (!this.precise && !this.paused && !this.finished) {
+			this.arm(this.remainingTime);
 		}
 	}
 
@@ -116,54 +132,37 @@ export abstract class Timer<T extends any[] = any[]> {
 			this.callback(...this.params);
 		}
 
-		if (this.precise) {
-			Timer.list.delete(this);
-		} else {
-			if (this.interval) {
-				clearInterval(this.timer);
-			} else {
-				clearTimeout(this.timer);
-			}
-		}
+		this.finished = true;
+		this.disarm();
 	}
 
 	public get schedule(): number {
 		return this.delay;
 	}
 
+	/** Time spent running in the current period, paused time excluded. */
 	public get elapsedTime(): number {
-		if (this.paused && this.pausedAt) {
-			return this.pausedAt - this.start + this.activeTime;
-		} else {
-			return performance.now() - this.start + this.activeTime;
-		}
+		return (this.paused ? this.pausedAt : performance.now()) - this.start;
 	}
 
 	public get remainingTime(): number {
 		return this.delay - this.elapsedTime;
 	}
 
+	/** Whether it will still fire: not paused, not cleared, and, for a timeout, not fired yet. */
 	public get active(): boolean {
-		return !this.paused && this.precise ? Timer.list.has(this) : this.timer !== undefined;
+		return !this.paused && !this.finished;
 	}
 }
 
 export class Timeout extends Timer {
 	constructor(callback: TimerCallback, delay: number | [number, number], customLoop?: boolean, ...params: any[]) {
 		super(callback, delay, false, customLoop, ...params);
-
-		if (!this.precise) {
-			this.timer = setTimeout(this.callback, this.delay, ...this.params);
-		}
 	}
 }
 
 export class Interval extends Timer {
 	constructor(callback: TimerCallback, delay: number | [number, number], customLoop?: boolean, ...params: any[]) {
 		super(callback, delay, true, customLoop, ...params);
-
-		if (!this.precise) {
-			this.timer = setInterval(this.callback, this.delay, ...this.params);
-		}
 	}
 }

@@ -1,9 +1,6 @@
-const TEXT_FIELDS = "input, textarea, select, [contenteditable]";
+import { isTextField } from "./utils/textField";
 const ZOOM_KEYS = new Set(["+", "-", "=", "_", "0"]);
 const VIEWPORT = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
-function inTextField(target) {
-    return target instanceof Element && target.closest(TEXT_FIELDS) !== null;
-}
 export function native(options = {}) {
     const target = options.target ?? document;
     const undo = [];
@@ -13,14 +10,14 @@ export function native(options = {}) {
     };
     if (options.contextMenu !== false) {
         on("contextmenu", (event) => {
-            if (!inTextField(event.target)) {
+            if (!isTextField(event.target)) {
                 event.preventDefault();
             }
         });
     }
     if (options.drag !== false) {
         on("dragstart", (event) => {
-            if (!inTextField(event.target)) {
+            if (!isTextField(event.target)) {
                 event.preventDefault();
             }
         });

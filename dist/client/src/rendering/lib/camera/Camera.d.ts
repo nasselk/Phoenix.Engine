@@ -18,6 +18,9 @@ export type OrbitCameraOptions = Partial<{
     readonly maxDistance: number;
     readonly rotateSpeed: number;
     readonly turnSpeed: number;
+    readonly tiltSpeed: number;
+    readonly flySpeed: number;
+    readonly boost: number;
     readonly zoomSpeed: number;
     readonly dragging: boolean;
     readonly zooming: boolean;
@@ -37,6 +40,13 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     zoomSpeed: number;
     turn: number;
     turnSpeed: number;
+    tilt: number;
+    tiltSpeed: number;
+    flyForward: number;
+    flyRight: number;
+    flyBoost: boolean;
+    flySpeed: number;
+    boost: number;
     dragging: boolean;
     zooming: boolean;
     minZoom: number;
@@ -48,10 +58,7 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     private minHorizontalFovDegrees;
     constructor(options?: OrbitCameraOptions);
     get detached(): boolean;
-    setDetached(detached: boolean): this;
-    detach(): this;
-    reattach(): this;
-    toggleDetached(): this;
+    set detached(detached: boolean);
     fit(aspect?: number): this;
     get verticalFov(): number;
     set verticalFov(degrees: number);
@@ -67,8 +74,7 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     update(deltaTime?: number): this;
     protected abstract listen(element: HTMLElement | Window): void;
     protected abstract unlisten(element: HTMLElement | Window): void;
-    protected fly(_seconds: number): void;
-    protected onDetached(_detached: boolean): void;
+    private fly;
     protected drag(x: number, y: number): void;
     protected zoomByDelta(delta: number): void;
 }

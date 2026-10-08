@@ -1,4 +1,3 @@
-export const EPSILON = 1e-10;
 export function clamp(value, minimum, maximum) {
     if (minimum > maximum) {
         throw new RangeError("Invalid range");

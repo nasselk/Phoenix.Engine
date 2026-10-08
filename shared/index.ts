@@ -14,11 +14,13 @@ export {
 	Entity,
 	EntityRegistry,
 	MAX_ENTITY_KINDS,
+	SpatialGrid,
 	World,
 	type EntityClass,
 	type EntityOptions,
 	type EntityConstructor,
 	type EntityDefinitions,
+	type Positioned,
 	type WorldEvents,
 	type WorldOptions,
 } from "./world/index";
@@ -30,11 +32,10 @@ export * from "./physics/index";
 /**
  * The binary primitives, re-exported from the engine's own copy of them.
  *
- * Import them from here rather than from `@nasselk/binarypack` directly. A game installs its own
- * copy of that package, and two copies of a class are two classes — a writer built from the game's
- * would fail the `instanceof` check inside the engine's protocol and be encoded as no payload at
- * all. Anything that writes a frame the engine will send, or reads one it received, has to be
- * holding the engine's.
+ * Import them from here, never from `@nasselk/binarypack`: a game does not install that package, so
+ * its version always matches the engine's. Two copies of a class are two classes — a writer built
+ * from another copy would fail the `instanceof` check inside the engine's protocol and be encoded as
+ * no payload at all.
  */
 export { BufferReader, BufferWriter, type Buffers } from "@nasselk/binarypack";
 
@@ -45,7 +46,7 @@ export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "./
 
 // Utilities
 export { CounterMap } from "./utils/CounterMap";
-export { deepCopy, deepMerge, randomValue, removeFromArray } from "./utils/utils";
+export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";
 export { EventEmitter } from "./utils/EventEmitter";
 export { IDAllocator } from "./utils/IDAllocator";

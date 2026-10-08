@@ -1,3 +1,5 @@
+import { isTextField } from "../utils/textField";
+
 /** What an action hands its subscribers: the event that started or stopped it. */
 export type ActionCallback = (event: KeyboardEvent) => void;
 
@@ -8,10 +10,6 @@ export type InputSystemOptions<Action extends string = never> = {
 	 */
 	readonly binds?: Readonly<Record<Action, readonly string[]>>;
 };
-
-function isEditable(target: EventTarget | null): boolean {
-	return target instanceof HTMLElement && (target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT");
-}
 
 export class InputSystem<const Action extends string = never> {
 	/**
@@ -219,7 +217,7 @@ export class InputSystem<const Action extends string = never> {
 	private keyDown(event: KeyboardEvent): void {
 		// Typing into a text field is not playing: the keys go to the field, not to the actions. The
 		// keyup still goes through, so a key held before the field took focus is released.
-		if (!event.repeat && !isEditable(event.target)) {
+		if (!event.repeat && !isTextField(event.target)) {
 			this.press(event.code, event);
 		}
 	}

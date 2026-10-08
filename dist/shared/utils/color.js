@@ -56,7 +56,8 @@ export function isHexColor(hex) {
     const regex = /^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
     return regex.test(hex);
 }
-export function extractRGBA(rgba) {
+export function extractRGBA(color) {
+    const rgba = isHexColor(color) ? hexToRgba(color) : color;
     const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
     if (!match)
         return null;

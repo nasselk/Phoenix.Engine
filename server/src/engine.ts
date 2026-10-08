@@ -27,6 +27,17 @@ export type EngineOptions<In extends readonly string[] = [], Out extends readonl
 	};
 };
 
+export type RoomOptions = {
+	/** How many sockets can join it. Defaults to its capacity. */
+	readonly maxPlayers?: number;
+	/** How many entities it holds at once. */
+	readonly capacity?: number;
+	/** Whether `fullestRoom` may pick it. True by default; a private room is reached by its code only. */
+	readonly public?: boolean;
+	/** A free random code by default. */
+	readonly inviteCode?: string;
+};
+
 type ContextOf<C, Self> = [C] extends [never] ? Self : C;
 
 /**
@@ -41,8 +52,11 @@ type ContextOf<C, Self> = [C] extends [never] ? Self : C;
 export class Engine<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, const D extends EntityDefinitions = EntityDefinitions, C = never> extends EventEmitter<EngineEvents> {
 	public readonly network: NetworkSystem<In, Out, InSchemas, OutSchemas>;
 	public readonly loop: GameLoop;
+	/** What this engine's rooms are: its entity kinds, its context and its protocol. A type only, never set. */
+	declare public readonly Room: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
+
 	/** Every open room, by invite code. */
-	public readonly rooms: Map<string, World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>>;
+	public readonly rooms: Map<string, this["Room"]>;
 
 	/**
 	 * The game's entity kinds. Held here, next to `capacity`, because it is what every room this
@@ -110,7 +124,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	 * characters from INVITE_CODE_ALPHABET. Whatever it needs beyond entities — a sync loop, a round
 	 * timer — is built by the caller against the room it just got, and listens for `room.on("update")`.
 	 */
-	public createRoom(maxPlayers?: number, capacity?: number, isPublic: boolean = true, inviteCode: string = this.freeInviteCode()): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> {
+	public createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.freeInviteCode() }: RoomOptions = {}): this["Room"] {
 		if (this.rooms.has(inviteCode)) {
 			throw new Error(`A room with invite code "${inviteCode}" already exists`);
 		}
@@ -119,7 +133,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 			throw new Error(`The engine is at its maximum of ${this.maxRooms} rooms`);
 		}
 
-		const room = new World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>({ inviteCode, maxPlayers, capacity, public: isPublic, entities: this.entities, context: this.context, network: this.network });
+		const room: this["Room"] = new World({ inviteCode, maxPlayers, capacity, public: isPublic, entities: this.entities, context: this.context, network: this.network });
 
 		this.rooms.set(inviteCode, room);
 
@@ -147,8 +161,8 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	}
 
 	/** The public room with the most players that still has a free seat, for quick play, leaving out the rooms whose invite codes are in `exclude`. Undefined when none has one. */
-	public fullestRoom(...exclude: string[]): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {
-		let fullest: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
+	public fullestRoom(...exclude: string[]): this["Room"] | undefined {
+		let fullest: this["Room"] | undefined;
 
 		for (const room of this.rooms.values()) {
 			if (!room.destroyed && room.public && !exclude.includes(room.inviteCode) && room.sockets.size < room.maxPlayers && (fullest === undefined || room.sockets.size > fullest.sockets.size)) {
@@ -159,7 +173,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		return fullest;
 	}
 
-	public getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined {
+	public getRoom(inviteCode: string): this["Room"] | undefined {
 		const room = this.rooms.get(inviteCode);
 
 		return room?.destroyed ? undefined : room;

@@ -2,6 +2,7 @@ import { Howler } from "howler";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import type { AssetManager } from "../assets/AssetManager";
 import { waitForUserGesture } from "../utils/gesture";
+import { SoundBuilder } from "./lib/SoundBuilder";
 
 type AudioSystemEvents = {
 	init: [];
@@ -36,10 +37,14 @@ export class AudioSystem extends EventEmitter<AudioSystemEvents> {
 	/** The current state of the rendering system. */
 	public initialized: AudioSystemState;
 
+	/** Synthesises sounds in code and keeps them in the asset cache, to play like loaded ones. */
+	public readonly soundBuilder: SoundBuilder;
+
 	public constructor(private readonly assets: AssetManager) {
 		super();
 
 		this.initialized = AudioSystemState.NULL;
+		this.soundBuilder = new SoundBuilder(assets.cache);
 	}
 
 	public async init(settings: Partial<AudioOptions> = {}): Promise<void> {

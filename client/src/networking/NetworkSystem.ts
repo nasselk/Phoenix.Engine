@@ -6,7 +6,8 @@ import { wait } from "../../../shared/utils/timers/wait";
 
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { post } from "../../../shared/utils/fetch";
-import { Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
+import { MessageHandlers } from "../../../shared/networking/handlers";
+import { PING_CODE, Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
 import { ServerRoutes, SESSION_SUBPROTOCOL, type SessionResponse } from "../../../shared/networking/session";
 import { BufferReader, type Buffers } from "@nasselk/binarypack";
 
@@ -37,7 +38,6 @@ type ChannelState = {
 type NetworkStatsState = {
 	readonly in: ChannelState;
 	readonly out: ChannelState;
-	latency: number;
 	since: number;
 };
 
@@ -72,8 +72,13 @@ export class NetworkSystem<
 	// Never passed: an alias, so everything below reads `C` rather than the four pieces it is built from.
 	C extends Contract = ContractOf<In, Out, InSchemas, OutSchemas>,
 > extends EventEmitter<NetworkEvents> {
+	private static readonly PING = new Uint8Array([PING_CODE]);
+
+	/** When the last ping left, to time its answer. */
+	private pingSentAt = 0;
+
 	public readonly protocol: Protocol<C>;
-	private readonly messages: Array<(data: any) => void>;
+	private readonly handlers: MessageHandlers<(data: any) => void>;
 	private socket?: WebSocket | null;
 
 	/** Bumped by every `connect` and `disconnect`, so a connect still waiting on its session knows it was overtaken. */
@@ -97,7 +102,7 @@ export class NetworkSystem<
 		super();
 
 		this.protocol = new Protocol<C>(options);
-		this.messages = [];
+		this.handlers = new MessageHandlers(this.protocol.in);
 		this.manuallyDisconnected = false;
 		this.reconnecting = false;
 		this.simulation = {
@@ -114,7 +119,6 @@ export class NetworkSystem<
 		this.state = {
 			in: { bytes: 0, messages: 0 },
 			out: { bytes: 0, messages: 0 },
-			latency: 0,
 			since: 0,
 		};
 
@@ -263,13 +267,18 @@ export class NetworkSystem<
 			throw new Error("Cannot send message when socket is not open");
 		}
 
-		const buffer = this.protocol.encode(event, data);
+		await this.transmit(this.protocol.encode(event, data));
 
+		return this;
+	}
+
+	/** Send one framed message, counted, through the simulated loss and latency. */
+	private async transmit(buffer: Uint8Array<ArrayBuffer>): Promise<void> {
 		this.state.out.bytes += buffer.byteLength;
 		this.state.out.messages++;
 
 		if (this.simulation.loss > 0 && Math.random() <= this.simulation.loss) {
-			return this;
+			return;
 		}
 
 		if (this.simulation.latency > 0) {
@@ -280,8 +289,15 @@ export class NetworkSystem<
 		if (this.readyState === NetworkState.OPEN) {
 			this.socket!.send(buffer);
 		}
+	}
 
-		return this;
+	/** Time a round trip to the server: `stats.latency` is set when the answer arrives. */
+	private ping(): void {
+		if (this.readyState === NetworkState.OPEN) {
+			this.pingSentAt = performance.now();
+
+			void this.transmit(NetworkSystem.PING);
+		}
 	}
 
 	private async handle(data: Buffers): Promise<this> {
@@ -303,6 +319,13 @@ export class NetworkSystem<
 		}
 
 		const code = reader.readUint8();
+
+		if (code === PING_CODE) {
+			this.stats.latency = performance.now() - this.pingSentAt;
+
+			return this;
+		}
+
 		const event = this.protocol.in.name(code);
 
 		// The server is trusted, but a version skew between the two event lists is not.
@@ -313,7 +336,7 @@ export class NetworkSystem<
 		}
 
 		try {
-			const callback = this.messages[code];
+			const callback = this.handlers.get(code);
 
 			if (callback) {
 				callback(this.protocol.decode(event, reader));
@@ -328,14 +351,15 @@ export class NetworkSystem<
 	}
 
 	/**
-	 * Registers a handler for an incoming event.
+	 * Registers the handler for an incoming event. One handler per event, since a raw reader can only
+	 * be read once: registering a second throws. Listen on the `message` event to watch all traffic.
+	 *
 	 * @param event The event to listen for. Must be one of the names declared in `settings.in.events`.
 	 * @param callback Receives the decoded data when the event has an inbound schema, the raw reader otherwise.
+	 * @returns A function that removes the handler, so another can be registered.
 	 */
-	public onMessage<K extends InboundEvent<C>>(event: K, callback: (data: MessagePayload<C, K>) => void): this {
-		this.messages[this.protocol.in.code(event)] = callback;
-
-		return this;
+	public onMessage<K extends InboundEvent<C>>(event: K, callback: (data: MessagePayload<C, K>) => void): () => void {
+		return this.handlers.add(event, callback);
 	}
 
 	/**
@@ -353,6 +377,7 @@ export class NetworkSystem<
 
 		this.resetStats();
 		this.statsTimer.resume();
+		this.ping();
 
 		this.emit("connection");
 
@@ -405,6 +430,8 @@ export class NetworkSystem<
 		this.resetStats(now);
 
 		this.emit("stats", stats);
+
+		this.ping();
 	}
 
 	private resetStats(now: number = performance.now()): void {

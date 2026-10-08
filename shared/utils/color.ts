@@ -75,7 +75,8 @@ export function isHexColor(hex: string): boolean {
 	return regex.test(hex);
 }
 
-export function extractRGBA(rgba: string): { r: number; g: number; b: number; a: number } | null {
+export function extractRGBA(color: string): { r: number; g: number; b: number; a: number } | null {
+	const rgba = isHexColor(color) ? hexToRgba(color) : color;
 	const match = rgba.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
 	if (!match) return null;
 

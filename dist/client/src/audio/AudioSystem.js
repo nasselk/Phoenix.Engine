@@ -1,6 +1,7 @@
 import { Howler } from "howler";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { waitForUserGesture } from "../utils/gesture";
+import { SoundBuilder } from "./lib/SoundBuilder";
 export var AudioSystemState;
 (function (AudioSystemState) {
     AudioSystemState[AudioSystemState["NULL"] = 0] = "NULL";
@@ -13,6 +14,7 @@ export class AudioSystem extends EventEmitter {
         super();
         this.assets = assets;
         this.initialized = AudioSystemState.NULL;
+        this.soundBuilder = new SoundBuilder(assets.cache);
     }
     async init(settings = {}) {
         if (this.initialized !== AudioSystemState.NULL) {

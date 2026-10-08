@@ -58,8 +58,14 @@ export type SendPayload<C extends Contract, K extends OutboundEvent<C>> = K exte
 /** What a handler for `event` receives: the decoded data when the event has a schema, the raw reader otherwise. */
 export type MessagePayload<C extends Contract, K extends InboundEvent<C>> = K extends keyof InboundSchemas<C> ? DecodedData<Extract<InboundSchemas<C>[K], Schema>> : BufferReader;
 
-/** The event code is a single byte, so that is the ceiling on how many events one direction can declare. */
-export const MAX_EVENTS = 256;
+/** The event code is a single byte, and its last value is the engine's own, so a direction declares at most 255 events. */
+export const MAX_EVENTS = 255;
+
+/**
+ * The engine's ping: a frame of this one byte, answered at once with the same byte, never seen by a
+ * game's handlers. The client measures `network.stats.latency` with it.
+ */
+export const PING_CODE = 255;
 
 /**
  * The runtime half of a {@link Side}: one direction's event ⇄ code table and its schemas.

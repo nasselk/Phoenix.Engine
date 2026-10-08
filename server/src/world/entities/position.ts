@@ -1,7 +1,7 @@
 import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
 import { BufferWriter } from "@nasselk/binarypack";
 import { ObservableVector3 } from "../../../../shared/math/vector3";
-import { ObservableQuaternion } from "../../../../shared/math/quaternion";
+import { ObservableQuaternion, Quaternion } from "../../../../shared/math/quaternion";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";
@@ -37,6 +37,12 @@ export abstract class PositionEntity<C> extends Entity<C> {
 	 */
 	private turns = true;
 
+	/** The rotation last given to the body, for a body code turns: it is only touched again when this differs. */
+	private readonly pushed = new Quaternion();
+
+	/** Whether the body was asleep after the last step: one asleep before and after a step cannot have moved. */
+	private asleep = false;
+
 	public constructor(world: World<any, any>, context: C, options: PositionEntityOptions = {}) {
 		super(world, context, options);
 
@@ -61,6 +67,8 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 		body.setTranslation(position.x, position.y, position.z);
 		body.setRotation(rotation.clone());
+		this.pushed.set(rotation);
+		this.asleep = false;
 		body.userData = this;
 
 		this.turns = body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ;
@@ -77,22 +85,33 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 	/** Before the step: what code decided about this body since the last one. */
 	public beforePhysics(): void {
-		if (!this.turns) {
-			const { body, rotation } = this;
+		if (this.turns || this.body === undefined) {
+			return;
+		}
 
-			body?.setRotation(rotation, false);
+		const { rotation, pushed } = this;
+
+		if (rotation.x !== pushed.x || rotation.y !== pushed.y || rotation.z !== pushed.z || rotation.w !== pushed.w) {
+			this.body.setRotation(rotation, true);
+			pushed.set(rotation);
 		}
 	}
 
 	/** After the step: where the physics put it. */
 	public afterPhysics(): void {
 		const body = this.body!;
-		const { x, y, z } = body.translation();
+		const asleep = body.isSleeping();
 
-		this.position.set(x, y, z);
+		if (asleep && this.asleep) {
+			return;
+		}
+
+		this.asleep = asleep;
+
+		body.translation(this.position);
 
 		if (this.turns) {
-			this.rotation.set(body.rotation());
+			body.rotation(this.rotation);
 		}
 	}
 

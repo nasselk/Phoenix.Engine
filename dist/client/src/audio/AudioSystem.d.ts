@@ -1,5 +1,6 @@
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import type { AssetManager } from "../assets/AssetManager";
+import { SoundBuilder } from "./lib/SoundBuilder";
 type AudioSystemEvents = {
     init: [];
     play: [id: string, soundId: number];
@@ -22,6 +23,7 @@ export interface AudioOptions {
 export declare class AudioSystem extends EventEmitter<AudioSystemEvents> {
     private readonly assets;
     initialized: AudioSystemState;
+    readonly soundBuilder: SoundBuilder;
     constructor(assets: AssetManager);
     init(settings?: Partial<AudioOptions>): Promise<void>;
     play(id: string, spriteId?: string): number | undefined;

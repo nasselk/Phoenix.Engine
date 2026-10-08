@@ -2,9 +2,9 @@ import { clamp } from "./utils";
 class Vector3 {
     constructor(a = 0, b = a, c = b, polar = false) {
         if (polar) {
-            this.x = c * Math.cos(b) * Math.cos(a);
-            this.y = c * Math.cos(b) * Math.sin(a);
-            this.z = c * Math.sin(b);
+            this.x = c * Math.cos(b) * Math.sin(a);
+            this.y = c * Math.sin(b);
+            this.z = c * Math.cos(b) * Math.cos(a);
         }
         else {
             this.x = a;
@@ -102,34 +102,34 @@ class Vector3 {
         return this;
     }
     addDirection(azimuth, elevation, distance) {
-        this.x += distance * Math.cos(elevation) * Math.cos(azimuth);
-        this.y += distance * Math.cos(elevation) * Math.sin(azimuth);
-        this.z += distance * Math.sin(elevation);
+        this.x += distance * Math.cos(elevation) * Math.sin(azimuth);
+        this.y += distance * Math.sin(elevation);
+        this.z += distance * Math.cos(elevation) * Math.cos(azimuth);
         return this;
     }
-    interpolate(otherVec, t) {
-        this.x += (otherVec.x - this.x) * t;
-        this.y += (otherVec.y - this.y) * t;
-        this.z += (otherVec.z - this.z) * t;
+    interpolate(target, t) {
+        this.x += (target.x - this.x) * t;
+        this.y += (target.y - this.y) * t;
+        this.z += (target.z - this.z) * t;
         return this;
     }
     setDirection(azimuth, elevation, distance) {
-        this.x = distance * Math.cos(elevation) * Math.cos(azimuth);
-        this.y = distance * Math.cos(elevation) * Math.sin(azimuth);
-        this.z = distance * Math.sin(elevation);
+        this.x = distance * Math.cos(elevation) * Math.sin(azimuth);
+        this.y = distance * Math.sin(elevation);
+        this.z = distance * Math.cos(elevation) * Math.cos(azimuth);
         return this;
     }
     dot(vector) {
         return this.x * vector.x + this.y * vector.y + this.z * vector.z;
     }
-    cross(vector) {
-        return new Vector3(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
+    cross(vector, out = new Vector3()) {
+        return out.set(this.y * vector.z - this.z * vector.y, this.z * vector.x - this.x * vector.z, this.x * vector.y - this.y * vector.x);
     }
-    delta(vector) {
-        return new Vector3(vector.x - this.x, vector.y - this.y, vector.z - this.z);
+    delta(vector, out = new Vector3()) {
+        return out.set(this.x - vector.x, this.y - vector.y, this.z - vector.z);
     }
-    midpoint(vector) {
-        return new Vector3((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
+    midpoint(vector, out = new Vector3()) {
+        return out.set((this.x + vector.x) / 2, (this.y + vector.y) / 2, (this.z + vector.z) / 2);
     }
     normalize() {
         if (this.isNull) {
@@ -173,28 +173,29 @@ class Vector3 {
         return dx ** 2 + dy ** 2 + dz ** 2;
     }
     azimuthTo(vector) {
-        const dx = vector.x - this.x;
-        const dy = vector.y - this.y;
-        return Math.atan2(dy, dx);
+        return Math.atan2(vector.x - this.x, vector.z - this.z);
     }
     elevationTo(vector) {
         const dx = vector.x - this.x;
         const dy = vector.y - this.y;
         const dz = vector.z - this.z;
-        return Math.atan2(dz, Math.sqrt(dx ** 2 + dy ** 2));
+        return Math.atan2(dy, Math.sqrt(dx ** 2 + dz ** 2));
     }
     segmentDistance(p1, p2) {
-        const projection = this.projectOnSegment(p1, p2);
-        return this.distance(projection);
+        return Math.sqrt(this.distanceSquared(this.projectOnSegment(p1, p2, Vector3.SCRATCH)));
     }
-    projectOnSegment(p1, p2) {
-        const ab = p2.clone().subtract(p1);
-        const t = clamp(this.clone().subtract(p1).dot(ab) / ab.magnitudeSquared, 0, 1);
-        return p1.clone().add(ab.scale(t));
+    projectOnSegment(p1, p2, out = new Vector3()) {
+        const abx = p2.x - p1.x;
+        const aby = p2.y - p1.y;
+        const abz = p2.z - p1.z;
+        const lengthSquared = abx ** 2 + aby ** 2 + abz ** 2;
+        const t = lengthSquared === 0 ? 0 : clamp(((this.x - p1.x) * abx + (this.y - p1.y) * aby + (this.z - p1.z) * abz) / lengthSquared, 0, 1);
+        return out.set(p1.x + abx * t, p1.y + aby * t, p1.z + abz * t);
     }
-    project(p) {
-        const t = this.clone().dot(p) / p.magnitudeSquared;
-        return p.clone().add(p.scale(t));
+    project(direction, out = new Vector3()) {
+        const lengthSquared = direction.x ** 2 + direction.y ** 2 + direction.z ** 2;
+        const t = lengthSquared === 0 ? 0 : this.dot(direction) / lengthSquared;
+        return out.set(direction.x * t, direction.y * t, direction.z * t);
     }
     reflect(normal) {
         const dotProduct = this.dot(normal);
@@ -231,23 +232,23 @@ class Vector3 {
         return this.x ** 2 + this.y ** 2 + this.z ** 2;
     }
     get azimuth() {
-        return Math.atan2(this.y, this.x);
+        return Math.atan2(this.x, this.z);
     }
     set azimuth(value) {
-        const planar = Math.sqrt(this.x ** 2 + this.y ** 2);
-        this.x = planar * Math.cos(value);
-        this.y = planar * Math.sin(value);
+        const planar = Math.sqrt(this.x ** 2 + this.z ** 2);
+        this.x = planar * Math.sin(value);
+        this.z = planar * Math.cos(value);
     }
     get elevation() {
-        return Math.atan2(this.z, Math.sqrt(this.x ** 2 + this.y ** 2));
+        return Math.atan2(this.y, Math.sqrt(this.x ** 2 + this.z ** 2));
     }
     set elevation(value) {
         const magnitude = this.magnitude;
         const azimuth = this.azimuth;
         const planar = magnitude * Math.cos(value);
-        this.x = planar * Math.cos(azimuth);
-        this.y = planar * Math.sin(azimuth);
-        this.z = magnitude * Math.sin(value);
+        this.x = planar * Math.sin(azimuth);
+        this.y = magnitude * Math.sin(value);
+        this.z = planar * Math.cos(azimuth);
     }
     get isNull() {
         return this.x === 0 && this.y === 0 && this.z === 0;
@@ -273,6 +274,7 @@ Vector3.TEMP2 = new Vector3();
 Vector3.TEMP3 = new Vector3();
 Vector3.TEMP4 = new Vector3();
 Vector3.TEMP5 = new Vector3();
+Vector3.SCRATCH = new Vector3();
 class ObservableVector3 extends Vector3 {
     constructor(a = 0, b = a, c = b, polar = false) {
         super(a, b, c, polar);

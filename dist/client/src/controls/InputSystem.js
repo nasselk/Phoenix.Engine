@@ -1,6 +1,4 @@
-function isEditable(target) {
-    return target instanceof HTMLElement && (target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT");
-}
+import { isTextField } from "../utils/textField";
 export class InputSystem {
     constructor(options) {
         this.pressedCodes = new Set();
@@ -130,7 +128,7 @@ export class InputSystem {
         };
     }
     keyDown(event) {
-        if (!event.repeat && !isEditable(event.target)) {
+        if (!event.repeat && !isTextField(event.target)) {
             this.press(event.code, event);
         }
     }

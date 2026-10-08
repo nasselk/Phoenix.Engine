@@ -41,9 +41,9 @@ beforeAll(async () => {
 describe("rooms", () => {
 	test("quick play picks the fullest room with a free seat", () => {
 		const engine = createEngine();
-		const full = engine.createRoom(4);
-		const busy = engine.createRoom(4);
-		const quiet = engine.createRoom(4);
+		const full = engine.createRoom({ maxPlayers: 4 });
+		const busy = engine.createRoom({ maxPlayers: 4 });
+		const quiet = engine.createRoom({ maxPlayers: 4 });
 
 		fill(full, 4);
 		fill(busy, 3);
@@ -57,15 +57,15 @@ describe("rooms", () => {
 
 		expect(engine.fullestRoom()).toBeUndefined();
 
-		fill(engine.createRoom(2), 2);
+		fill(engine.createRoom({ maxPlayers: 2 }), 2);
 
 		expect(engine.fullestRoom()).toBeUndefined();
 	});
 
 	test("quick play skips private rooms, however full", () => {
 		const engine = createEngine();
-		const open = engine.createRoom(4);
-		const invited = engine.createRoom(4, undefined, false);
+		const open = engine.createRoom({ maxPlayers: 4 });
+		const invited = engine.createRoom({ maxPlayers: 4, public: false });
 
 		fill(open, 1);
 		fill(invited, 3);
@@ -79,8 +79,8 @@ describe("rooms", () => {
 
 	test("quick play leaves out the invite codes it is told to", () => {
 		const engine = createEngine();
-		const busy = engine.createRoom(4);
-		const quiet = engine.createRoom(4);
+		const busy = engine.createRoom({ maxPlayers: 4 });
+		const quiet = engine.createRoom({ maxPlayers: 4 });
 
 		fill(busy, 3);
 		fill(quiet, 1);
@@ -91,7 +91,7 @@ describe("rooms", () => {
 
 	test("occupancy reports players and seats per room", () => {
 		const engine = createEngine();
-		const room = engine.createRoom(6, undefined, false, "ABCDEF");
+		const room = engine.createRoom({ maxPlayers: 6, public: false, inviteCode: "ABCDEF" });
 
 		fill(room, 2);
 
@@ -113,7 +113,7 @@ describe("rooms", () => {
 
 	test("a room destroyed directly is no longer found or offered", () => {
 		const engine = createEngine();
-		const room = engine.createRoom(4);
+		const room = engine.createRoom({ maxPlayers: 4 });
 
 		expect(engine.fullestRoom()).toBe(room);
 
@@ -126,7 +126,7 @@ describe("rooms", () => {
 
 	test("a spawn into a full room leaves no body behind", () => {
 		const engine = createEngine();
-		const room = engine.createRoom(1, 1);
+		const room = engine.createRoom({ maxPlayers: 1, capacity: 1 });
 
 		room.spawn("crate");
 

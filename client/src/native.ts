@@ -1,5 +1,4 @@
-/** The elements a person types in, where the browser's own behaviour is what they expect. */
-const TEXT_FIELDS = "input, textarea, select, [contenteditable]";
+import { isTextField } from "./utils/textField";
 
 /** Zoom shortcuts, on every layout: ctrl/⌘ with plus, minus or zero. */
 const ZOOM_KEYS = new Set(["+", "-", "=", "_", "0"]);
@@ -18,10 +17,6 @@ export type NativeOptions = {
 	/** Write the viewport meta tag phones need, which is what stops pinch zoom there. */
 	readonly viewport?: boolean;
 };
-
-function inTextField(target: EventTarget | null): boolean {
-	return target instanceof Element && target.closest(TEXT_FIELDS) !== null;
-}
 
 /**
  * What native.css cannot do on its own. Call it once the page exists, and keep what it hands back to
@@ -44,7 +39,7 @@ export function native(options: NativeOptions = {}): () => void {
 
 	if (options.contextMenu !== false) {
 		on("contextmenu", (event: MouseEvent) => {
-			if (!inTextField(event.target)) {
+			if (!isTextField(event.target)) {
 				event.preventDefault();
 			}
 		});
@@ -52,7 +47,7 @@ export function native(options: NativeOptions = {}): () => void {
 
 	if (options.drag !== false) {
 		on("dragstart", (event: DragEvent) => {
-			if (!inTextField(event.target)) {
+			if (!isTextField(event.target)) {
 				event.preventDefault();
 			}
 		});

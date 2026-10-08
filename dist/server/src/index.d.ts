@@ -8,4 +8,4 @@ export { GameLoop, type GameLoopParams, type LoopStats } from "./GameLoop";
 export { DEFAULT_NETWORK_SETTINGS, NetworkSystem, type EventLimit, type EventLimits, type NetworkSettings, type NetworkSystemOptions } from "./networking/NetworkSystem";
 export { Socket, SocketState, type SocketData } from "./networking/socket";
 export { setExitListeners } from "./utils/utils";
-export { Engine, MAX_INVITE_CODE_ATTEMPTS, type EngineOptions } from "./engine";
+export { Engine, MAX_INVITE_CODE_ATTEMPTS, type EngineOptions, type RoomOptions } from "./engine";

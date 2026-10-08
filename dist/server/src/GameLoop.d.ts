@@ -1,14 +1,5 @@
-import { EventEmitter } from "../../shared/utils/EventEmitter";
+import { Loop } from "../../shared/utils/Loop";
 import { type Timings } from "../../shared/utils/perfStats";
-type GameLoopEvents = {
-    tickStart: [now: number];
-    tick: [deltaTime: number, now: number];
-    tickEnd: [tickTime: number, now: number];
-    stats: [stats: LoopStats];
-    resume: [];
-    pause: [];
-    destroy: [];
-};
 export type GameLoopParams = {
     TPS: number;
     turbo: boolean;
@@ -25,23 +16,17 @@ export type LoopStats = {
         arraybuffer: number;
     };
 };
-export declare class GameLoop extends EventEmitter<GameLoopEvents> {
-    private static readonly MAX_TICK_ID;
-    lastTickTime: number;
-    speed: number;
-    maxTickRate: number;
+export declare class GameLoop extends Loop<"tick", LoopStats> {
     turbo: boolean;
-    tickID: number;
-    private next?;
-    private readonly statsTimer;
-    private readonly samples;
     readonly stats: LoopStats;
+    private next?;
+    private immediate;
     constructor(config?: Partial<GameLoopParams>);
-    resume(): this;
-    pause(): this;
-    private tick;
-    private computeStats;
-    destroy(): void;
-    get paused(): boolean;
+    get maxTickRate(): number;
+    set maxTickRate(value: number);
+    get tickID(): number;
+    get lastTickTime(): number;
+    protected schedule(run: () => void): void;
+    protected cancel(): void;
+    protected measure(now: number): void;
 }
-export {};

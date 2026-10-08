@@ -15,7 +15,7 @@ export function signedAngleDistance(angle1, angle2) {
     return ((2 * dif) % twoPI) - dif;
 }
 export function getOppositeAngle(angle) {
-    return (angle + Math.PI) % (2 * Math.PI);
+    return normalizeAngle2PI(angle + Math.PI);
 }
 export function degreesToRadians(degrees) {
     const radians = degrees * (Math.PI / 180);

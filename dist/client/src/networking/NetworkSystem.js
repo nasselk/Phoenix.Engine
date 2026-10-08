@@ -3,7 +3,8 @@ import { Interval, Timeout } from "../../../shared/utils/timers/timer";
 import { wait } from "../../../shared/utils/timers/wait";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { post } from "../../../shared/utils/fetch";
-import { Protocol } from "../../../shared/networking/protocol";
+import { MessageHandlers } from "../../../shared/networking/handlers";
+import { PING_CODE, Protocol } from "../../../shared/networking/protocol";
 import { SESSION_SUBPROTOCOL } from "../../../shared/networking/session";
 import { BufferReader } from "@nasselk/binarypack";
 export var NetworkState;
@@ -16,9 +17,10 @@ export var NetworkState;
 export class NetworkSystem extends EventEmitter {
     constructor(options) {
         super();
+        this.pingSentAt = 0;
         this.attempt = 0;
         this.protocol = new Protocol(options);
-        this.messages = [];
+        this.handlers = new MessageHandlers(this.protocol.in);
         this.manuallyDisconnected = false;
         this.reconnecting = false;
         this.simulation = {
@@ -33,7 +35,6 @@ export class NetworkSystem extends EventEmitter {
         this.state = {
             in: { bytes: 0, messages: 0 },
             out: { bytes: 0, messages: 0 },
-            latency: 0,
             since: 0,
         };
         this.statsTimer = new Interval(() => this.computeStats(), 1000, false);
@@ -114,11 +115,14 @@ export class NetworkSystem extends EventEmitter {
         if (this.readyState !== NetworkState.OPEN) {
             throw new Error("Cannot send message when socket is not open");
         }
-        const buffer = this.protocol.encode(event, data);
+        await this.transmit(this.protocol.encode(event, data));
+        return this;
+    }
+    async transmit(buffer) {
         this.state.out.bytes += buffer.byteLength;
         this.state.out.messages++;
         if (this.simulation.loss > 0 && Math.random() <= this.simulation.loss) {
-            return this;
+            return;
         }
         if (this.simulation.latency > 0) {
             await wait(this.simulation.latency / 2);
@@ -126,7 +130,12 @@ export class NetworkSystem extends EventEmitter {
         if (this.readyState === NetworkState.OPEN) {
             this.socket.send(buffer);
         }
-        return this;
+    }
+    ping() {
+        if (this.readyState === NetworkState.OPEN) {
+            this.pingSentAt = performance.now();
+            void this.transmit(NetworkSystem.PING);
+        }
     }
     async handle(data) {
         this.state.in.bytes += data.byteLength;
@@ -142,13 +151,17 @@ export class NetworkSystem extends EventEmitter {
             return this;
         }
         const code = reader.readUint8();
+        if (code === PING_CODE) {
+            this.stats.latency = performance.now() - this.pingSentAt;
+            return this;
+        }
         const event = this.protocol.in.name(code);
         if (event === undefined) {
             error("Network", `Received an unknown event code ${code}`);
             return this;
         }
         try {
-            const callback = this.messages[code];
+            const callback = this.handlers.get(code);
             if (callback) {
                 callback(this.protocol.decode(event, reader));
             }
@@ -160,8 +173,7 @@ export class NetworkSystem extends EventEmitter {
         return this;
     }
     onMessage(event, callback) {
-        this.messages[this.protocol.in.code(event)] = callback;
-        return this;
+        return this.handlers.add(event, callback);
     }
     simulate(event, data) {
         this.handle(this.protocol.encode(event, data, true));
@@ -170,6 +182,7 @@ export class NetworkSystem extends EventEmitter {
         log("Network", "Connected to", this.baseURL + "/ws");
         this.resetStats();
         this.statsTimer.resume();
+        this.ping();
         this.emit("connection");
         if (this.reconnecting) {
             this.reconnecting = false;
@@ -207,6 +220,7 @@ export class NetworkSystem extends EventEmitter {
         stats.out.mps = state.out.messages * perSecond;
         this.resetStats(now);
         this.emit("stats", stats);
+        this.ping();
     }
     resetStats(now = performance.now()) {
         const state = this.state;
@@ -247,3 +261,4 @@ export class NetworkSystem extends EventEmitter {
         this.simulation.loss = loss;
     }
 }
+NetworkSystem.PING = new Uint8Array([PING_CODE]);

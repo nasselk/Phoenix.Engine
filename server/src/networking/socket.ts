@@ -2,7 +2,7 @@ import type { ServerWebSocket } from "bun";
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { warn } from "../../../shared/utils/logger";
-import { type Contract, type InboundEvent, type MessagePayload, type OutboundEvent, type Protocol, type SendPayload } from "../../../shared/networking/protocol";
+import { PING_CODE, type Contract, type InboundEvent, type MessagePayload, type OutboundEvent, type Protocol, type SendPayload } from "../../../shared/networking/protocol";
 import { Seen } from "../world/replication";
 import type { World } from "../world/world";
 
@@ -38,6 +38,8 @@ export enum SocketState {
 }
 
 export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEvents<C>> {
+	private static readonly PING = new Uint8Array([PING_CODE]);
+
 	public readonly id: number;
 	public readonly ip: string;
 	public readonly sessionID: string;
@@ -88,6 +90,13 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 		return this;
 	}
 
+	/** Answer the client's ping, with the same single byte. */
+	public answerPing(): void {
+		if (this.readyState === SocketState.OPEN) {
+			this.socket.send(Socket.PING);
+		}
+	}
+
 	/**
 	 * Sends an event to every *other* connected client. Encoded once, then handed to each socket.
 	 *
@@ -114,9 +123,8 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 	}
 
 	/**
-	 * Subscribes to a topic on the socket's pub/sub channel. The server can publish to it with
-	 *
-	 * @param topic The topic to subscribe to. The server can publish to it with `socket.publish(topic, buffer)`.
+	 * Subscribes to a topic, so this socket receives what `network.broadcast(topic, …)` sends to it,
+	 * and what any other socket's `broadcast(topic, …)` does.
 	 *
 	 * @returns this socket, for chaining.
 	 */
@@ -127,9 +135,7 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 	}
 
 	/**
-	 * Unsubscribes from a topic on the socket's pub/sub channel. The server can publish to it with
-	 *
-	 * @param topic  The topic to unsubscribe from. The server can publish to it with `socket.publish(topic, buffer)`.
+	 * Unsubscribes from a topic: broadcasts to it stop reaching this socket.
 	 *
 	 * @returns this socket, for chaining.
 	 */
@@ -146,22 +152,11 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 	}
 
 	/**
-	 * Disconnects the socket. If the socket is already closed, this does nothing.
+	 * Closes the socket with a close frame carrying the reason and code. Does nothing once closed.
 	 *
-	 * @param forcefully If true, the socket is terminated abruptly without sending a close frame
+	 * @param code A WebSocket close code: 1000 is a normal close, anything else is logged.
 	 */
-	public disconnect(forcefully?: true): void;
-
-	/**
-	 * Disconnects the socket. If the socket is already closed, this does nothing.
-	 *
-	 * @param forcefully If false, a close frame is sent with the provided reason and code.
-	 * @param reason The reason for disconnection.
-	 * @param code The close code for disconnection.
-	 */
-	public disconnect(forcefully?: false, reason?: string, code?: number): void;
-
-	public disconnect(forcefully?: boolean, reason: string = "", code: number = 1000): void {
+	public disconnect(reason: string = "", code: number = 1000): void {
 		if (code !== 1000) {
 			warn("Game Server", `Disconnecting ${this.ip} with code ${code} - ${reason}`);
 		}
@@ -169,13 +164,16 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 		this.manuallyDisconnected = true;
 
 		if (this.readyState === SocketState.CONNECTING || this.readyState === SocketState.OPEN) {
-			if (forcefully) {
-				// Abrupt close, no close frame.
-				this.socket.terminate();
-			} else {
-				// Graceful close with a status code + reason.
-				this.socket.close(code, reason);
-			}
+			this.socket.close(code, reason);
+		}
+	}
+
+	/** Cuts the connection at once, without a close frame. Does nothing once closed. */
+	public terminate(): void {
+		this.manuallyDisconnected = true;
+
+		if (this.readyState === SocketState.CONNECTING || this.readyState === SocketState.OPEN) {
+			this.socket.terminate();
 		}
 	}
 

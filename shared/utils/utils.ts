@@ -1,4 +1,3 @@
-import { randomInt } from "../math/random";
 import { JsonObject } from "./types";
 
 export function removeFromArray<T>(array: T[], item?: T, index?: number): T | void {
@@ -24,22 +23,6 @@ export function removeFromArray<T>(array: T[], item?: T, index?: number): T | vo
 				break;
 			}
 		}
-	}
-}
-
-export function randomValue<T>(list: T[], random?: () => number): T;
-export function randomValue<T>(...values: T[]): T;
-export function randomValue(...params: any[]): any {
-	if (Array.isArray(params[0])) {
-		const array = params[0];
-		const random = params[1];
-		const index = randomInt(0, array.length - 1, random);
-
-		return array[index];
-	} else {
-		const index = randomInt(0, params.length - 1);
-
-		return params[index];
 	}
 }
 

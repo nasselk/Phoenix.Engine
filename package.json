@@ -58,7 +58,6 @@
 	},
 	"dependencies": {
 		"@nasselk/binarypack": "github:nasselk/BinaryPack",
-		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
 		"stats.js": "^0.17.0",
@@ -66,6 +65,7 @@
 		"troika-three-text": "^0.53.0"
 	},
 	"devDependencies": {
+		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"@biomejs/biome": "2.5.15",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"@types/bun": "^1.4.2",
@@ -74,9 +74,10 @@
 		"typescript": "^7.0.2"
 	},
 	"peerDependencies": {
+		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"three": "^0.186.1",
-		"svelte": "^5.57.1"
+		"svelte": "^5.57.2"
 	},
 	"peerDependenciesMeta": {
 		"three": {

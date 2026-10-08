@@ -11,6 +11,10 @@ export type ClientWorldOptions<D extends EntityDefinitions, C> = WorldOptions<D,
 export class World<D extends EntityDefinitions, C> extends BaseWorld<D, C, Entity<C>> {
 	/** This world in the scene: every entity's group goes in here. Whoever renders the world adds it to a scene. */
 	public readonly group = new Group();
+	public serverTime: number = 0;
+
+	/** How many frames from the server this world has applied. */
+	public framesReceived: number = 0;
 
 	/**
 	 * Negative ids, for entities this client spawns itself. Replicated entities arrive with the
@@ -40,7 +44,9 @@ export class World<D extends EntityDefinitions, C> extends BaseWorld<D, C, Entit
 	public sync(reader: BufferReader): void {
 		const registry = this.registry;
 
-		const serverTime = reader.readUint32() / 1000;
+		this.framesReceived++;
+
+		this.serverTime = reader.readUint32() / 1000;
 
 		const despawns = reader.readUint16();
 

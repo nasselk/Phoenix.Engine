@@ -15,16 +15,7 @@ export type EventLimit = {
     readonly byteLength?: number | readonly [min: number, max: number];
 };
 export type EventLimits<E extends readonly string[]> = Partial<Record<E[number], EventLimit>>;
-export type NetworkSystemOptions<In extends readonly string[], Out extends readonly string[], InSchemas, OutSchemas> = {
-    readonly in?: {
-        readonly events: In;
-        readonly schema?: InSchemas;
-    };
-    readonly out?: {
-        readonly events: Out;
-        readonly schema?: OutSchemas;
-    };
-    readonly limits?: EventLimits<In>;
+export type NetworkTransportOptions = {
     readonly TLS?: {
         readonly key: string | URL;
         readonly cert: string | URL;
@@ -45,26 +36,24 @@ export type NetworkSystemOptions<In extends readonly string[], Out extends reado
         readonly idleTimeout?: number;
     };
 };
-export type NetworkSettings = {
-    readonly TLS?: {
-        readonly key: string | URL;
-        readonly cert: string | URL;
+export type NetworkSystemOptions<In extends readonly string[], Out extends readonly string[], InSchemas, OutSchemas> = NetworkTransportOptions & {
+    readonly in?: {
+        readonly events: In;
+        readonly schema?: InSchemas;
     };
-    readonly port: number;
-    readonly proxied: boolean;
-    readonly origins: string[] | string;
-    readonly http: {
-        readonly maxRequestBodySize: number;
-        readonly maxRequestRate: number;
+    readonly out?: {
+        readonly events: Out;
+        readonly schema?: OutSchemas;
     };
-    readonly ws: {
-        readonly maxSessions: number;
-        readonly maxSessionsPerIP: number;
-        readonly maxMessageSize: number;
-        readonly maxBackPressure: number;
-        readonly maxMessageRate: number;
-        readonly idleTimeout: number;
-    };
+    readonly limits?: EventLimits<In>;
+};
+type Filled<T> = {
+    readonly [K in keyof T]-?: Exclude<T[K], undefined>;
+};
+export type NetworkSettings = Filled<Omit<NetworkTransportOptions, "TLS" | "http" | "ws">> & {
+    readonly TLS?: NetworkTransportOptions["TLS"];
+    readonly http: Filled<NonNullable<NetworkTransportOptions["http"]>>;
+    readonly ws: Filled<NonNullable<NetworkTransportOptions["ws"]>>;
 };
 export declare const DEFAULT_NETWORK_SETTINGS: NetworkSettings;
 export declare class NetworkSystem<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, C extends Contract = ContractOf<In, Out, InSchemas, OutSchemas>> extends EventEmitter<NetworkSystemEvents<C>> {
@@ -72,37 +61,26 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     readonly sockets: Map<number, Socket<C>>;
     readonly IPList: CounterMap<string>;
     readonly settings: NetworkSettings;
-    private readonly requestsRate;
-    private readonly origins;
-    private readonly limits;
-    private readonly messages;
-    private readonly socketIDs;
-    private readonly tickets;
+    private readonly http;
     private readonly sessions;
+    private readonly limits;
+    private readonly handlers;
+    private readonly socketIDs;
     private readonly extraRoutes;
     private sweep?;
     private server?;
     constructor(options?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>);
     init(): void;
     private mergeSettings;
-    private setAllowedOrigins;
     private setTimedProtections;
     private setupWebSocketServer;
     private handle;
     private withinLimits;
     private static resolveLimit;
     route(path: string, handler: (request: BunRequest) => Response | Promise<Response>): this;
-    onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): this;
+    onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): () => void;
     broadcast<K extends OutboundEvent<C>>(topic: string, event: K, ...[data]: SendPayload<C, K>): this;
     private handleUpgrade;
-    private parseTicket;
-    private redeemTicket;
-    private getRequestIP;
-    private middleware;
-    private invoke;
-    private preflight;
-    private corsHeaders;
-    private withCors;
     private initSession;
     destroy(): void;
 }

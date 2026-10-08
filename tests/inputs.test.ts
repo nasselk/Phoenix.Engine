@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
+(globalThis as { Element?: unknown }).Element ??= class {};
 (globalThis as { HTMLElement?: unknown }).HTMLElement ??= class {};
 (globalThis as { KeyboardEvent?: unknown }).KeyboardEvent ??= class {
 	public constructor(

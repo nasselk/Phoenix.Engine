@@ -1,6 +1,10 @@
 import { randomInt } from "../../math/random";
 export class Timer {
     constructor(callback, delay, interval = false, customLoop = Timer.useCustomLoop, ...params) {
+        this.onTimeout = () => {
+            this.timer = undefined;
+            this.fire(performance.now());
+        };
         this.delay = Array.isArray(delay) ? randomInt(delay[0], delay[1]) : delay;
         this.start = performance.now();
         this.callback = callback;
@@ -8,24 +12,22 @@ export class Timer {
         this.precise = customLoop;
         this.params = params;
         this.paused = false;
-        this.activeTime = 0;
+        this.pausedAt = 0;
+        this.finished = false;
         if (this.delay <= 0) {
             throw new Error("Timer delay must be positive");
         }
         if (this.precise) {
             Timer.list.add(this);
         }
+        else {
+            this.arm(this.delay);
+        }
     }
     static runAll(now = performance.now(), timeScale = 1) {
-        for (const timeout of Timer.list) {
-            if (now - timeout.start >= timeout.delay / timeScale) {
-                if (timeout.interval) {
-                    timeout.start = now;
-                }
-                else {
-                    Timer.list.delete(timeout);
-                }
-                timeout.callback(...timeout.params);
+        for (const timer of Timer.list) {
+            if (now - timer.start >= timer.delay / timeScale) {
+                timer.fire(now);
             }
         }
     }
@@ -33,90 +35,78 @@ export class Timer {
         Timer.useCustomLoop = boolean;
     }
     static clear() {
+        for (const timer of Timer.list) {
+            timer.finished = true;
+        }
         Timer.list.clear();
     }
-    pause() {
-        if (!this.paused) {
-            this.paused = true;
-            this.pausedAt = performance.now();
-            if (this.precise) {
-                Timer.list.delete(this);
-            }
-            else {
-                if (this.interval) {
-                    clearInterval(this.timer);
-                }
-                else {
-                    clearTimeout(this.timer);
-                }
+    fire(now) {
+        if (this.interval) {
+            this.start = now;
+            if (!this.precise) {
+                this.arm(this.delay);
             }
         }
+        else {
+            this.finished = true;
+            Timer.list.delete(this);
+        }
+        this.callback(...this.params);
+    }
+    arm(milliseconds) {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(this.onTimeout, Math.max(0, milliseconds));
+    }
+    disarm() {
+        Timer.list.delete(this);
+        clearTimeout(this.timer);
+        this.timer = undefined;
+    }
+    pause() {
+        if (this.paused || this.finished) {
+            return;
+        }
+        this.paused = true;
+        this.pausedAt = performance.now();
+        this.disarm();
     }
     resume() {
-        if (this.paused && this.pausedAt) {
-            this.paused = false;
-            this.activeTime += performance.now() - this.pausedAt;
-            if (this.precise) {
-                Timer.list.add(this);
-            }
-            else {
-                const remaining = Math.max(0, this.delay - this.elapsedTime);
-                if (this.interval) {
-                    this.timer = setInterval(this.callback, this.delay, ...this.params);
-                }
-                else {
-                    this.timer = setTimeout(this.callback, remaining, ...this.params);
-                }
-            }
+        if (!this.paused || this.finished) {
+            return;
+        }
+        this.paused = false;
+        this.start += performance.now() - this.pausedAt;
+        if (this.precise) {
+            Timer.list.add(this);
+        }
+        else {
+            this.arm(this.remainingTime);
         }
     }
     reschedule(delay) {
         this.delay = delay;
-        if (!this.precise) {
-            if (this.interval) {
-                clearInterval(this.timer);
-                this.timer = setInterval(this.callback, this.delay, ...this.params);
-            }
-            else {
-                clearTimeout(this.timer);
-                if (!this.paused) {
-                    this.timer = setTimeout(this.callback, this.delay - this.elapsedTime, ...this.params);
-                }
-            }
+        if (!this.precise && !this.paused && !this.finished) {
+            this.arm(this.remainingTime);
         }
     }
     clear(runCallback = false) {
         if (runCallback) {
             this.callback(...this.params);
         }
-        if (this.precise) {
-            Timer.list.delete(this);
-        }
-        else {
-            if (this.interval) {
-                clearInterval(this.timer);
-            }
-            else {
-                clearTimeout(this.timer);
-            }
-        }
+        this.finished = true;
+        this.disarm();
     }
     get schedule() {
         return this.delay;
     }
     get elapsedTime() {
-        if (this.paused && this.pausedAt) {
-            return this.pausedAt - this.start + this.activeTime;
-        }
-        else {
-            return performance.now() - this.start + this.activeTime;
-        }
+        return (this.paused ? this.pausedAt : performance.now()) - this.start;
     }
     get remainingTime() {
         return this.delay - this.elapsedTime;
     }
     get active() {
-        return !this.paused && this.precise ? Timer.list.has(this) : this.timer !== undefined;
+        return !this.paused && !this.finished;
     }
 }
 Timer.list = new Set();
@@ -124,16 +114,10 @@ Timer.useCustomLoop = false;
 export class Timeout extends Timer {
     constructor(callback, delay, customLoop, ...params) {
         super(callback, delay, false, customLoop, ...params);
-        if (!this.precise) {
-            this.timer = setTimeout(this.callback, this.delay, ...this.params);
-        }
     }
 }
 export class Interval extends Timer {
     constructor(callback, delay, customLoop, ...params) {
         super(callback, delay, true, customLoop, ...params);
-        if (!this.precise) {
-            this.timer = setInterval(this.callback, this.delay, ...this.params);
-        }
     }
 }

@@ -19,21 +19,28 @@ export type EngineOptions<In extends readonly string[] = [], Out extends readonl
         maximum?: number;
     };
 };
+export type RoomOptions = {
+    readonly maxPlayers?: number;
+    readonly capacity?: number;
+    readonly public?: boolean;
+    readonly inviteCode?: string;
+};
 type ContextOf<C, Self> = [C] extends [never] ? Self : C;
 export declare class Engine<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, const D extends EntityDefinitions = EntityDefinitions, C = never> extends EventEmitter<EngineEvents> {
     readonly network: NetworkSystem<In, Out, InSchemas, OutSchemas>;
     readonly loop: GameLoop;
-    readonly rooms: Map<string, World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>>;
+    readonly Room: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
+    readonly rooms: Map<string, this["Room"]>;
     private readonly entities;
     private readonly maxRooms;
     private readonly context;
     constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D, C>);
     init(): Promise<void>;
-    createRoom(maxPlayers?: number, capacity?: number, isPublic?: boolean, inviteCode?: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
+    createRoom({ maxPlayers, capacity, public: isPublic, inviteCode }?: RoomOptions): this["Room"];
     occupancy(): Record<string, RoomOccupancy>;
     private occupancyOf;
-    fullestRoom(...exclude: string[]): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
-    getRoom(inviteCode: string): World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>> | undefined;
+    fullestRoom(...exclude: string[]): this["Room"] | undefined;
+    getRoom(inviteCode: string): this["Room"] | undefined;
     destroyRoom(inviteCode: string): boolean;
     private freeInviteCode;
     destroy(): void;

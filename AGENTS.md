@@ -1,6 +1,8 @@
 # AGENTS.md
 
-Rules for working on the engine. The [README](./README.md) is the API reference: read "How it works" before a first change. Games are built on the [template](https://github.com/nasselk/Phoenix.Engine-Template), which has its own AGENTS.md for game code.
+Rules for working on the engine. The [API map](./API.md) lists everything it exposes. The [README](./README.md) explains how the pieces work together; read its "How it works" before a first change. Games are built on the [template](https://github.com/nasselk/Phoenix.Engine-Template), which has its own AGENTS.md for game code.
+
+**Working on a game?** Read [API.md](./API.md) before writing any helper, builder, loader, camera, input handler, math function or UI widget. If it is listed there, use it. Game repositories have it at `node_modules/phoenix.engine/API.md`.
 
 ## What this is
 
@@ -13,10 +15,12 @@ A library, not an application: games install it from GitHub and run its built `d
 | `shared/` | `phoenix.engine` | both: world and entity bases, math (`Vector3`, `Quaternion`, `Interpolator`), protocol, physics loading, utilities |
 | `server/src/` | `phoenix.engine/server` | Bun: `Engine`, `World` (a room), writing entities, `NetworkSystem`, `GameLoop`, replication |
 | `client/src/` | `phoenix.engine/client` | browser: `Engine`, `World` (a mirror), reading entities, rendering, cameras, input, audio, assets, editor |
+| `client/src/text/` | `phoenix.engine/text` | browser: `Text` (SDF text in the scene) |
 | `client/UI/components/` | `phoenix.engine/ui/*.svelte` | browser: `Joystick`, `GridLayout` |
+| `client/UI/native.css` | `phoenix.engine/native.css` | browser: app-like page styles |
 | `tests/` | — | Bun's test runner, against the source |
 
-Each side's entry point re-exports everything shared. Anything a game should use must be exported from the right `index.ts`.
+Each side's entry point re-exports everything shared. Anything a game should use must be exported from the right `index.ts`, **and listed in [API.md](./API.md)** (`tests/api-map.test.ts` fails otherwise).
 
 ## Commands
 
@@ -43,8 +47,9 @@ Every runtime dependency of `dist/` goes in the **root** `package.json` (the wor
 
 **Boundaries**
 - Mechanisms, not rules. Room codes, visibility, controls, UI and gameplay belong to games. Something every game would need belongs here.
-- Rapier (`@dimforge/rapier3d-simd-compat`), three.js and Svelte are **peer dependencies**, imported directly by games. Never re-export them, never add a second Rapier package: two copies of Rapier crash.
-- Changing a public API means updating the README, and the template if it uses it.
+- Rapier (`@dimforge/rapier3d-simd-compat`), three.js, Svelte and BinarySchema (`@nasselk/binaryschema`) are **peer dependencies**, imported directly by games. Never re-export them, never add a second Rapier package: two copies of Rapier crash.
+- BinaryPack (`@nasselk/binarypack`) is the opposite: the engine's own dependency, re-exported from `phoenix.engine`, because the protocol creates buffers and checks `instanceof BufferWriter`. Games never install it.
+- Changing a public API means updating the README, **[API.md](./API.md)**, and the template if it uses it.
 
 **Object model**
 - Game objects are class hierarchies (`Entity` → `PositionEntity` → `MovingEntity`) with their own `update`. **No ECS.**
@@ -57,14 +62,14 @@ Every runtime dependency of `dist/` goes in the **root** `package.json` (the wor
 - Quantise with `BufferWriter.toPrecision` / `BufferReader.fromPrecision` and `wrap`.
 
 **Performance**
-- No allocation in per-tick or per-frame code: reuse static scratch objects.
+- No allocation in per-tick or per-frame code: reuse static scratch objects (`Vector3.TEMP1`…`TEMP5`, `Quaternion.TEMP1`/`TEMP2`, or a module-level one).
 - Only touch a Rapier body when something changed, so bodies at rest sleep.
 
 ## Code style
 
 - TypeScript, strict. Tabs, double quotes, Biome (320 columns). Explicit `public`/`private`/`protected`, `readonly` wherever a field is not reassigned, `override` on overrides.
 - **No prose comments** explaining what code does. A short doc comment on a public member is fine when its name cannot say it. Keep existing comments.
-- **Reuse before writing**: search `shared/` for a helper (`clamp`, `wrap`, `toPrecision`, `Quaternion`, `Interpolator`, `get`/`post`) before adding one.
+- **Reuse before writing**: check [API.md](./API.md), then search `shared/`, before adding a helper.
 - **Type logic belongs at its own level.** Ask whether a file should know about a type before optimising how it is written.
 - TypeScript 7 (`tsgo`) runs `types:check`; editors often run TypeScript 5.x. They can disagree on deep generic instantiation (TS2589); public types must pass both.
 - Measure before stating a number (a precision, a speed, a limit) in code, docs or tests.

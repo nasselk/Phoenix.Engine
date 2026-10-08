@@ -2,7 +2,7 @@
 
 A TypeScript engine for **server-authoritative, real-time multiplayer 3D games on the web**. It is a library, not an application: a game installs it, builds its own client and server on top, and the engine supplies the machinery in between — rooms, physics, replication, a typed binary protocol, rendering, input, audio and assets.
 
-The fastest way to start a game is the [Phoenix Engine Template](https://github.com/nasselk/Phoenix.Engine-Template), which is a complete, playable game wired to this engine. Rules for AI agents working on the engine itself are in [AGENTS.md](./AGENTS.md).
+The fastest way to start a game is the [Phoenix Engine Template](https://github.com/nasselk/Phoenix.Engine-Template), which is a complete, playable game wired to this engine. Rules for AI agents are in [AGENTS.md](./AGENTS.md). The **[API map](./API.md)** lists every public class, member and helper, nested under where a game reaches it (`engine.renderer.textureBuilder`, `engine.audio.soundBuilder`…). Check it before writing a helper the engine may already have.
 
 ## Table of contents
 
@@ -25,6 +25,7 @@ The fastest way to start a game is the [Phoenix Engine Template](https://github.
   - [Client systems](#client-systems)
   - [UI kit and native feel](#ui-kit-and-native-feel)
   - [Shared utilities](#shared-utilities)
+- [Common tasks](#common-tasks)
 - [Design principles](#design-principles)
 - [Development](#development)
   - [Commands](#commands)
@@ -55,11 +56,11 @@ One package, several subpath exports. Each side's entry point re-exports everyth
 | `phoenix.engine` | both | The shared surface: `defineEntities`, math (`Vector3`, `Quaternion`, their observable versions, `Interpolator`, `clamp`, `wrap`, random helpers), binary `BufferReader`/`BufferWriter`, protocol types, `INVITE_CODE_*` and `RoomOccupancy`, timers, `EventEmitter`, logger, text validation, HTTP helpers (`get`, `post`, `put`, `del`). For code a game shares between its client and server. |
 | `phoenix.engine/server` | Bun | Everything shared, plus the server `Engine`, `World` (a room), `Entity`/`PositionEntity`/`MovingEntity` that **write** themselves, `NetworkSystem`, `Socket`, `GameLoop`, `initPhysics`, `setExitListeners`. |
 | `phoenix.engine/client` | browser | Everything shared, plus the client `Engine`, `World` (a mirror), `Entity`/`PositionEntity`/`MovingEntity` that **read** themselves, `RenderSystem`, cameras, `InputSystem`, `AudioSystem`, `AssetManager`, `NetworkSystem`, `EditorView`, `storage`, `isMobileDevice`. |
-| `phoenix.engine/text` | browser | `Text`: crisp signed-distance-field text in the scene, optionally facing the camera. Separate so a game that draws no text bundles none. |
+| `phoenix.engine/text` | browser | `Text`: crisp signed-distance-field text in the scene, optionally facing the camera; `preloadFont`, `fontLoader`, `configureText`. Separate so a game that draws no text bundles none. |
 | `phoenix.engine/native.css` | browser | Default styles that make the page behave like an app (no selection, no overscroll, no tap highlight). |
 | `phoenix.engine/ui/<Name>.svelte` | browser | Svelte 5 components: `Joystick`, `GridLayout`. |
 
-The game imports Rapier, three.js and Svelte from their own packages; the engine re-exports none of them.
+The game imports Rapier, three.js and Svelte from their own packages; the engine re-exports none of them. `@nasselk/binaryschema` is a peer too: the game installs it and writes its event schemas with it, and the engine only calls the schemas it is handed. `@nasselk/binarypack` is the other way round: the engine creates and checks buffers itself, so it is the engine's own dependency, re-exported from `phoenix.engine`. A game never installs it and imports `BufferReader`/`BufferWriter` from `phoenix.engine`.
 
 ## Installation
 
@@ -68,7 +69,8 @@ The engine is installed from GitHub, with its peer dependencies installed by the
 ```sh
 bun add github:nasselk/Phoenix.Engine
 bun add @dimforge/rapier3d-simd-compat   # server: physics
-bun add three svelte                # client: rendering and UI
+bun add github:nasselk/BinarySchema      # both: event payload schemas
+bun add three svelte                     # client: rendering and UI
 ```
 
 | Peer dependency | Version | Needed by |
@@ -76,6 +78,7 @@ bun add three svelte                # client: rendering and UI
 | `@dimforge/rapier3d-simd-compat` | `^0.21.0` | the server, and a client that simulates physics |
 | `three` | `^0.186.0` | the client (optional peer) |
 | `svelte` | `^5.57.1` | the client, when using the UI kit (optional peer) |
+| `@nasselk/binaryschema` | `github:nasselk/BinarySchema` | both sides: the game's event schemas, and the payload types of `send`/`onMessage` |
 
 Rapier is the SIMD build (faster collision detection and solving; every modern browser, Bun and Node support WebAssembly SIMD) in its *compat* form (the WebAssembly is embedded in the JavaScript and loaded by `initPhysics()`, so it works in Bun and in any bundler without plugins). They are peers so that the engine and the game share **one copy** of each. With Rapier this is not a nicety: two copies means two WebAssembly instances, one of which is never initialised, and objects from one cannot be used in the other. Import Rapier, three.js and Svelte **directly from their own packages** in game code; the engine does not re-export them.
 
@@ -229,12 +232,12 @@ There is one `Engine` per process on each side, and it owns every subsystem.
 
 | Rooms | |
 | --- | --- |
-| `createRoom(maxPlayers?, capacity?, isPublic = true, inviteCode?)` | Opens a room. `maxPlayers` is how many sockets can join it (defaults to its capacity); `capacity` how many entities it holds at once (default 65535); a room that is not public is left out of `fullestRoom`; the invite code defaults to a free random one of `INVITE_CODE_LENGTH` characters from `INVITE_CODE_ALPHABET`. |
+| `createRoom({ maxPlayers?, capacity?, public = true, inviteCode? })` | Opens a room. `maxPlayers` is how many sockets can join it (defaults to its capacity); `capacity` how many entities it holds at once (default 65535); a room that is not `public` is left out of `fullestRoom`; the invite code defaults to a free random one of `INVITE_CODE_LENGTH` characters from `INVITE_CODE_ALPHABET`. |
 | `fullestRoom(...exclude)` | The public room with the most players that still has a free seat, skipping the invite codes given. For quick play. |
 | `getRoom(code)`, `destroyRoom(code)`, `rooms` | Look up, close, and every open room by code. |
 | `occupancy()` | `{ [code]: { players, maxPlayers, public } }` for every open room, for the server's own use: it lists private rooms' codes, so it is never served. |
 
-Besides WebSockets, the server answers HTTP: its session routes, `GET /rooms/:code` (that room's `{ players, maxPlayers, public }`, or 404, so a client can find which server has a room without any server listing its codes), and any GET route a game adds with `engine.network.route(path, (request) => Response)` before `init` (path parameters are in `request.params`). All of them get the network's CORS and rate limits.
+Besides WebSockets (`GET /ws`), the server answers HTTP: `POST /session/init` (the session handshake), `GET /infos` (`{ players, maxPlayers, uptime }` for the whole server), `GET /ping`, `GET /rooms/:code` (that room's `{ players, maxPlayers, public }`, or 404, so a client can find which server has a room without any server listing its codes), and any GET route a game adds with `engine.network.route(path, (request) => Response)` before `init` (path parameters are in `request.params`). All of them get the network's CORS and rate limits.
 
 A room is safe to destroy from inside its own tick, with `engine.destroyRoom(code)` or `room.destroy()`: the tick finishes without running anything else of it, its physics is freed afterwards, and the engine drops it. A spawn into a full room throws before the entity is built, so it leaves no body behind.
 
@@ -243,11 +246,12 @@ A room is safe to destroy from inside its own tick, with `engine.destroyRoom(cod
 | Option | |
 | --- | --- |
 | `world` | `{ entities, context }`: the same kind names as the server, mapped onto the classes that draw them. |
-| `network` | `in`/`out` event lists and schemas: the mirror of the server's declaration. |
+| `network` | `in`/`out` event lists and schemas: the mirror of the server's declaration. `simulation: { latency, loss }` starts with simulated lag (ms) and loss (0 to 1), for testing under bad conditions. |
+| `assets` | `path` (base URL for every asset), `draco` and `ktx2` (decoder folders, for compressed models and textures), `meshopt`, `crossOrigin`, `headers`. |
 | `inputs` | `{ binds }`: every action and its default keys. The keys of this object are the only action names the input API accepts. |
 | `loop` | `FPS` cap (`Infinity` for the display's rate), `speed`. |
 | `renderer` | Resolution, background, fullscreen, WebGL/WebGPU, `shadows` (a three.js shadow map type such as `PCFShadowMap`; unset, no shadows), `toneMapping` (such as `NeutralToneMapping`) and `exposure`, and three.js renderer parameters. |
-| `audio` | Initial volume and mute. |
+| `audio` | `globalVolume` (0 to 1) and `muteInitial`. |
 | `native` | App-like page behaviour (no context menu, no pinch zoom). On by default. |
 
 `await engine.init()` builds the renderer, the audio context and the inputs, then starts the loop. `engine.isMobile` says which camera controls were chosen.
@@ -276,7 +280,7 @@ declare module "phoenix.engine/server" {
 }
 ```
 
-On the **client**, a world is a **mirror**: `sync(reader)` applies a frame. Replicated entities carry the server's (positive) ids; entities the client spawns itself get negative ids, so the two never collide and local ones never go on the wire.
+On the **client**, a world is a **mirror**: `sync(reader)` applies a frame. Replicated entities carry the server's (positive) ids; entities the client spawns itself with `engine.world.spawn(kind, options)` (effects, previews, decorations) get negative ids, so the two never collide and local ones never go on the wire. The world's `group` is in the scene already, and every entity's `group` goes in it.
 
 ### Entities
 
@@ -289,6 +293,10 @@ Every game object is a class. Each side has its own chain, and they differ in ex
 | `MovingEntity` | Options for a starting `velocity`, `gravityScale`, `damping`; `applyImpulse` | — |
 
 A **box, a crate, a player are the game's classes**, written once per side, extending these. Behaviour goes in the entity's own `update`. Lifecycle hooks are `onSpawn` and `onDestroy`; `destroy()` removes an entity.
+
+- **Reserved names**: the base classes own `id`, `kind`, `type`, `alive`, `spawnTime`, `age`, `world`, `context`, `slot` (server), `position`, `rotation`, `body`, `group`, `targetPosition`, `targetRotation` and the smoothing fields (`smoothPosition`, `positionSmoothing`, `smoothRotation`, `rotationSmoothing`). A subclass field with one of these names silently breaks the engine's own; call a game's own "kind of crate" `variant`, not `kind`.
+- **Smoothing on the client**: `positionSmoothing` (default 0.25) and `rotationSmoothing` are the share of the remaining gap closed per 60 Hz frame, scaled to the real frame time. `smoothPosition = false` snaps to the server's position every frame; `smoothRotation = false` does the same for rotation. `teleport(x, y, z)` jumps once without easing.
+- **Acting on a specific entity** (grab, buy, hit): the client sends that entity's `id`, and the server checks it with `room.get(id, Kind)`. If each side picks "the nearest" on its own, they can pick different ones.
 
 ### The entity registry
 
@@ -307,7 +315,7 @@ Every server tick, for every room, in this order:
 2. the physics step: `beforePhysics()` on every body (code-driven rotation goes in), `physics.step()`, then `afterPhysics()` (Rapier's positions come back out);
 3. the room's `"update"` event — where a game sends its frames, then calls `room.clean()`.
 
-So what goes out in a frame is always the state *after* contact. The client runs the same shape every display frame: `world.update(dt)` (every entity eases toward the last state the server sent, and its `group` follows), then the draw.
+So what goes out in a frame is always the state *after* contact. The client runs the same shape every display frame: `world.update(dt)` (every entity eases toward the last state the server sent, and its `group` follows), then the renderer's `"render"` event (the place for code that must see this frame's positions), then `camera.update(dt)` (the camera follows its target), then the draw.
 
 ### Physics
 
@@ -332,14 +340,30 @@ this.embody(RigidBodyDesc.dynamic(), ColliderDesc.cuboid(0.5, 0.5, 0.5).setFrict
 [u8 event] [u16 despawns][id]…  [u16 spawns][kind u8][id u16][serialize]…  [u16 updates][id u16][serializeUpdate]…
 ```
 
-- **What a socket sees is the game's call**: all entities, a chunk, a view cone. What leaves `visible` despawns; what enters it spawns.
+- **What a socket sees is the game's call**: all entities, a chunk, a view cone. What leaves `visible` despawns; what enters it spawns. For "everything within a radius", a `SpatialGrid` answers without scanning the room:
+
+  ```ts
+  const grid = new SpatialGrid<PositionEntity<any>>(32);
+  const visible: PositionEntity<any>[] = [];
+
+  room.on("spawn", (entity) => entity instanceof PositionEntity && grid.insert(entity));
+  room.on("destroy", (entity) => grid.remove(entity as PositionEntity<any>));
+  room.on("update", () => {
+  	for (const entity of room.bodies) grid.update(entity);   // whatever can move; here, the physics bodies
+  	for (const socket of room.sockets) {
+  		const frame = room.frame(socket, grid.query(socket.data.player!.position, 60, visible));
+  		if (frame !== undefined) socket.send("sync", frame);
+  	}
+  	room.clean();
+  });
+  ```
 - **Each entity is encoded once per tick** into a shared buffer; every socket's frame copies those bytes.
 - **Records carry no length**: each entity reads exactly what its server side wrote. `serialize`/`deserialize` must write and read the same fields in the same order, `super` first.
 - **`PositionEntity`'s part**: a spawn writes the position (3 × `Float32`) and the rotation packed into a `Uint32` ("smallest three": the largest component dropped, the other three at 10 bits each, within 0.25°). An update writes 4 flags (x, y, z, rotation), then only what changed: a position axis past `POSITION_EPSILON`, the rotation once it turned more than `ROTATION_EPSILON` radians.
 - **A still room sends nothing**: an entity is only in the updates while `isDirty`; `frame` returns `undefined` when there is nothing to say.
 - **`room.clean()` counts the changes as sent** — call it once every socket had its frame this tick.
 
-Adding a field to a kind changes no protocol and no schema: it is two lines in that kind's two classes.
+Adding a field to a kind changes no protocol and no schema, only that kind's two classes. A field set once at spawn is a line in `serialize` and its mirror in `deserialize`. A field that changes later also needs `serializeUpdate`/`deserializeUpdate`, and the server class must report it in `isDirty` and reset it in `clean()`, or the change never leaves the server (an `ObservableVector3`'s `hasUpdated`/`store` does this for vectors; for a number, keep the last sent value next to it).
 
 ### The protocol
 
@@ -359,24 +383,29 @@ export const clientSchemas = defineSchemas({
 // server: network.onMessage("chat", (socket, { text }) => …);
 ```
 
-An event's code is its index in its list, so both sides must use the same lists — keep them in a folder both import. An event without a schema carries raw bytes (the `sync` frame) or nothing. The server enforces `limits` per event (`maxRate`, `byteLength`) and closes connections that break them. Sessions survive a dropped connection: the client reconnects and resumes with a ticket.
+An event's code is its index in its list, so both sides must use the same lists — keep them in a folder both import. A direction holds up to 255 events: code 255 is the engine's own ping, which the server answers at once and which sets `engine.network.stats.latency` every second without any game event. An event without a schema carries raw bytes (the `sync` frame) or nothing. The server enforces `limits` per event (`maxRate`, `byteLength`) and closes connections that break them. Sessions survive a dropped connection: the client reconnects within `SESSION_TTL` and gets its old session id back (`socket.sessionID`), so the game can seat it where it was. A session has one socket at most: a client asking for a session that is still connected gets a new one. The client world is **not** cleared on its own: on `engine.network.on("reconnection")`, call `engine.world.clear()` before the game rejoins its room, or entities despawned while the connection was down stay on screen forever.
 
-Socket API: `socket.send(event, data)`, `socket.cork(fn)` (batch), `socket.disconnect()`, `room.broadcast(event, data)`.
+`onMessage` takes one handler per event, since a raw reader can only be read once: registering a second throws. It returns a function that removes the handler. To watch all traffic, listen on `network.on("message")`.
+
+Socket API: `socket.send(event, data)`, `socket.cork(fn)` (batch), `socket.disconnect(reason?, code?)` (with a close frame), `socket.terminate()` (at once), `socket.subscribe(topic)`/`unsubscribe(topic)`, `room.broadcast(event, data)`, `network.broadcast(topic, event, data)`.
 
 ### Client systems
 
 | System | |
 | --- | --- |
-| `engine.renderer` | three.js `scene`, `camera` (an `OrbitCamera`: `target`, `yaw`/`pitch`, `detach()`/`reattach()`, zoom), `view` (the canvas to mount), `resolution`, `setFullscreen()`. The camera keeps its vertical field of view (`fov`, default 75°) and widens it on narrow screens so at least `minHorizontalFov` (default 60°) stays visible across, which keeps phones in portrait playable. Setting `camera.turn` (-1 to 1) turns it around its target every frame at `turnSpeed` radians per second, the way a sideways drag does, for keys or a gamepad stick. `DesktopCamera` orbits with the mouse and flies with WASD when detached; `TouchCamera` drags and pinches. |
+| `engine.renderer` | three.js `scene`, `camera` (an `OrbitCamera`: `target`, `yaw`/`pitch`, `detached` (true flies free, false snaps back to orbiting), zoom), `view` (the canvas to mount), `resolution`, `setFullscreen()`. The camera keeps its vertical field of view (`fov`, default 75°) and widens it on narrow screens so at least `minHorizontalFov` (default 60°) stays visible across, which keeps phones in portrait playable. The camera reads no keys itself: a game drives it from its own actions. `camera.turn` and `camera.tilt` (-1 to 1) turn and tilt it every frame at `turnSpeed`/`tiltSpeed` radians per second, the way a drag does; detached, `flyForward`/`flyRight` (-1 to 1) and `flyBoost` fly it at `flySpeed`. `DesktopCamera` turns on a mouse drag and zooms on the wheel; `TouchCamera` drags and pinches. |
 | `engine.inputs` | Actions over physical key codes, declared by the `binds` option: `mapActionToKeys(action, ...codes)`, `unmapActionFromKeys(action, ...codes)` (no codes clears the action), `onActionStart`, `onActionStop`, `isActionRunning`, `isInputPressed`, `onPressInput`. Mouse buttons bind as `"Pointer0"`… Keys typed into a text field never reach actions; losing focus releases everything. |
-| `engine.network` | `connect(url)`, `send`, `onMessage`, `on("connection" \| "disconnection" \| "reconnection" \| "stats")`, `stats`, and simulated `latency`/`loss` for testing under bad conditions. |
-| `engine.assets` | `load(kind, id, source)`, `loadAll(manifest)`, `get`, `instance(id)` for model copies, `release`. Kinds: `model` (glTF), `texture`, `sound`, plus `material` and `geometry` for ones built in code and shared through `assets.cache`. |
+| `engine.network` | `connect(url)`, `send`, `onMessage` (returns a remover), `on("connection" \| "disconnection" \| "reconnection" \| "stats")`, `stats`, and simulated `latency`/`loss` for testing under bad conditions. |
+| `engine.assets` | `load(kind, id, source)`, `loadAll(manifest)`, `get`, `instance(id)` for model copies (sharing geometries and materials), `release`, `on("progress" \| "complete" \| "error")`. Kinds: `model` (glTF), `texture`, `sound`, plus `material` and `geometry` for ones built in code, and any kind added with `register(kind, loader)`. A sound's source is a URL or Howler's options with `src`: `{ src: "/music.webm", loop: true, html5: true }` streams long music instead of decoding it whole; `sprite` maps names to `[start, duration]` for `engine.audio.play(id, name)`. Three things to know: a loaded colour texture needs `texture.colorSpace = SRGBColorSpace` (the loader cannot tell colour from data maps); a model keeps its glTF clips on `model.animations`, and so do its copies; copies share their materials, so tinting one copy tints them all; give it a cloned material first. |
+| `engine.assets.cache` | Every shared resource by kind and id, freed once on `release`: `get`, `set`, `getOrCreate(kind, id, create)` for a material or geometry built in code once and shared by every mesh, `entries(kind)`, `clear(...kinds)`. |
 | `engine.audio` | `play(id)`, `pause`, `stop`, `volume`, `muted`. The context unlocks on the first user gesture. |
+| `engine.renderer.textureBuilder` | Textures drawn in code on an `OffscreenCanvas`: `draw(ctx => …, clear?, width?, height?)` hands you a reset 2D context, `save(name)` turns it into a three.js `Texture` stored in the cache as a `texture` under that name, `download(name)` saves a `.png`. One shared builder: draw, save, draw the next. |
+| `engine.audio.soundBuilder` | Synthesises sounds in code, for feedback before a game has recorded audio: layers of `tone(type, notes, step, volume?, start?)` (notes one after the other), `sweep(type, low, high, period, repeat?, volume?, start?)` (a siren), `noise(duration, from?, to?, volume?, start?)` (low-passed noise: water, wind, impacts) and `layer(end, build)` for any Web Audio nodes. `save(name)` renders them once into a `sound` in the cache, played with `engine.audio.play(name)` under the master volume and mute; `download(name)` saves a `.wav`. Times are in seconds from the start of the sound. |
 | `engine.loop` | `maxFrameRate`, `stats`, `on("frame" \| "frameStart" \| "frameEnd")`. |
-| `Text` | `new Text("name", { fontSize, billboard: true })` from `phoenix.engine/text`. |
-| `EditorView` | A development overlay: grid, axes, FPS/latency/bandwidth panels, **F** for a free camera, **V** for wireframe. |
+| `Text` | `new Text("name", { fontSize, color, outlineWidth, anchorX: "center", billboard: true })` from `phoenix.engine/text`: a three.js mesh, so it goes in an entity's `group`. `preloadFont(url, characters)` builds glyphs ahead of time; `engine.assets.register("font", fontLoader())` loads fonts through the asset manager; `configureText` sets the default font before the first text. `text.destroy()` frees it. Each `Text` is its own draw call and is never batched, so hundreds of labels cost hundreds of draws: hide the far ones. |
+| `EditorView` | A development overlay: `const editor = new EditorView(engine); engine.renderer.scene.add(editor); await editor.init("#stats")`. Grid, axes, FPS/ping/bandwidth/TPS panels in that element (TPS: server frames received per second, 0 while the room is still), **F** for a free camera (WASD flies, Shift faster, arrows turn), **V** for wireframe. |
 | `engine.renderer.batcher` | `batch(root)` draws the static scenery under `root` in few draw calls: plain meshes become instances of one `BatchedMesh` per material, shadow setting and geometry layout, in place. Sprites, `Text`, invisible objects and meshes with `userData.batch = false` stay as they are. For things that never move: a batched mesh no longer exists on its own. The batches are freed with the renderer. |
-| `storage` | `localStorage` that falls back to memory where storage is blocked. |
+| `storage` | `localStorage`, falling back to `sessionStorage`, then to memory, where storage is blocked. |
 
 ### UI kit and native feel
 
@@ -386,14 +415,80 @@ import Joystick from "phoenix.engine/ui/Joystick.svelte";  // multi-touch virtua
 import GridLayout from "phoenix.engine/ui/GridLayout.svelte";
 ```
 
-- **`Joystick`**: placed with `top`/`left`/`right`/`bottom`, with a `deadZone` (default 0.15). `onmove` gives `{ x, y, angle, distance }`: `angle` counterclockwise from the right, `distance` from 0 to 1 with the dead zone already taken out. Use these as they are. `onstart` and `onstop` bracket a touch.
-- **`GridLayout`**: a full-screen 3 × 3 grid filled through snippets (`top_left`, `top_center`, … `bottom_right`), with a `padding`.
+- **`Joystick`**: placed with `top`/`left`/`right`/`bottom`, sized with `size` (any CSS length), with a `deadZone` (default 0.15). With a `stickyZone` element, pressing anywhere in it brings the stick to the finger, and `fade` hides it while nobody holds it. `onmove` gives `{ x, y, angle, distance }`: `angle` counterclockwise from the right, `distance` from 0 to 1 with the dead zone already taken out. Use these as they are. `onstart` and `onstop` bracket a touch. Styled through CSS variables: `--joystick-size`, `--joystick-base`, `--joystick-base-border`, `--joystick-blur`, `--joystick-layer`, `--joystick-fade-time`, `--joystick-stick`, `--joystick-stick-size`, `--joystick-stick-border`, `--joystick-stick-held`, `--joystick-return`. Unset, they fall back to the `--ui-*` tokens a game may define (`--ui-sunken`, `--ui-accent-fill`, …), then to built-in colours.
+- **`GridLayout`**: a full-screen 3 × 3 grid filled through snippets (`top_left`, `top_center`, … `bottom_right`), with `padding` and `gap`. Each cell stacks its content along `<cell>_direction`: `"row"` by default in the centre column, `"column"` on the sides. The grid lets clicks through except on what a cell holds.
 
 The engine's `native` option (on by default) blocks the context menu, pinch zoom and dragging out of the page; `native.css` makes the page unselectable and removes overscroll and tap highlights.
 
 ### Shared utilities
 
-`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`), `Quaternion` and `ObservableQuaternion` (`setFromEuler`, `setFromYaw`, `setFromAxisAngle`, `toEuler`, `yaw`, `multiply`, `invert`, `slerp`, `angleTo`, `pack`/`unpack`, `hasUpdated(angle)`; `q` and `-q` count as the same rotation), `Interpolator` (`lerp`, `lerpAngle`, `lerpVector`, `slerpQuaternion`, tweens with an `InterpolationCurve`), angles (`angleDistance`, `signedAngleDistance`, `normalizeAnglePI`/`normalizeAngle2PI`, `closestAngle`, degrees ↔ radians), animation curves over time (`wave`, `syncedWave`, `fadeInHoldAndFadeOut`), colours (`hex(0xff8800)` → `"#ff8800"`, `hexToRgba`, `rgbaToHex`, `extractRGBA`), `BufferWriter.toPrecision`/`BufferReader.fromPrecision` (a value in a range to and from a few bits), `get`/`post`/`put`/`del` (JSON over HTTP with a timeout and retries; they return an `HTTPResponse<T>` and take `RequestSettings`), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`, `EventEmitter` (`on` returns an unsubscribe function), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText`/`validateText`/`censorText`, and `log`/`warn`/`error`.
+`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`; `cross`/`delta`/`midpoint`/`project` write into an optional `out`; y-up spherical helpers where `azimuth` is the yaw facing the vector), `SpatialGrid` (what is within a radius of a point), `Quaternion` and `ObservableQuaternion` (`setFromEuler`, `setFromYaw`, `setFromAxisAngle`, `toEuler`, `yaw`, `multiply`, `invert`, `slerp`, `angleTo`, `pack`/`unpack`, `hasUpdated(angle)`; `q` and `-q` count as the same rotation), `Interpolator` (`lerp`, `lerpAngle`, `lerpVector`, `slerpQuaternion`, tweens with an `InterpolationCurve`), angles (`angleDistance`, `signedAngleDistance`, `normalizeAnglePI`/`normalizeAngle2PI`, `closestAngle`, degrees ↔ radians), animation curves over time (`wave`, `syncedWave`, `fadeInHoldAndFadeOut`), colours (`hex(0xff8800)` → `"#ff8800"`, `hexToRgba`, `rgbaToHex`, `extractRGBA`), `BufferWriter.toPrecision`/`BufferReader.fromPrecision` (a value in a range to and from a few bits), `get`/`post`/`put`/`del` (JSON over HTTP with a timeout and retries; they return an `HTTPResponse<T>` and take `RequestSettings`), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`/`weightedRandom` (each takes an optional random source, for seeded runs), `EventEmitter` (`on` returns an unsubscribe function), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText`/`validateText`/`censorText`, and `log`/`warn`/`error`.
+
+## Common tasks
+
+Each of these already exists in the engine. A game that writes its own version ends up with two of everything: two caches, two volume controls, two texture pipelines.
+
+**A texture drawn in code**, once, shared by every mesh that uses it:
+
+```ts
+const texture = await engine.renderer.textureBuilder
+	.draw((ctx) => {
+		const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+		gradient.addColorStop(0, "#87ceeb");
+		gradient.addColorStop(1, "#ffffff");
+		ctx.fillStyle = gradient;
+		ctx.fillRect(0, 0, 256, 256);
+	}, true, 256)
+	.save("sky");
+
+engine.assets.get("texture", "sky"); // the same texture, anywhere else
+```
+
+**A sound made in code**, played like a loaded one:
+
+```ts
+await engine.audio.soundBuilder.tone("triangle", [520, 780, 1170], 0.07).save("pickup");
+engine.audio.play("pickup");
+```
+
+**A material or geometry shared by many meshes**, built the first time it is asked for and freed with the cache:
+
+```ts
+const wood = engine.assets.cache.getOrCreate("material", "wood", () => new MeshStandardMaterial({ color: 0x8b5a2b }));
+const box = engine.assets.cache.getOrCreate("geometry", "crate", () => new BoxGeometry(1, 1, 1));
+this.group.add(new Mesh(box, wood));
+```
+
+**Files**, loaded together with progress:
+
+```ts
+engine.assets.on("progress", (loaded, total) => (bar.value = loaded / total));
+await engine.assets.loadAll({
+	model: { tree: "/models/tree.glb" },
+	texture: { grass: "/textures/grass.png" },
+	sound: { jump: "/sounds/jump.webm" },
+});
+this.group.add(engine.assets.instance("tree")!);
+```
+
+**The camera following the player**, and turning from keys:
+
+```ts
+engine.renderer.camera.target = player.position;
+engine.renderer.camera.turn = (engine.inputs.isActionRunning("turnRight") ? 1 : 0) - (engine.inputs.isActionRunning("turnLeft") ? 1 : 0);
+```
+
+**A name tag** over an entity:
+
+```ts
+const tag = new Text(name, { fontSize: 0.3, anchorX: "center", billboard: true });
+tag.position.y = 2;
+this.group.add(tag);
+```
+
+**Static scenery in few draw calls**: build it under one group, then `engine.renderer.batcher.batch(group)`.
+
+**A smooth value** in a frame: `Interpolator.lerp(current, target, factor, deltaTime)`, `lerpAngle` for angles, `slerpQuaternion` for rotations. **A number on the wire in few bits**: `writer.writeUint8(BufferWriter.toPrecision(value, max, 8))` and `BufferReader.fromPrecision(reader.readUint8(), max, 8)`.
 
 ## Design principles
 
@@ -429,6 +524,13 @@ The repository is a Bun workspace: `client/`, `server/` and `shared/` build sepa
 - [`inputs.test.ts`](./tests/inputs.test.ts): actions, repeats, several keys per action, rebinding while held, focus loss.
 - [`camera.test.ts`](./tests/camera.test.ts): the field of view widening on narrow screens.
 - [`loop.test.ts`](./tests/loop.test.ts): the server loop's rate, its steps adding up to real time, and the cap after a stall.
+- [`batch.test.ts`](./tests/batch.test.ts): the batcher grouping meshes by material, storing each geometry once, and leaving out what it must not batch.
+- [`physics.test.ts`](./tests/physics.test.ts): bodies landing where the physics put them, resting bodies left alone, code-turned bodies touched only when they turn.
+- [`sessions.test.ts`](./tests/sessions.test.ts): tickets, reconnecting to a dropped session, one socket per session, origins and rate limits.
+- [`helpers.test.ts`](./tests/helpers.test.ts) and [`grid.test.ts`](./tests/grid.test.ts): timers, vectors, angles, colours, random helpers, tweens, `SpatialGrid`.
+- [`network.test.ts`](./tests/network.test.ts): one `onMessage` handler per event, and removing it.
+- [`audio.test.ts`](./tests/audio.test.ts): the WAV encoding behind the audio builder.
+- [`api-map.test.ts`](./tests/api-map.test.ts): every export of every entry point, and every UI component, is listed in the [API map](./API.md).
 
 Gameplay behaviour — how the physics feels — is tested in the game, against its own entities (see the template's `server/tests`).
 

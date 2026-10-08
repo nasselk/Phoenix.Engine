@@ -1,6 +1,7 @@
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { warn } from "../../../shared/utils/logger";
+import { PING_CODE } from "../../../shared/networking/protocol";
 import { Seen } from "../world/replication";
 export var SocketState;
 (function (SocketState) {
@@ -32,6 +33,11 @@ export class Socket extends EventEmitter {
         }
         return this;
     }
+    answerPing() {
+        if (this.readyState === SocketState.OPEN) {
+            this.socket.send(Socket.PING);
+        }
+    }
     broadcast(topic, event, ...[data]) {
         this.socket.publish(topic, this.protocol.encode(event, data));
         return this;
@@ -52,18 +58,19 @@ export class Socket extends EventEmitter {
         this.messages = 0;
         this.rates.clear();
     }
-    disconnect(forcefully, reason = "", code = 1000) {
+    disconnect(reason = "", code = 1000) {
         if (code !== 1000) {
             warn("Game Server", `Disconnecting ${this.ip} with code ${code} - ${reason}`);
         }
         this.manuallyDisconnected = true;
         if (this.readyState === SocketState.CONNECTING || this.readyState === SocketState.OPEN) {
-            if (forcefully) {
-                this.socket.terminate();
-            }
-            else {
-                this.socket.close(code, reason);
-            }
+            this.socket.close(code, reason);
+        }
+    }
+    terminate() {
+        this.manuallyDisconnected = true;
+        if (this.readyState === SocketState.CONNECTING || this.readyState === SocketState.OPEN) {
+            this.socket.terminate();
         }
     }
     disconnection(code, reason) {
@@ -74,3 +81,4 @@ export class Socket extends EventEmitter {
         return this.socket?.readyState ?? SocketState.CLOSED;
     }
 }
+Socket.PING = new Uint8Array([PING_CODE]);

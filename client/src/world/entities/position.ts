@@ -34,10 +34,14 @@ export abstract class PositionEntity<C> extends Entity<C> {
 	 */
 	public readonly group: Group;
 
-	public positionSmoothing = true;
-	public smoothing = PositionEntity.DEFAULT_SMOOTHING;
+	/** Ease toward the server's position. Off, the entity snaps to it every frame. */
+	public smoothPosition = true;
+	/** The share of the remaining gap closed per 60 Hz frame, scaled to the real frame time. */
+	public positionSmoothing = PositionEntity.DEFAULT_SMOOTHING;
 
-	public rotationInterpolation = true;
+	/** Turn toward the server's rotation along the shortest arc. Off, the entity snaps to it every frame. */
+	public smoothRotation = true;
+	/** The share of the remaining turn made per 60 Hz frame, scaled to the real frame time. */
 	public rotationSmoothing = PositionEntity.DEFAULT_SMOOTHING;
 
 	public constructor(world: World<any, any>, context: C, options: PositionEntityOptions = {}) {
@@ -81,15 +85,15 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 		const frames = deltaTime * FRAMES_PER_SECOND;
 
-		if (this.positionSmoothing) {
-			const { position, targetPosition, smoothing } = this;
+		if (this.smoothPosition) {
+			const { position, targetPosition, positionSmoothing } = this;
 
-			Interpolator.lerpVector(position, targetPosition, smoothing, frames, SNAP_DISTANCE);
+			Interpolator.lerpVector(position, targetPosition, positionSmoothing, frames, SNAP_DISTANCE);
 		} else {
 			this.teleport(this.targetPosition);
 		}
 
-		if (this.rotationInterpolation) {
+		if (this.smoothRotation) {
 			const { rotation, targetRotation, rotationSmoothing } = this;
 
 			Interpolator.slerpQuaternion(rotation, targetRotation, rotationSmoothing, frames, SNAP_ANGLE);

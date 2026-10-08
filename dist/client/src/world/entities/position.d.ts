@@ -23,9 +23,9 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     readonly rotation: Quaternion;
     readonly targetRotation: Quaternion;
     readonly group: Group;
-    positionSmoothing: boolean;
-    smoothing: number;
-    rotationInterpolation: boolean;
+    smoothPosition: boolean;
+    positionSmoothing: number;
+    smoothRotation: boolean;
     rotationSmoothing: number;
     constructor(world: World<any, any>, context: C, options?: PositionEntityOptions);
     onSpawn(): void;

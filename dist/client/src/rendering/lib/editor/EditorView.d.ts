@@ -17,6 +17,9 @@ export declare class EditorView extends Group {
     private readonly unsubscribers;
     private readonly wired;
     private wireframe;
+    private flying;
+    private lastFrames;
+    private lastSample;
     readonly stats: {
         frames: Stats;
         memory: Stats;
@@ -29,6 +32,8 @@ export declare class EditorView extends Group {
     constructor(engine: Engine<any, any, any, any, any, any, any>, { plane, grid, axes }?: EditorViewOptions);
     init(stats: string): Promise<void>;
     toggleCamera(attach?: boolean): void;
+    private steer;
+    private key;
     toggleWireframe(enabled?: boolean): void;
     private wireScene;
     destroy(): void;

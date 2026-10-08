@@ -6,6 +6,7 @@ export { World } from "./world/world";
 export { AssetCache } from "./assets/AssetCache";
 export { AssetManager } from "./assets/AssetManager";
 export { AudioSystem } from "./audio/AudioSystem";
+export { SoundBuilder, encodeWav } from "./audio/lib/SoundBuilder";
 export { InputSystem } from "./controls/InputSystem";
 export { GameLoop } from "./GameLoop";
 export { NetworkState, NetworkSystem } from "./networking/NetworkSystem";

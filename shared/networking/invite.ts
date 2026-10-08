@@ -3,7 +3,7 @@ export const INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 export const INVITE_CODE_LENGTH = 6;
 
-/** One room as a server's `GET /rooms` reports it, under its invite code. */
+/** One room as a server's `GET /rooms/:code` reports it. */
 export type RoomOccupancy = {
 	readonly players: number;
 	readonly maxPlayers: number;

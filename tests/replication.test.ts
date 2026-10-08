@@ -97,6 +97,17 @@ describe("replication", () => {
 		expect([copy!.marker.position.x, copy!.marker.position.y, copy!.marker.position.z]).toEqual([1, 2, 3]);
 	});
 
+	test("a frame carries the room's time to the millisecond", () => {
+		const { server, client, socket } = createRooms();
+
+		server.spawn("box", { fixed: true });
+		server.update(1 / 60);
+		server.update(1 / 60);
+		send(server, client, socket);
+
+		expect(client.serverTime).toBeCloseTo(2 / 60, 3);
+	});
+
 	test("a still world sends nothing after the first frame", () => {
 		const { server, client, socket } = createRooms();
 
@@ -170,7 +181,10 @@ describe("replication", () => {
 
 		server.clean();
 
-		for (const [world, bytes] of [[client, first], [second, frame]] as const) {
+		for (const [world, bytes] of [
+			[client, first],
+			[second, frame],
+		] as const) {
 			const reader = new BufferReader(bytes, true);
 
 			reader.readUint8();

@@ -24,14 +24,14 @@ export function angleDistance(a: number, b: number): number {
  * Useful for representing angles where direction matters (e.g., rotation direction).
  *
  * @param angle - The angle to normalize in radians.
- * @returns The normalized angle between -π and π.
+ * @returns The normalized angle, from -π included to π excluded.
  *
  * @example
  * normalizeAnglePI(0) // 0
- * normalizeAnglePI(Math.PI) // π (~3.14)
- * normalizeAnglePI(-Math.PI) // -π (~-3.14)
- * normalizeAnglePI(3 * Math.PI) // π (wraps around)
- * normalizeAnglePI(-3 * Math.PI) // -π (wraps around)
+ * normalizeAnglePI(Math.PI) // -π (π is the same direction, and the range excludes it)
+ * normalizeAnglePI(-Math.PI) // -π
+ * normalizeAnglePI(3 * Math.PI) // -π (wraps around)
+ * normalizeAnglePI(Math.PI / 2 + 2 * Math.PI) // π/2
  */
 export function normalizeAnglePI(angle: number): number {
 	return wrap(angle, -Math.PI, Math.PI);
@@ -85,7 +85,7 @@ export function signedAngleDistance(angle1: number, angle2: number) {
  * getOppositeAngle(Math.PI / 2) // 3π/2 (~4.71)
  */
 export function getOppositeAngle(angle: number): number {
-	return (angle + Math.PI) % (2 * Math.PI);
+	return normalizeAngle2PI(angle + Math.PI);
 }
 
 /**

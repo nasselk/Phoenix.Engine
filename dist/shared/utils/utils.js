@@ -1,4 +1,3 @@
-import { randomInt } from "../math/random";
 export function removeFromArray(array, item, index) {
     if (index !== undefined) {
         const last = array.pop();
@@ -18,18 +17,6 @@ export function removeFromArray(array, item, index) {
                 break;
             }
         }
-    }
-}
-export function randomValue(...params) {
-    if (Array.isArray(params[0])) {
-        const array = params[0];
-        const random = params[1];
-        const index = randomInt(0, array.length - 1, random);
-        return array[index];
-    }
-    else {
-        const index = randomInt(0, params.length - 1);
-        return params[index];
     }
 }
 export function deepMerge(target, source) {

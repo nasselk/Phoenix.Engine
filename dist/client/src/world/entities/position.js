@@ -6,9 +6,9 @@ import { Entity } from "./entity";
 export class PositionEntity extends Entity {
     constructor(world, context, options = {}) {
         super(world, context, options);
-        this.positionSmoothing = true;
-        this.smoothing = PositionEntity.DEFAULT_SMOOTHING;
-        this.rotationInterpolation = true;
+        this.smoothPosition = true;
+        this.positionSmoothing = PositionEntity.DEFAULT_SMOOTHING;
+        this.smoothRotation = true;
         this.rotationSmoothing = PositionEntity.DEFAULT_SMOOTHING;
         this.position = new Vector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
         this.targetPosition = this.position.clone();
@@ -38,14 +38,14 @@ export class PositionEntity extends Entity {
     update(deltaTime) {
         const { FRAMES_PER_SECOND, SNAP_DISTANCE, SNAP_ANGLE } = PositionEntity;
         const frames = deltaTime * FRAMES_PER_SECOND;
-        if (this.positionSmoothing) {
-            const { position, targetPosition, smoothing } = this;
-            Interpolator.lerpVector(position, targetPosition, smoothing, frames, SNAP_DISTANCE);
+        if (this.smoothPosition) {
+            const { position, targetPosition, positionSmoothing } = this;
+            Interpolator.lerpVector(position, targetPosition, positionSmoothing, frames, SNAP_DISTANCE);
         }
         else {
             this.teleport(this.targetPosition);
         }
-        if (this.rotationInterpolation) {
+        if (this.smoothRotation) {
             const { rotation, targetRotation, rotationSmoothing } = this;
             Interpolator.slerpQuaternion(rotation, targetRotation, rotationSmoothing, frames, SNAP_ANGLE);
         }
