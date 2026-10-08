@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { GameLoop } from "../server/src/GameLoop";
+import { GameLoop } from "../../server/src/GameLoop";
 
 async function run(turbo: boolean, seconds: number, onTick?: (deltaTime: number) => void): Promise<number[]> {
 	const loop = new GameLoop({ TPS: 60, turbo });
@@ -20,7 +20,7 @@ async function run(turbo: boolean, seconds: number, onTick?: (deltaTime: number)
 
 const sum = (steps: number[]) => steps.reduce((total, step) => total + step, 0);
 
-describe("server loop", () => {
+describe("GameLoop", () => {
 	test("in turbo, ticks close to its rate", async () => {
 		const steps = await run(true, 2);
 

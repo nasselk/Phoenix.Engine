@@ -33,6 +33,14 @@ bun run format        # Biome
 
 **Before calling any change done:** `bun run types:check` and `bun run test` pass, and `bun run build` succeeds. Behaviour an engine change adds or fixes gets a test in `tests/`.
 
+## Tests
+
+`tests/` mirrors the engine: `shared/`, `server/` and `client/`, one file per module (`server/replication.test.ts`, `shared/math.test.ts`), plus `api-map.test.ts`. Rooms, boxes, sockets and frame delivery come from `tests/fixtures.ts`; never build them again in a test file.
+
+- One `describe` per public class or function, named after it. Each test name states a behaviour of that API ("a still world sends nothing after the first frame"), never the bug that led to it.
+- Test the contracts games rely on and that break quietly: the wire, replication, physics sync, connections, input, timing, math. Not getters, not three.js or Rapier themselves.
+- A fix gets a test only if no existing test would have caught it, and it goes in that module's file, usually as one more expectation in the test covering that behaviour.
+
 ## Releasing a change
 
 `dist/` is committed, because nothing builds the engine when a game installs it.

@@ -3,10 +3,8 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";
 import { error, log } from "../../../shared/utils/logger";
 import { MessageHandlers } from "../../../shared/networking/handlers";
-import { PING_CODE, Protocol } from "../../../shared/networking/protocol";
-import { SESSION_SUBPROTOCOL } from "../../../shared/networking/session";
+import { PING_CODE, Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
 import { HttpGate } from "./http";
-import { SessionManager } from "./sessions";
 import { Socket } from "./socket";
 import { Interval } from "../../../shared/utils/timers/timer";
 import { BufferReader } from "@nasselk/binarypack";
@@ -19,8 +17,8 @@ export const DEFAULT_NETWORK_SETTINGS = {
         maxRequestRate: 30,
     },
     ws: {
-        maxSessions: Infinity,
-        maxSessionsPerIP: Infinity,
+        maxConnections: Infinity,
+        maxConnectionsPerIP: Infinity,
         maxMessageSize: 1024 * 16,
         maxBackPressure: 1024 * 1024,
         maxMessageRate: Infinity,
@@ -37,7 +35,6 @@ export class NetworkSystem extends EventEmitter {
         this.sockets = new Map();
         this.IPList = new CounterMap();
         this.socketIDs = new IDAllocator();
-        this.sessions = new SessionManager();
         this.http = new HttpGate({
             origins: this.settings.origins,
             proxied: this.settings.proxied,
@@ -74,7 +71,6 @@ export class NetworkSystem extends EventEmitter {
                 }
             }
             this.http.resetRates();
-            this.sessions.sweep();
         }, 1000);
     }
     setupWebSocketServer() {
@@ -92,17 +88,13 @@ export class NetworkSystem extends EventEmitter {
             tls: certs,
             maxRequestBodySize: settings.http.maxRequestBodySize,
             routes: {
-                ["/ws"]: {
+                [SOCKET_ROUTE]: {
                     GET: (req, server) => this.handleUpgrade(req, server),
-                },
-                ["/session/init"]: {
-                    OPTIONS: this.http.preflight(),
-                    POST: this.http.route((state) => this.initSession(state)),
                 },
                 "/infos": {
                     GET: this.http.route(() => Response.json({
                         players: this.sockets.size,
-                        maxPlayers: settings.ws.maxSessions,
+                        maxPlayers: settings.ws.maxConnections,
                         uptime: process.uptime(),
                     })),
                 },
@@ -119,18 +111,14 @@ export class NetworkSystem extends EventEmitter {
                 closeOnBackpressureLimit: true,
                 open: (ws) => {
                     const data = ws.data;
-                    const sessionsCount = this.IPList.getCount(data.ip);
-                    if (this.sockets.size >= settings.ws.maxSessions || sessionsCount >= settings.ws.maxSessionsPerIP) {
+                    if (this.sockets.size >= settings.ws.maxConnections || this.IPList.getCount(data.ip) >= settings.ws.maxConnectionsPerIP) {
                         ws.close(1013, "Too many connections");
-                    }
-                    else if (!this.sessions.connect(data.sessionID)) {
-                        ws.close(1008, "Session already connected");
                     }
                     else {
                         this.IPList.increment(data.ip);
                         const socket = (data.socket = new Socket(this.protocol, ws, this.socketIDs.allocate()));
                         this.sockets.set(socket.id, socket);
-                        log("Networking Server", `${socket.ip} connected (session ${socket.sessionID})`);
+                        log("Networking Server", `${socket.ip} connected`);
                         this.emit("connection", socket);
                     }
                 },
@@ -154,7 +142,6 @@ export class NetworkSystem extends EventEmitter {
                     this.sockets.delete(socket.id);
                     this.socketIDs.free(socket.id);
                     this.IPList.decrement(socket.ip);
-                    this.sessions.disconnect(socket.sessionID);
                     socket.disconnection(code, reason);
                     this.emit("disconnection", socket, code, reason);
                     socket.room?.leave(socket);
@@ -243,35 +230,22 @@ export class NetworkSystem extends EventEmitter {
         return this;
     }
     handleUpgrade(req, server) {
-        const ticket = this.sessions.ticketFrom(req.headers.get("sec-websocket-protocol"));
-        const session = ticket ? this.sessions.redeem(ticket) : undefined;
-        if (!session) {
-            return new Response("Forbidden", { status: 403 });
+        const refusal = this.http.refuse(req);
+        if (refusal) {
+            return refusal;
         }
-        if (this.sockets.size >= this.settings.ws.maxSessions) {
+        if (this.sockets.size >= this.settings.ws.maxConnections) {
             return new Response("Server full", { status: 503 });
         }
-        const data = {
-            ip: this.http.ip(req),
-            sessionID: session.sessionID,
-            reconnectionToken: session.reconnected ? session.sessionID : undefined,
-        };
-        if (server.upgrade(req, { data, headers: { "Sec-WebSocket-Protocol": SESSION_SUBPROTOCOL } })) {
+        if (server.upgrade(req, { data: { ip: this.http.ip(req) } })) {
             return undefined;
         }
         return new Response("WebSocket upgrade failed", { status: 500 });
-    }
-    initSession(state) {
-        const body = (state.data ?? {});
-        const token = typeof body.reconnectionToken === "string" ? body.reconnectionToken : undefined;
-        log("Networking Server", `Issued a session ticket to ${state.ip}`);
-        return Response.json(this.sessions.issue(token));
     }
     destroy() {
         this.sweep?.clear();
         this.sweep = undefined;
         this.sockets.clear();
-        this.sessions.clear();
         this.IPList.clear();
         this.http.resetRates();
         this.socketIDs.clear();

@@ -5,10 +5,8 @@ import { Interval, Timeout } from "../../../shared/utils/timers/timer";
 import { wait } from "../../../shared/utils/timers/wait";
 
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
-import { post } from "../../../shared/utils/fetch";
 import { MessageHandlers } from "../../../shared/networking/handlers";
-import { PING_CODE, Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
-import { ServerRoutes, SESSION_SUBPROTOCOL, type SessionResponse } from "../../../shared/networking/session";
+import { PING_CODE, Protocol, SOCKET_ROUTE, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
 import { BufferReader, type Buffers } from "@nasselk/binarypack";
 
 type NetworkEvents = {
@@ -81,12 +79,11 @@ export class NetworkSystem<
 	private readonly handlers: MessageHandlers<(data: any) => void>;
 	private socket?: WebSocket | null;
 
-	/** Bumped by every `connect` and `disconnect`, so a connect still waiting on its session knows it was overtaken. */
+	/** Bumped by every `connect` and `disconnect`, so a connect still closing the last socket knows it was overtaken. */
 	private attempt = 0;
 	private baseURL?: string;
 	private promise?: Promise<WebSocket>;
 	private reconnectTimeout?: Timeout;
-	private sessionID?: string | null;
 	private manuallyDisconnected: boolean;
 	private reconnecting: boolean;
 	private readonly simulation: {
@@ -128,49 +125,26 @@ export class NetworkSystem<
 	}
 
 	/**
-	 * Connects to the server: mints a session ticket over HTTP, then redeems it on the upgrade.
+	 * Connects to the server, closing any connection already open.
 	 *
 	 * @param url Base URL of the server, e.g. `http://localhost:3000`. `ws(s)://` is derived from it.
-	 * @param data Extra fields to send along with the session request (a join code, a token, ...).
 	 *
 	 * @returns A promise that resolves to the WebSocket instance when the connection is established.
 	 */
-	public async connect(url: URL | string, data?: Record<string, unknown>): Promise<WebSocket> {
+	public async connect(url: URL | string): Promise<WebSocket> {
 		const attempt = ++this.attempt;
 
 		await this.close();
-
-		// A trailing slash would double up against the route, which starts with one.
-		const baseURL = (this.baseURL = (url instanceof URL ? url.toString() : url).replace(/\/+$/, ""));
-
-		const response = await post<SessionResponse>(
-			baseURL,
-			ServerRoutes.SESSION,
-			{
-				reconnectionToken: this.sessionID ?? null,
-				...data,
-			},
-			{
-				timeout: 5000,
-				tries: 5,
-			},
-		);
 
 		if (attempt !== this.attempt) {
 			throw new Error("Connection superseded by a later connect or disconnect");
 		}
 
-		if (!response.success) {
-			throw new Error(`Failed to initialize session: ${response.error?.message ?? "unknown error"}`);
-		}
-
-		const session = response.data;
-
-		this.sessionID = session.sessionID;
-		this.reconnecting = session.allowReconnection;
+		// A trailing slash would double up against the route, which starts with one.
+		const baseURL = (this.baseURL = (url instanceof URL ? url.toString() : url).replace(/\/+$/, ""));
 
 		// http -> ws, https -> wss. Anchored so a host containing "http" is left alone.
-		return this.setupWebSocket(baseURL.replace(/^http/, "ws") + ServerRoutes.WS, session.ticket);
+		return this.setupWebSocket(baseURL.replace(/^http/, "ws") + SOCKET_ROUTE);
 	}
 
 	/**
@@ -183,6 +157,7 @@ export class NetworkSystem<
 	 */
 	public async disconnect(code?: number, reason?: string): Promise<this> {
 		this.attempt++;
+		this.reconnecting = false;
 
 		return this.close(code, reason);
 	}
@@ -211,14 +186,8 @@ export class NetworkSystem<
 		});
 	}
 
-	/**
-	 * Opens the socket, offering the ticket as the second subprotocol.
-	 *
-	 * The credential rides on the handshake rather than in the URL or a cookie: query strings end
-	 * up in access logs, and mobile browsers drop third-party cookies inside iframes.
-	 */
-	private setupWebSocket(url: string, ticket: string): Promise<WebSocket> {
-		const socket = (this.socket = new WebSocket(url, [SESSION_SUBPROTOCOL, ticket]));
+	private setupWebSocket(url: string): Promise<WebSocket> {
+		const socket = (this.socket = new WebSocket(url));
 		socket.binaryType = "arraybuffer";
 
 		let opened = false;
@@ -373,7 +342,7 @@ export class NetworkSystem<
 	}
 
 	private onConnect(): void {
-		log("Network", "Connected to", this.baseURL + ServerRoutes.WS);
+		log("Network", "Connected to", this.baseURL + SOCKET_ROUTE);
 
 		this.resetStats();
 		this.statsTimer.resume();
@@ -401,13 +370,12 @@ export class NetworkSystem<
 			error("Network", "Connection lost, trying to reconnect", code, reason);
 
 			this.reconnectTimeout = new Timeout(() => {
+				this.reconnecting = true;
 				this.connect(baseURL).catch((err) => {
 					warn("Network", "Reconnection failed:", err instanceof Error ? err.message : err);
 				});
 			}, 500);
 		} else {
-			this.sessionID = null;
-
 			log("Network", "Disconnected from server with code", code, reason);
 		}
 

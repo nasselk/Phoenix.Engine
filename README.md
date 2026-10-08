@@ -237,7 +237,7 @@ There is one `Engine` per process on each side, and it owns every subsystem.
 | `getRoom(code)`, `destroyRoom(code)`, `rooms` | Look up, close, and every open room by code. |
 | `occupancy()` | `{ [code]: { players, maxPlayers, public } }` for every open room, for the server's own use: it lists private rooms' codes, so it is never served. |
 
-Besides WebSockets (`GET /ws`), the server answers HTTP: `POST /session/init` (the session handshake), `GET /infos` (`{ players, maxPlayers, uptime }` for the whole server), `GET /ping`, `GET /rooms/:code` (that room's `{ players, maxPlayers, public }`, or 404, so a client can find which server has a room without any server listing its codes), and any GET route a game adds with `engine.network.route(path, (request) => Response)` before `init` (path parameters are in `request.params`). All of them get the network's CORS and rate limits.
+Besides WebSockets (`GET /ws`), the server answers HTTP: `GET /infos` (`{ players, maxPlayers, uptime }` for the whole server), `GET /ping`, `GET /rooms/:code` (that room's `{ players, maxPlayers, public }`, or 404, so a client can find which server has a room without any server listing its codes), and any GET route a game adds with `engine.network.route(path, (request) => Response)` before `init` (path parameters are in `request.params`). All of them get the network's CORS and rate limits, and so does the WebSocket upgrade: a socket opens only from an allowed origin, within the request rate.
 
 A room is safe to destroy from inside its own tick, with `engine.destroyRoom(code)` or `room.destroy()`: the tick finishes without running anything else of it, its physics is freed afterwards, and the engine drops it. A spawn into a full room throws before the entity is built, so it leaves no body behind.
 
@@ -383,7 +383,7 @@ export const clientSchemas = defineSchemas({
 // server: network.onMessage("chat", (socket, { text }) => …);
 ```
 
-An event's code is its index in its list, so both sides must use the same lists — keep them in a folder both import. A direction holds up to 255 events: code 255 is the engine's own ping, which the server answers at once and which sets `engine.network.stats.latency` every second without any game event. An event without a schema carries raw bytes (the `sync` frame) or nothing. The server enforces `limits` per event (`maxRate`, `byteLength`) and closes connections that break them. Sessions survive a dropped connection: the client reconnects within `SESSION_TTL` and gets its old session id back (`socket.sessionID`), so the game can seat it where it was. A session has one socket at most: a client asking for a session that is still connected gets a new one. The client world is **not** cleared on its own: on `engine.network.on("reconnection")`, call `engine.world.clear()` before the game rejoins its room, or entities despawned while the connection was down stay on screen forever.
+An event's code is its index in its list, so both sides must use the same lists — keep them in a folder both import. A direction holds up to 255 events: code 255 is the engine's own ping, which the server answers at once and which sets `engine.network.stats.latency` every second without any game event. An event without a schema carries raw bytes (the `sync` frame) or nothing. The server enforces `limits` per event (`maxRate`, `byteLength`) and closes connections that break them. After a dropped connection the client reconnects by itself, as a new socket that is in no room: the game seats it again. The client world is **not** cleared on its own: on `engine.network.on("reconnection")`, call `engine.world.clear()` before the game rejoins its room, or entities despawned while the connection was down stay on screen forever.
 
 `onMessage` takes one handler per event, since a raw reader can only be read once: registering a second throws. It returns a function that removes the handler. To watch all traffic, listen on `network.on("message")`.
 
@@ -516,20 +516,11 @@ The repository is a Bun workspace: `client/`, `server/` and `shared/` build sepa
 
 ### Tests
 
-[`tests/`](./tests) runs against the engine's source, with Bun's test runner:
+[`tests/`](./tests) runs against the engine's source, with Bun's test runner. It mirrors the engine, one file per module, with shared rooms, boxes and sockets in [`fixtures.ts`](./tests/fixtures.ts):
 
-- [`replication.test.ts`](./tests/replication.test.ts): a real server room and a real client world: spawns, updates, rotations on spawn and on update, despawns, leaving and re-entering view, hundreds of entities in a frame, several sockets.
-- [`quaternion.test.ts`](./tests/quaternion.test.ts): packing within 0.25°, Euler and yaw round trips, `q` equal to `-q`, slerp the short way, composition, and a crate tipping past its side turning straight there.
-- [`rooms.test.ts`](./tests/rooms.test.ts): `fullestRoom` (fullest with a seat, private rooms skipped, excluded codes) and `occupancy`.
-- [`inputs.test.ts`](./tests/inputs.test.ts): actions, repeats, several keys per action, rebinding while held, focus loss.
-- [`camera.test.ts`](./tests/camera.test.ts): the field of view widening on narrow screens.
-- [`loop.test.ts`](./tests/loop.test.ts): the server loop's rate, its steps adding up to real time, and the cap after a stall.
-- [`batch.test.ts`](./tests/batch.test.ts): the batcher grouping meshes by material, storing each geometry once, and leaving out what it must not batch.
-- [`physics.test.ts`](./tests/physics.test.ts): bodies landing where the physics put them, resting bodies left alone, code-turned bodies touched only when they turn.
-- [`sessions.test.ts`](./tests/sessions.test.ts): tickets, reconnecting to a dropped session, one socket per session, origins and rate limits.
-- [`helpers.test.ts`](./tests/helpers.test.ts) and [`grid.test.ts`](./tests/grid.test.ts): timers, vectors, angles, colours, random helpers, tweens, `SpatialGrid`.
-- [`network.test.ts`](./tests/network.test.ts): one `onMessage` handler per event, and removing it.
-- [`audio.test.ts`](./tests/audio.test.ts): the WAV encoding behind the audio builder.
+- `shared/`: `math` (vectors, quaternion packing within 0.25°, slerp, tweens, angles, random), `utils` (timers, colours), `networking` (one handler per event), `SpatialGrid`.
+- `server/`: `replication` (a real room and a real client world: spawns, updates, rotations, despawns, view, many entities, several sockets), `physics` (bodies followed, sleeping bodies left alone), `rooms` (quick play, occupancy, destroying), `loop` (rate, real time, the cap after a stall), `network` and `http` (origins on the socket upgrade and HTTP routes, rate limits).
+- `client/`: `inputs` (actions, repeats, rebinding, focus loss, mouse buttons), `camera` (field of view, turning, tilting, free flight), `batch` (the batcher), `audio` (WAV encoding).
 - [`api-map.test.ts`](./tests/api-map.test.ts): every export of every entry point, and every UI component, is listed in the [API map](./API.md).
 
 Gameplay behaviour — how the physics feels — is tested in the game, against its own entities (see the template's `server/tests`).

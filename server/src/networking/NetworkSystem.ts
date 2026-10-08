@@ -3,10 +3,8 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";
 import { error, log } from "../../../shared/utils/logger";
 import { MessageHandlers } from "../../../shared/networking/handlers";
-import { PING_CODE, Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
-import { ServerRoutes, SESSION_SUBPROTOCOL, type SessionRequest } from "../../../shared/networking/session";
-import { HttpGate, type RequestState } from "./http";
-import { SessionManager } from "./sessions";
+import { PING_CODE, Protocol, SOCKET_ROUTE, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
+import { HttpGate } from "./http";
 import { Socket, type SocketUserData } from "./socket";
 import { Interval } from "../../../shared/utils/timers/timer";
 import type { BunRequest, Server } from "bun";
@@ -57,17 +55,17 @@ export type NetworkTransportOptions = {
 	 */
 	readonly proxied?: boolean;
 	readonly origins?: string[] | string;
-	/** Budgets for the plain HTTP routes — the session handshake and the status endpoints. */
+	/** Budgets for HTTP requests: the status endpoints, the game's own routes, and the socket upgrade. */
 	readonly http?: {
 		readonly maxRequestBodySize?: number;
 		/** Requests per IP per second across those routes. Over it, 429. */
 		readonly maxRequestRate?: number;
 	};
-	/** Budgets for the socket half, once a ticket has been redeemed. */
+	/** Budgets for the open sockets. */
 	readonly ws?: {
 		/** Process-wide connection cap, also what `/infos` reports as `maxPlayers`. */
-		readonly maxSessions?: number;
-		readonly maxSessionsPerIP?: number;
+		readonly maxConnections?: number;
+		readonly maxConnectionsPerIP?: number;
 		readonly maxMessageSize?: number;
 		/** Unflushed send bytes per socket. A client that cannot keep up is dropped rather than buffered. */
 		readonly maxBackPressure?: number;
@@ -113,8 +111,8 @@ export const DEFAULT_NETWORK_SETTINGS: NetworkSettings = {
 		maxRequestRate: 30,
 	},
 	ws: {
-		maxSessions: Infinity,
-		maxSessionsPerIP: Infinity,
+		maxConnections: Infinity,
+		maxConnectionsPerIP: Infinity,
 		maxMessageSize: 1024 * 16,
 		maxBackPressure: 1024 * 1024,
 		maxMessageRate: Infinity,
@@ -136,7 +134,6 @@ export class NetworkSystem<
 	public readonly IPList: CounterMap<string>;
 	public readonly settings: NetworkSettings;
 	private readonly http: HttpGate;
-	private readonly sessions: SessionManager;
 	/** Per-event limits by inbound wire code, so the hot path indexes an array instead of hashing a name. */
 	private readonly limits: Array<ResolvedLimit | undefined>;
 	private readonly handlers: MessageHandlers<(socket: Socket<C>, data: any) => void>;
@@ -155,7 +152,6 @@ export class NetworkSystem<
 		this.sockets = new Map();
 		this.IPList = new CounterMap();
 		this.socketIDs = new IDAllocator();
-		this.sessions = new SessionManager();
 		this.http = new HttpGate({
 			origins: this.settings.origins,
 			proxied: this.settings.proxied,
@@ -201,7 +197,6 @@ export class NetworkSystem<
 			}
 
 			this.http.resetRates();
-			this.sessions.sweep();
 		}, 1000);
 	}
 
@@ -224,18 +219,14 @@ export class NetworkSystem<
 			maxRequestBodySize: settings.http.maxRequestBodySize,
 
 			routes: {
-				[ServerRoutes.WS]: {
+				[SOCKET_ROUTE]: {
 					GET: (req: BunRequest, server: Server<SocketUserData>) => this.handleUpgrade(req, server),
-				},
-				[ServerRoutes.SESSION]: {
-					OPTIONS: this.http.preflight(),
-					POST: this.http.route((state) => this.initSession(state)),
 				},
 				"/infos": {
 					GET: this.http.route(() =>
 						Response.json({
 							players: this.sockets.size,
-							maxPlayers: settings.ws.maxSessions,
+							maxPlayers: settings.ws.maxConnections,
 							uptime: process.uptime(),
 						}),
 					),
@@ -256,12 +247,8 @@ export class NetworkSystem<
 
 				open: (ws): void => {
 					const data = ws.data;
-					const sessionsCount = this.IPList.getCount(data.ip);
-
-					if (this.sockets.size >= settings.ws.maxSessions || sessionsCount >= settings.ws.maxSessionsPerIP) {
+					if (this.sockets.size >= settings.ws.maxConnections || this.IPList.getCount(data.ip) >= settings.ws.maxConnectionsPerIP) {
 						ws.close(1013, "Too many connections"); // 1013 = Try Again Later
-					} else if (!this.sessions.connect(data.sessionID)) {
-						ws.close(1008, "Session already connected");
 					} else {
 						this.IPList.increment(data.ip);
 
@@ -269,7 +256,7 @@ export class NetworkSystem<
 
 						this.sockets.set(socket.id, socket);
 
-						log("Networking Server", `${socket.ip} connected (session ${socket.sessionID})`);
+						log("Networking Server", `${socket.ip} connected`);
 
 						this.emit("connection", socket);
 					}
@@ -304,7 +291,6 @@ export class NetworkSystem<
 					this.sockets.delete(socket.id);
 					this.socketIDs.free(socket.id);
 					this.IPList.decrement(socket.ip);
-					this.sessions.disconnect(socket.sessionID);
 
 					socket.disconnection(code, reason);
 
@@ -469,50 +455,25 @@ export class NetworkSystem<
 		return this;
 	}
 
-	/** Validate a WebSocket upgrade (ticket, capacity) then hand the socket to Bun. */
+	/** Check a WebSocket upgrade (origin, request rate, capacity) then hand the socket to Bun. */
 	private handleUpgrade(req: BunRequest, server: Server<SocketUserData>): Response | undefined {
-		const ticket = this.sessions.ticketFrom(req.headers.get("sec-websocket-protocol"));
-		const session = ticket ? this.sessions.redeem(ticket) : undefined;
+		const refusal = this.http.refuse(req);
 
-		// No ticket, unknown ticket, or one that sat around too long all get the same answer, so a
-		// prober learns nothing about which it was.
-		if (!session) {
-			return new Response("Forbidden", { status: 403 });
+		if (refusal) {
+			return refusal;
 		}
 
 		// Cheap rejection before the handshake. `open` checks again, per IP, once Bun owns the socket.
-		if (this.sockets.size >= this.settings.ws.maxSessions) {
+		if (this.sockets.size >= this.settings.ws.maxConnections) {
 			return new Response("Server full", { status: 503 });
 		}
 
-		const data: SocketUserData = {
-			ip: this.http.ip(req),
-			sessionID: session.sessionID,
-			reconnectionToken: session.reconnected ? session.sessionID : undefined,
-		};
-
-		// On success Bun owns the socket and we must NOT return a Response. Echo back only the
-		// protocol name (never the ticket) so the browser completes the handshake.
-		if (server.upgrade(req as unknown as Request, { data, headers: { "Sec-WebSocket-Protocol": SESSION_SUBPROTOCOL } })) {
+		// On success Bun owns the socket and we must NOT return a Response.
+		if (server.upgrade(req as unknown as Request, { data: { ip: this.http.ip(req) } })) {
 			return undefined;
 		}
 
 		return new Response("WebSocket upgrade failed", { status: 500 });
-	}
-
-	/**
-	 * Hand out a ticket. It is the whole credential: hold it, redeem it within the TTL, get a socket.
-	 *
-	 * A client that still holds a session id from a dropped connection gets it back instead of a new
-	 * one, which is what lets a game rejoin a player to what they were doing.
-	 */
-	private initSession(state: RequestState): Response {
-		const body = (state.data ?? {}) as SessionRequest;
-		const token = typeof body.reconnectionToken === "string" ? body.reconnectionToken : undefined;
-
-		log("Networking Server", `Issued a session ticket to ${state.ip}`);
-
-		return Response.json(this.sessions.issue(token));
 	}
 
 	/** Close every connection and stop listening. The instance is not reusable afterwards. */
@@ -521,7 +482,6 @@ export class NetworkSystem<
 		this.sweep = undefined;
 
 		this.sockets.clear();
-		this.sessions.clear();
 		this.IPList.clear();
 		this.http.resetRates();
 		this.socketIDs.clear();

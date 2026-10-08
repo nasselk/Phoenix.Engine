@@ -13,8 +13,6 @@ export interface SocketData {
 export type SocketUserData = {
     socket?: Socket<any>;
     readonly ip: string;
-    readonly sessionID: string;
-    readonly reconnectionToken?: string;
 };
 export declare enum SocketState {
     CONNECTING = 0,
@@ -26,8 +24,6 @@ export declare class Socket<C extends Contract = Contract> extends EventEmitter<
     private static readonly PING;
     readonly id: number;
     readonly ip: string;
-    readonly sessionID: string;
-    readonly reconnectionToken?: string;
     lastMessage: number;
     messages: number;
     readonly rates: CounterMap<number>;

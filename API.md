@@ -118,7 +118,7 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  └─ codes are physical: "KeyW", "Space", "ArrowUp", "Pointer0" (left mouse)…
 │
 ├─ network: NetworkSystem<In, Out, …>
-│  ├─ connect(url, data?), disconnect(code?, reason?)   reconnects and resumes a dropped session itself;
+│  ├─ connect(url), disconnect(code?, reason?)  reconnects by itself after a dropped connection, as a new socket;
 │  │                                         the world is not cleared: call engine.world.clear() on "reconnection"
 │  │                                         before rejoining, or entities that died meanwhile stay
 │  ├─ send(event, data?)                     typed by the out list and schemas
@@ -194,7 +194,7 @@ Engine<In, Out, InSchemas, OutSchemas, D, C>                new Engine(options),
 │  ├─ onMessage(event, (socket, data) => …) → remove   one handler per event: a second throws
 │  ├─ broadcast(topic, event, data?)
 │  ├─ route(path, request => Response)       extra GET routes, before init; request.params
-│  ├─ built-in routes: POST /session/init, GET /ws, GET /infos { players, maxPlayers, uptime },
+│  ├─ built-in routes: GET /ws (origin and rate checked), GET /infos { players, maxPlayers, uptime },
 │  │                   GET /ping, GET /rooms/:code { players, maxPlayers, public } or 404
 │  ├─ sockets: Map<id, Socket>, IPList, settings, protocol, init(), destroy()
 │  └─ on("listening" [port] | "connection" [socket] | "disconnection" [socket, code, reason] | "message" [socket, event, data] | "destroy")
@@ -217,12 +217,12 @@ World (a room)                               engine.createRoom(); shares the que
 └─ on("update" [dt])                         after the physics step: send frames here
 
 Socket
-├─ id, ip, sessionID, room?, data: SocketData   augment SocketData for your per-player fields
+├─ id, ip, room?, data: SocketData   augment SocketData for your per-player fields
 ├─ send(event, data?), broadcast(topic, event, data?), cork(socket => …)
 ├─ subscribe(topic), unsubscribe(topic)
 ├─ disconnect(reason?, code?)                with a close frame; terminate() cuts it at once
 ├─ readyState: SocketState
-├─ lastMessage, messages, rates, seen, reconnectionToken, resetRates(), disconnection(code, reason)
+├─ lastMessage, messages, rates, seen, resetRates(), disconnection(code, reason)
 └─ on("disconnection" [code, reason, manual] | "message" [event, data])
 ```
 
@@ -310,7 +310,6 @@ Event schemas: defineSchemas and FieldType from @nasselk/binaryschema, a peer de
 
 Protocol, ProtocolChannel, MAX_EVENTS (255 per direction: code 255 is the engine's ping), Contract, ContractOf, Side, SchemasFor, InboundEvent, OutboundEvent,
 InboundSchemas, OutboundSchemas, MessagePayload, SendPayload
-ServerRoutes, SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL, SessionRequest, SessionResponse
 INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, RoomOccupancy
 
 EventEmitter<{ event: [args] }>              on(e, cb) → unsubscribe, off, removeAllListeners, protected emit

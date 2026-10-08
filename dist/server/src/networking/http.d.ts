@@ -16,10 +16,10 @@ export declare class HttpGate {
     private readonly requests;
     constructor(options: HttpGateOptions);
     route(handler: RouteHandler): (request: BunRequest) => Promise<Response>;
+    refuse(request: BunRequest): Response | undefined;
     preflight(): (request: BunRequest) => Promise<Response>;
     ip(request: BunRequest): string;
     resetRates(): void;
     private invoke;
-    private corsHeaders;
     private static compileOrigins;
 }

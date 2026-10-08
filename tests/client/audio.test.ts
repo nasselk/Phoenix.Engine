@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { encodeWav, type PCMSource } from "../client/src/audio/lib/SoundBuilder";
+import { encodeWav, type PCMSource } from "../../client/src/audio/lib/SoundBuilder";
 
 function source(sampleRate: number, ...channels: number[][]): PCMSource {
 	return {

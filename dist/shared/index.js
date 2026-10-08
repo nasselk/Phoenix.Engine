@@ -2,7 +2,6 @@ export { defineEntities, Entity, EntityRegistry, MAX_ENTITY_KINDS, SpatialGrid, 
 export * from "./physics/index";
 export { BufferReader, BufferWriter } from "@nasselk/binarypack";
 export { MAX_EVENTS, Protocol, ProtocolChannel } from "./networking/protocol";
-export { SESSION_SUBPROTOCOL, SESSION_TTL, TICKET_TTL } from "./networking/session";
 export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "./networking/invite";
 export { CounterMap } from "./utils/CounterMap";
 export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";

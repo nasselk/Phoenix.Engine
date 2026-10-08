@@ -47,7 +47,6 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private baseURL?;
     private promise?;
     private reconnectTimeout?;
-    private sessionID?;
     private manuallyDisconnected;
     private reconnecting;
     private readonly simulation;
@@ -55,7 +54,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private readonly state;
     readonly stats: NetworkStats;
     constructor(options?: NetworkSystemOptions<In, Out, InSchemas, OutSchemas>);
-    connect(url: URL | string, data?: Record<string, unknown>): Promise<WebSocket>;
+    connect(url: URL | string): Promise<WebSocket>;
     disconnect(code?: number, reason?: string): Promise<this>;
     private close;
     private setupWebSocket;

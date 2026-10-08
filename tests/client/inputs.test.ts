@@ -11,7 +11,7 @@ import { describe, expect, test } from "bun:test";
 	) {}
 };
 
-const { InputSystem } = await import("../client/src/controls/InputSystem");
+const { InputSystem } = await import("../../client/src/controls/InputSystem");
 
 type Handlers = { keydown(event: object): void; keyup(event: object): void; blur(): void };
 
@@ -28,7 +28,7 @@ function createInputs() {
 	};
 }
 
-describe("inputs", () => {
+describe("InputSystem", () => {
 	test("an action starts and stops with its key", () => {
 		const { inputs, down, up } = createInputs();
 		const log: string[] = [];

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { Vector3 } from "../shared/math/vector3";
-import { SpatialGrid } from "../shared/world/SpatialGrid";
+import { Vector3 } from "../../shared/math/vector3";
+import { SpatialGrid } from "../../shared/world/SpatialGrid";
 
 function thing(x: number, y: number, z: number) {
 	return { position: new Vector3(x, y, z) };

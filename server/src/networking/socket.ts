@@ -26,8 +26,6 @@ export interface SocketData {}
 export type SocketUserData = {
 	socket?: Socket<any>;
 	readonly ip: string;
-	readonly sessionID: string;
-	readonly reconnectionToken?: string;
 };
 
 export enum SocketState {
@@ -42,8 +40,6 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 
 	public readonly id: number;
 	public readonly ip: string;
-	public readonly sessionID: string;
-	public readonly reconnectionToken?: string;
 	public lastMessage: number;
 	/** Frames received since the last `resetRates()`, in total... */
 	public messages: number;
@@ -64,8 +60,6 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 		this.socket = socket;
 		this.protocol = protocol;
 		this.ip = socket.data.ip ?? socket.remoteAddress;
-		this.sessionID = socket.data.sessionID;
-		this.reconnectionToken = socket.data.reconnectionToken;
 		this.lastMessage = performance.now();
 		this.messages = 0;
 		this.rates = new CounterMap();

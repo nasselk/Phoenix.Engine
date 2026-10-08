@@ -29,6 +29,7 @@ export type SendPayload<C extends Contract, K extends OutboundEvent<C>> = K exte
 export type MessagePayload<C extends Contract, K extends InboundEvent<C>> = K extends keyof InboundSchemas<C> ? DecodedData<Extract<InboundSchemas<C>[K], Schema>> : BufferReader;
 export declare const MAX_EVENTS = 255;
 export declare const PING_CODE = 255;
+export declare const SOCKET_ROUTE = "/ws";
 export declare class ProtocolChannel {
     readonly events: readonly string[];
     readonly schemas: Readonly<Record<string, Schema>>;

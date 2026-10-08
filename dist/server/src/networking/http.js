@@ -8,16 +8,27 @@ export class HttpGate {
     }
     route(handler) {
         return async (request) => {
-            const cors = this.corsHeaders(request.headers.get("origin") ?? "");
-            if (!cors) {
-                return new Response("Forbidden", { status: 403 });
+            const refusal = this.refuse(request);
+            if (refusal) {
+                return refusal;
             }
             const response = await this.invoke(handler, request);
-            for (const key in cors) {
-                response.headers.set(key, cors[key]);
-            }
+            response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin") ?? "");
+            response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+            response.headers.set("Access-Control-Allow-Credentials", "true");
             return response;
         };
+    }
+    refuse(request) {
+        const origin = request.headers.get("origin") ?? "";
+        if (!this.origins.some((regex) => regex.test(origin))) {
+            return new Response("Forbidden", { status: 403 });
+        }
+        if (this.requests.increment(this.ip(request)) > this.options.maxRequestRate) {
+            return new Response("Too many requests", { status: 429 });
+        }
+        return undefined;
     }
     preflight() {
         return this.route(() => new Response(null, { status: 204 }));
@@ -36,9 +47,6 @@ export class HttpGate {
     }
     async invoke(handler, request) {
         const ip = this.ip(request);
-        if (this.requests.increment(ip) > this.options.maxRequestRate) {
-            return new Response("Too many requests", { status: 429 });
-        }
         let data;
         if (request.method === "POST") {
             try {
@@ -56,17 +64,6 @@ export class HttpGate {
             warn("Networking Server", "Unhandled error in HTTP handler:", err);
             return new Response("Internal Server Error", { status: 500 });
         }
-    }
-    corsHeaders(origin) {
-        if (!this.origins.some((regex) => regex.test(origin))) {
-            return null;
-        }
-        return {
-            "Access-Control-Allow-Origin": origin,
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-            "Access-Control-Allow-Credentials": "true",
-        };
     }
     static compileOrigins(origins) {
         const list = Array.isArray(origins) ? origins : [origins];

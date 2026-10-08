@@ -28,8 +28,8 @@ export type NetworkTransportOptions = {
         readonly maxRequestRate?: number;
     };
     readonly ws?: {
-        readonly maxSessions?: number;
-        readonly maxSessionsPerIP?: number;
+        readonly maxConnections?: number;
+        readonly maxConnectionsPerIP?: number;
         readonly maxMessageSize?: number;
         readonly maxBackPressure?: number;
         readonly maxMessageRate?: number;
@@ -62,7 +62,6 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     readonly IPList: CounterMap<string>;
     readonly settings: NetworkSettings;
     private readonly http;
-    private readonly sessions;
     private readonly limits;
     private readonly handlers;
     private readonly socketIDs;
@@ -81,7 +80,6 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): () => void;
     broadcast<K extends OutboundEvent<C>>(topic: string, event: K, ...[data]: SendPayload<C, K>): this;
     private handleUpgrade;
-    private initSession;
     destroy(): void;
 }
 export {};

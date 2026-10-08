@@ -2,10 +2,8 @@ import { error, log, warn } from "../../../shared/utils/logger";
 import { Interval, Timeout } from "../../../shared/utils/timers/timer";
 import { wait } from "../../../shared/utils/timers/wait";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
-import { post } from "../../../shared/utils/fetch";
 import { MessageHandlers } from "../../../shared/networking/handlers";
-import { PING_CODE, Protocol } from "../../../shared/networking/protocol";
-import { SESSION_SUBPROTOCOL } from "../../../shared/networking/session";
+import { PING_CODE, Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
 import { BufferReader } from "@nasselk/binarypack";
 export var NetworkState;
 (function (NetworkState) {
@@ -40,30 +38,18 @@ export class NetworkSystem extends EventEmitter {
         this.statsTimer = new Interval(() => this.computeStats(), 1000, false);
         this.statsTimer.pause();
     }
-    async connect(url, data) {
+    async connect(url) {
         const attempt = ++this.attempt;
         await this.close();
-        const baseURL = (this.baseURL = (url instanceof URL ? url.toString() : url).replace(/\/+$/, ""));
-        const response = await post(baseURL, "/session/init", {
-            reconnectionToken: this.sessionID ?? null,
-            ...data,
-        }, {
-            timeout: 5000,
-            tries: 5,
-        });
         if (attempt !== this.attempt) {
             throw new Error("Connection superseded by a later connect or disconnect");
         }
-        if (!response.success) {
-            throw new Error(`Failed to initialize session: ${response.error?.message ?? "unknown error"}`);
-        }
-        const session = response.data;
-        this.sessionID = session.sessionID;
-        this.reconnecting = session.allowReconnection;
-        return this.setupWebSocket(baseURL.replace(/^http/, "ws") + "/ws", session.ticket);
+        const baseURL = (this.baseURL = (url instanceof URL ? url.toString() : url).replace(/\/+$/, ""));
+        return this.setupWebSocket(baseURL.replace(/^http/, "ws") + SOCKET_ROUTE);
     }
     async disconnect(code, reason) {
         this.attempt++;
+        this.reconnecting = false;
         return this.close(code, reason);
     }
     async close(code, reason) {
@@ -82,8 +68,8 @@ export class NetworkSystem extends EventEmitter {
             }
         });
     }
-    setupWebSocket(url, ticket) {
-        const socket = (this.socket = new WebSocket(url, [SESSION_SUBPROTOCOL, ticket]));
+    setupWebSocket(url) {
+        const socket = (this.socket = new WebSocket(url));
         socket.binaryType = "arraybuffer";
         let opened = false;
         this.promise = new Promise((resolve, reject) => {
@@ -179,7 +165,7 @@ export class NetworkSystem extends EventEmitter {
         this.handle(this.protocol.encode(event, data, true));
     }
     onConnect() {
-        log("Network", "Connected to", this.baseURL + "/ws");
+        log("Network", "Connected to", this.baseURL + SOCKET_ROUTE);
         this.resetStats();
         this.statsTimer.resume();
         this.ping();
@@ -197,13 +183,13 @@ export class NetworkSystem extends EventEmitter {
             const baseURL = this.baseURL;
             error("Network", "Connection lost, trying to reconnect", code, reason);
             this.reconnectTimeout = new Timeout(() => {
+                this.reconnecting = true;
                 this.connect(baseURL).catch((err) => {
                     warn("Network", "Reconnection failed:", err instanceof Error ? err.message : err);
                 });
             }, 500);
         }
         else {
-            this.sessionID = null;
             log("Network", "Disconnected from server with code", code, reason);
         }
         this.manuallyDisconnected = false;

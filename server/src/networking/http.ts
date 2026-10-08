@@ -21,8 +21,9 @@ export type HttpGateOptions = {
 };
 
 /**
- * What every HTTP route goes through before its handler: the allowed origins and their CORS headers,
- * a per-IP request rate, the JSON body, and a 500 instead of a crash when the handler throws.
+ * What every HTTP request goes through: the allowed origins and their CORS headers, a per-IP request
+ * rate, the JSON body, and a 500 instead of a crash when the handler throws. The socket upgrade goes
+ * through `refuse` too, since browsers apply no CORS to WebSockets.
  */
 export class HttpGate {
 	private readonly origins: RegExp[];
@@ -35,20 +36,36 @@ export class HttpGate {
 	/** Wrap a handler with the checks above. */
 	public route(handler: RouteHandler): (request: BunRequest) => Promise<Response> {
 		return async (request: BunRequest): Promise<Response> => {
-			const cors = this.corsHeaders(request.headers.get("origin") ?? "");
+			const refusal = this.refuse(request);
 
-			if (!cors) {
-				return new Response("Forbidden", { status: 403 });
+			if (refusal) {
+				return refusal;
 			}
 
 			const response = await this.invoke(handler, request);
 
-			for (const key in cors) {
-				response.headers.set(key, cors[key]!);
-			}
+			response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin") ?? "");
+			response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+			response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+			response.headers.set("Access-Control-Allow-Credentials", "true");
 
 			return response;
 		};
+	}
+
+	/** A 403 for an origin that is not allowed, a 429 past the request rate, or undefined when the request may go through. Counts toward the rate. */
+	public refuse(request: BunRequest): Response | undefined {
+		const origin = request.headers.get("origin") ?? "";
+
+		if (!this.origins.some((regex) => regex.test(origin))) {
+			return new Response("Forbidden", { status: 403 });
+		}
+
+		if (this.requests.increment(this.ip(request)) > this.options.maxRequestRate) {
+			return new Response("Too many requests", { status: 429 });
+		}
+
+		return undefined;
 	}
 
 	/** The answer to a CORS preflight. */
@@ -76,11 +93,6 @@ export class HttpGate {
 
 	private async invoke(handler: RouteHandler, request: BunRequest): Promise<Response> {
 		const ip = this.ip(request);
-
-		if (this.requests.increment(ip) > this.options.maxRequestRate) {
-			return new Response("Too many requests", { status: 429 });
-		}
-
 		let data: unknown;
 
 		if (request.method === "POST") {
@@ -100,20 +112,6 @@ export class HttpGate {
 
 			return new Response("Internal Server Error", { status: 500 });
 		}
-	}
-
-	/** The CORS headers for an allowed origin, or `null` when it is not allowed. */
-	private corsHeaders(origin: string): Record<string, string> | null {
-		if (!this.origins.some((regex) => regex.test(origin))) {
-			return null;
-		}
-
-		return {
-			"Access-Control-Allow-Origin": origin,
-			"Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-			"Access-Control-Allow-Headers": "Content-Type",
-			"Access-Control-Allow-Credentials": "true",
-		};
 	}
 
 	/** `*` is any run of characters, `*://` any of http and https; everything else matches itself. */

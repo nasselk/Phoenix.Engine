@@ -17,8 +17,6 @@ export class Socket extends EventEmitter {
         this.socket = socket;
         this.protocol = protocol;
         this.ip = socket.data.ip ?? socket.remoteAddress;
-        this.sessionID = socket.data.sessionID;
-        this.reconnectionToken = socket.data.reconnectionToken;
         this.lastMessage = performance.now();
         this.messages = 0;
         this.rates = new CounterMap();

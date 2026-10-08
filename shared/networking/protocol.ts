@@ -67,6 +67,9 @@ export const MAX_EVENTS = 255;
  */
 export const PING_CODE = 255;
 
+/** The path the server takes WebSocket upgrades on. */
+export const SOCKET_ROUTE = "/ws";
+
 /**
  * The runtime half of a {@link Side}: one direction's event ⇄ code table and its schemas.
  *
