@@ -14,25 +14,19 @@ export type PositionEntityOptions = EntityOptions & {
     readonly roll?: number;
 };
 export declare abstract class PositionEntity<C> extends Entity<C> {
-    private static readonly FRAMES_PER_SECOND;
-    private static readonly DEFAULT_SMOOTHING;
-    private static readonly SNAP_DISTANCE;
-    private static readonly SNAP_ANGLE;
     readonly position: Vector3;
     readonly targetPosition: Vector3;
     readonly rotation: Quaternion;
     readonly targetRotation: Quaternion;
     readonly group: Group;
-    smoothPosition: boolean;
-    positionSmoothing: number;
-    smoothRotation: boolean;
-    rotationSmoothing: number;
     constructor(world: World<any, any>, context: C, options?: PositionEntityOptions);
     onSpawn(): void;
     onDestroy(): void;
     teleport(position: Vector3Like): void;
     teleport(x: number, y: number, z: number): void;
     update(deltaTime: number): void;
+    protected updatePosition(deltaTime: number): void;
+    protected updateRotation(deltaTime: number): void;
     protected syncGroup(): void;
     deserialize(reader: BufferReader): void;
     deserializeUpdate(reader: BufferReader): void;

@@ -19,7 +19,7 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 | Keys and mouse buttons | `binds` option + `engine.inputs.onActionStart/isActionRunning` |
 | A touch stick, a HUD layout | `Joystick`, `GridLayout` from `phoenix.engine/ui/*.svelte` |
 | Following an entity with the camera | `engine.renderer.camera.target = entity.position` |
-| Smoothing, easing, tweens | `Interpolator.lerp/lerpAngle/lerpVector/slerpQuaternion/tween*` |
+| Smoothing, easing, tweens | `Interpolator.lerp/lerpAngle/lerpVector/slerpQuaternion/tween*`; an entity's own motion in `updatePosition`/`updateRotation` |
 | Angles | `angleDistance`, `signedAngleDistance`, `normalizeAnglePI`, `wrap`; turn toward a point with `entity.yaw = position.azimuthTo(target)` |
 | What is near a player (interest management, AoE, proximity) | `SpatialGrid`: `insert`/`update`/`remove`, then `query(center, radius, out)` |
 | Packing a small number into a few bits | `BufferWriter.toPrecision` / `BufferReader.fromPrecision` |
@@ -154,12 +154,11 @@ Entity<C>                                    abstract
 ├─ onSpawn(), onDestroy(), destroy()
 └─ PositionEntity<C>
    ├─ group: three.Group                     put your meshes here; placed at position/rotation every frame
-   ├─ position, targetPosition: Vector3      position eases toward the server's targetPosition
-   ├─ rotation, targetRotation: Quaternion   slerped
+   ├─ position, targetPosition: Vector3      what is shown, and what the server last said
+   ├─ rotation, targetRotation: Quaternion
    ├─ yaw                                    which way it faces
-   ├─ smoothPosition, positionSmoothing      ease toward the server's position, closing this share of the gap per 60 Hz frame (0.25)
-   ├─ smoothRotation, rotationSmoothing      the same for rotation; either flag false snaps every frame
-   ├─ teleport(x, y, z) / teleport(vector)   jump without easing
+   ├─ updatePosition(dt), updateRotation(dt) protected; bring position/rotation to the target each frame. Default: jump to it. Override to interpolate
+   ├─ teleport(x, y, z) / teleport(vector)   set both position and targetPosition
    └─ MovingEntity<C>                        same as PositionEntity on the client
 ```
 

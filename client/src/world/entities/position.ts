@@ -1,5 +1,4 @@
 import { BufferReader } from "@nasselk/binarypack";
-import { Interpolator } from "../../../../shared/math/interpolation";
 import { Vector3 } from "../../../../shared/math/vector3";
 import { Quaternion } from "../../../../shared/math/quaternion";
 import { Group, Vector3Like } from "three";
@@ -17,11 +16,6 @@ export type PositionEntityOptions = EntityOptions & {
 };
 
 export abstract class PositionEntity<C> extends Entity<C> {
-	private static readonly FRAMES_PER_SECOND = 60;
-	private static readonly DEFAULT_SMOOTHING = 0.25;
-	private static readonly SNAP_DISTANCE = 0.001;
-	private static readonly SNAP_ANGLE = 0.0005;
-
 	public readonly position: Vector3;
 	public readonly targetPosition: Vector3;
 
@@ -33,16 +27,6 @@ export abstract class PositionEntity<C> extends Entity<C> {
 	 * follows its position and rotation. Added to the world's group on spawn and taken out on destroy.
 	 */
 	public readonly group: Group;
-
-	/** Ease toward the server's position. Off, the entity snaps to it every frame. */
-	public smoothPosition = true;
-	/** The share of the remaining gap closed per 60 Hz frame, scaled to the real frame time. */
-	public positionSmoothing = PositionEntity.DEFAULT_SMOOTHING;
-
-	/** Turn toward the server's rotation along the shortest arc. Off, the entity snaps to it every frame. */
-	public smoothRotation = true;
-	/** The share of the remaining turn made per 60 Hz frame, scaled to the real frame time. */
-	public rotationSmoothing = PositionEntity.DEFAULT_SMOOTHING;
 
 	public constructor(world: World<any, any>, context: C, options: PositionEntityOptions = {}) {
 		super(world, context, options);
@@ -81,27 +65,19 @@ export abstract class PositionEntity<C> extends Entity<C> {
 	}
 
 	public override update(deltaTime: number): void {
-		const { FRAMES_PER_SECOND, SNAP_DISTANCE, SNAP_ANGLE } = PositionEntity;
-
-		const frames = deltaTime * FRAMES_PER_SECOND;
-
-		if (this.smoothPosition) {
-			const { position, targetPosition, positionSmoothing } = this;
-
-			Interpolator.lerpVector(position, targetPosition, positionSmoothing, frames, SNAP_DISTANCE);
-		} else {
-			this.teleport(this.targetPosition);
-		}
-
-		if (this.smoothRotation) {
-			const { rotation, targetRotation, rotationSmoothing } = this;
-
-			Interpolator.slerpQuaternion(rotation, targetRotation, rotationSmoothing, frames, SNAP_ANGLE);
-		} else {
-			this.rotation.set(this.targetRotation);
-		}
-
+		this.updatePosition(deltaTime);
+		this.updateRotation(deltaTime);
 		this.syncGroup();
+	}
+
+	/** Bring the shown `position` to what the server said, `targetPosition`. By default it jumps there; override it to interpolate. */
+	protected updatePosition(deltaTime: number): void {
+		this.position.set(this.targetPosition);
+	}
+
+	/** Bring the shown `rotation` to what the server said, `targetRotation`. By default it jumps there; override it to interpolate. */
+	protected updateRotation(deltaTime: number): void {
+		this.rotation.set(this.targetRotation);
 	}
 
 	/** Put `group` where the entity is. Every update ends with it; one that replaces this update's must call it too. */
