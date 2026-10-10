@@ -32,6 +32,7 @@ export class World extends EventEmitter {
     update(deltaTime) {
         this.time += deltaTime;
         this.ids.processTimeouts();
+        this.emit("beforeUpdate", deltaTime);
         for (const entity of this.entities.values()) {
             if (entity.alive) {
                 entity.update(deltaTime);

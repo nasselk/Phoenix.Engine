@@ -6,6 +6,8 @@ import type { EntityDefinitions, EntityRegistry, KindInstance, KindName, KindQue
 export type WorldEvents = {
 	spawn: [entity: Entity<any>];
 	destroy: [entity: Entity<any>];
+	/** Before any entity updates: what entities should see this tick, like input or a simulation of the game's own. */
+	beforeUpdate: [deltaTime: number];
 	update: [deltaTime: number];
 };
 
@@ -64,12 +66,14 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 		return entity;
 	}
 
-	/** Advance the clock, update every entity, then tell `update` listeners the tick happened. */
+	/** Advance the clock, tell `beforeUpdate` listeners, update every entity, then tell `update` listeners the tick happened. */
 	public update(deltaTime: number): void {
 		this.time += deltaTime;
 
 		// Ids whose reuse delay has run out go back in the pool, before anything this tick spawns.
 		this.ids.processTimeouts();
+
+		this.emit("beforeUpdate", deltaTime);
 
 		for (const entity of this.entities.values()) {
 			if (entity.alive) {

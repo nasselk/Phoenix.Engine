@@ -5,6 +5,7 @@ import type { EntityDefinitions, EntityRegistry, KindInstance, KindName, KindQue
 export type WorldEvents = {
     spawn: [entity: Entity<any>];
     destroy: [entity: Entity<any>];
+    beforeUpdate: [deltaTime: number];
     update: [deltaTime: number];
 };
 export type WorldOptions<D extends EntityDefinitions, C> = {

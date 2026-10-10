@@ -23,13 +23,21 @@ export abstract class MovingEntity<C> extends PositionEntity<C> {
 		this.initial = options;
 	}
 
-	/** The body gets what the options asked for — gravity, air, a starting velocity — as it is made. */
+	/** The body gets what the options asked for — gravity, air, a starting velocity — as it is made. What they leave out stays as the description has it. */
 	protected override embody(body: RigidBodyDesc, ...shapes: readonly ColliderDesc[]): RigidBody {
 		const { velocity, gravityScale, damping } = this.initial;
 
-		body.setGravityScale(gravityScale ?? 1)
-			.setLinearDamping(damping ?? 0)
-			.setLinvel(velocity?.x ?? 0, velocity?.y ?? 0, velocity?.z ?? 0);
+		if (gravityScale !== undefined) {
+			body.setGravityScale(gravityScale);
+		}
+
+		if (damping !== undefined) {
+			body.setLinearDamping(damping);
+		}
+
+		if (velocity !== undefined) {
+			body.setLinvel(velocity.x ?? 0, velocity.y ?? 0, velocity.z ?? 0);
+		}
 
 		return super.embody(body, ...shapes);
 	}

@@ -137,6 +137,19 @@ describe("PositionEntity bodies", () => {
 	});
 });
 
+describe("MovingEntity", () => {
+	test("its options set gravity on the body, and leave the body's own description alone when they say nothing", () => {
+		const room = createRoom();
+		const floating = room.spawn("box", { y: 5, floating: true });
+		const falling = room.spawn("box", { x: 3, y: 5, floating: true, gravityScale: 1 });
+
+		step(room, 30);
+
+		expect(floating.position.y).toBe(5);
+		expect(falling.position.y).toBeLessThan(5);
+	});
+});
+
 describe("PositionEntity touches", () => {
 	test("a solid contact starts a touch once, and moving apart ends it", () => {
 		const room = createArena();

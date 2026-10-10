@@ -7,9 +7,9 @@ import { World as ServerWorld } from "../server/src/world/world";
 import { RAPIER } from "../shared/physics/rapier";
 import { defineEntities, type EntityDefinitions, type EntityRegistry } from "../shared/world/registry";
 
-export type BoxOptions = { id?: number; x?: number; y?: number; z?: number; fixed?: boolean; upright?: boolean; halfSize?: [number, number, number] };
+export type BoxOptions = { id?: number; x?: number; y?: number; z?: number; fixed?: boolean; upright?: boolean; floating?: boolean; gravityScale?: number; halfSize?: [number, number, number] };
 
-/** A cube with a body: dynamic unless `fixed`, unable to tip when `upright`. Call `initPhysics` before spawning one. `settled` is whether its body sleeps. */
+/** A cube with a body: dynamic unless `fixed`, unable to tip when `upright`, described with no gravity when `floating`. Call `initPhysics` before spawning one. `settled` is whether its body sleeps. */
 export class Box extends MovingEntity<unknown> {
 	public constructor(world: ServerWorld<any, unknown>, context: unknown, options: BoxOptions = {}) {
 		super(world, context, options);
@@ -19,6 +19,10 @@ export class Box extends MovingEntity<unknown> {
 
 		if (options.upright) {
 			body.lockRotations();
+		}
+
+		if (options.floating) {
+			body.setGravityScale(0);
 		}
 
 		this.embody(body, RAPIER.ColliderDesc.cuboid(x, y, z));

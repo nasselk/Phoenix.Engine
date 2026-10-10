@@ -247,7 +247,7 @@ Entity<C>                                    abstract
    ├─ teleport(x, y, z) / teleport(vector)
    ├─ room                                   protected: the World it is in
    └─ MovingEntity<C>
-      ├─ options: velocity { x, y, z }, gravityScale, damping
+      ├─ options: velocity { x, y, z }, gravityScale, damping   left out: the body description's own
       └─ applyImpulse(x, y, z)
 ```
 
@@ -261,7 +261,7 @@ Worlds (both sides)                          client World and server room
 ├─ has(id, kind?), each(kind, cb), all(kind) → [], count(kind)   kind is a name or a class
 ├─ clear(...kinds), destroy()
 ├─ entities: Map<id, Entity>, size, capacity, registry, time
-└─ on("spawn" [entity] | "destroy" [entity] | "update" [dt])
+└─ on("spawn" [entity] | "destroy" [entity] | "beforeUpdate" [dt] | "update" [dt])   beforeUpdate: before any entity updates (input, a local simulation)
 
 SpatialGrid<T extends { position }>(cellSize)   what is near a point, without scanning everything
 ├─ insert(item), update(item) after it moved (cheap if it stayed in its cell), remove(item), has(item), clear(), size

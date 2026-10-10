@@ -45,7 +45,6 @@ export class DesktopCamera extends OrbitCamera {
 	protected override listen(element: HTMLElement | Window): void {
 		element.addEventListener("pointerdown", this.onPointerDown as EventListener);
 		element.addEventListener("wheel", this.onWheel as EventListener, { passive: true });
-		// On the window rather than the element: a drag that leaves the canvas still turns the camera.
 		window.addEventListener("pointermove", this.onPointerMove);
 		window.addEventListener("pointerup", this.onPointerUp);
 		window.addEventListener("pointercancel", this.onPointerUp);

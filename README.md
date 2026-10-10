@@ -267,7 +267,7 @@ room.each(Crate, (crate) => …);
 room.all("player");           // by kind name, typed from the registry
 room.count(Player);
 room.clear("crate");
-room.on("spawn" | "destroy" | "update", …);
+room.on("spawn" | "destroy" | "beforeUpdate" | "update", …);
 ```
 
 On the **server**, a world is a **room**: it also has an `inviteCode`, `maxPlayers`, `public`, the `sockets` that joined it, a Rapier `physics` world, and `spawn`, `join`, `leave`, `frame`, `clean` and `broadcast`. `room.join(socket)` returns `false` when the socket is already in it or it is full, and takes the socket out of any other room first. `socket.room` says which room a socket is in; `socket.data` is the game's own per-socket data, typed by augmenting `SocketData`:
@@ -290,7 +290,7 @@ Every game object is a class. Each side has its own chain, and they differ in ex
 | --- | --- | --- |
 | `Entity` | `update(dt)`, `serialize(writer)`, `serializeUpdate(writer)`, `isDirty`, `clean()` | `update(dt)`, `deserialize(reader)`, `deserializeUpdate(reader)`, and `render(dt)`: a hook for the game to refresh visuals (after a size change, say); the engine never calls it |
 | `PositionEntity` | `position` (an `ObservableVector3`), `rotation` (an `ObservableQuaternion`), `yaw` (get and set), a Rapier `body`, `embody(desc, ...shapes)`, `beforePhysics()`/`afterPhysics()` | `position` and `rotation` (a `Quaternion`) brought to `targetPosition`/`targetRotation` by `updatePosition`/`updateRotation`, `yaw`, a three.js `group` placed there every frame |
-| `MovingEntity` | Options for a starting `velocity`, `gravityScale`, `damping`; `applyImpulse` | — |
+| `MovingEntity` | Options for a starting `velocity`, `gravityScale`, `damping`, each set on the body only when given; `applyImpulse` | — |
 
 A **box, a crate, a player are the game's classes**, written once per side, extending these. Behaviour goes in the entity's own `update`. Lifecycle hooks are `onSpawn` and `onDestroy`; `destroy()` removes an entity.
 
@@ -311,11 +311,11 @@ A **name** is what the two sides agree on — never a class. A kind's wire code 
 
 Every server tick, for every room, in this order:
 
-1. every entity's `update(dt)` — game rules, input turned into velocity;
+1. the room's `"beforeUpdate"` event, then every entity's `update(dt)` — game rules, input turned into velocity;
 2. the physics step: `beforePhysics()` on every body (code-driven rotation goes in), `physics.step()`, then `afterPhysics()` (Rapier's positions come back out), then `onTouch`/`onTouchEnd` for every touch that started or ended;
 3. the room's `"update"` event — where a game sends its frames, then calls `room.clean()`.
 
-So what goes out in a frame is always the state *after* contact. The client runs the same shape every display frame: `world.update(dt)` (every entity eases toward the last state the server sent, and its `group` follows), then the renderer's `"render"` event (the place for code that must see this frame's positions), then `camera.update(dt)` (the camera follows its target), then the draw.
+So what goes out in a frame is always the state *after* contact. The client runs the same shape every display frame: `world.update(dt)` (`"beforeUpdate"` listeners, then every entity's `update`: `updatePosition`/`updateRotation` bring what is shown to what the server sent, as the game decides, and its `group` follows), then the renderer's `"render"` event (the place for code that must see this frame's positions), then `camera.update(dt)` (the camera follows its target), then the draw.
 
 ### Physics
 
