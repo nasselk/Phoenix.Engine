@@ -128,7 +128,7 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  ├─ simulate(event, data)                  feed a message locally, for tests and offline play
 │  ├─ latency, loss                          simulated lag (ms) and loss (0…1)
 │  ├─ stats { in, out: { bps, mps }, latency }, readyState: NetworkState, buffered, protocol
-│  │                                         latency: the engine pings the server once a second, no game event needed
+│  │                                         latency: set by the game from its own ping events; EditorView shows it
 │  └─ on("connection" | "disconnection" [code, reason, manual] | "reconnection" | "message" [event, reader] | "stats" [stats])
 │
 ├─ loop: GameLoop

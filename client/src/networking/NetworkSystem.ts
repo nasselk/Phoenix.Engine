@@ -6,7 +6,7 @@ import { wait } from "../../../shared/utils/timers/wait";
 
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { MessageHandlers } from "../../../shared/networking/handlers";
-import { PING_CODE, Protocol, SOCKET_ROUTE, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
+import { Protocol, SOCKET_ROUTE, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
 import { BufferReader, type Buffers } from "@nasselk/binarypack";
 
 type NetworkEvents = {
@@ -25,6 +25,7 @@ export type NetworkChannelStats = {
 export type NetworkStats = {
 	readonly in: NetworkChannelStats;
 	readonly out: NetworkChannelStats;
+	/** Round-trip time to the server, in milliseconds, as the game measures it with its own events. Shown by EditorView. */
 	latency: number;
 };
 
@@ -70,11 +71,6 @@ export class NetworkSystem<
 	// Never passed: an alias, so everything below reads `C` rather than the four pieces it is built from.
 	C extends Contract = ContractOf<In, Out, InSchemas, OutSchemas>,
 > extends EventEmitter<NetworkEvents> {
-	private static readonly PING = new Uint8Array([PING_CODE]);
-
-	/** When the last ping left, to time its answer. */
-	private pingSentAt = 0;
-
 	public readonly protocol: Protocol<C>;
 	private readonly handlers: MessageHandlers<(data: any) => void>;
 	private socket?: WebSocket | null;
@@ -260,15 +256,6 @@ export class NetworkSystem<
 		}
 	}
 
-	/** Time a round trip to the server: `stats.latency` is set when the answer arrives. */
-	private ping(): void {
-		if (this.readyState === NetworkState.OPEN) {
-			this.pingSentAt = performance.now();
-
-			void this.transmit(NetworkSystem.PING);
-		}
-	}
-
 	private async handle(data: Buffers): Promise<this> {
 		this.state.in.bytes += data.byteLength;
 		this.state.in.messages++;
@@ -288,12 +275,6 @@ export class NetworkSystem<
 		}
 
 		const code = reader.readUint8();
-
-		if (code === PING_CODE) {
-			this.stats.latency = performance.now() - this.pingSentAt;
-
-			return this;
-		}
 
 		const event = this.protocol.in.name(code);
 
@@ -346,7 +327,6 @@ export class NetworkSystem<
 
 		this.resetStats();
 		this.statsTimer.resume();
-		this.ping();
 
 		this.emit("connection");
 
@@ -398,8 +378,6 @@ export class NetworkSystem<
 		this.resetStats(now);
 
 		this.emit("stats", stats);
-
-		this.ping();
 	}
 
 	private resetStats(now: number = performance.now()): void {

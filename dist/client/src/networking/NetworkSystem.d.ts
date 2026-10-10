@@ -38,8 +38,6 @@ export declare enum NetworkState {
     CLOSED = 3
 }
 export declare class NetworkSystem<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, C extends Contract = ContractOf<In, Out, InSchemas, OutSchemas>> extends EventEmitter<NetworkEvents> {
-    private static readonly PING;
-    private pingSentAt;
     readonly protocol: Protocol<C>;
     private readonly handlers;
     private socket?;
@@ -60,7 +58,6 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private setupWebSocket;
     send<K extends OutboundEvent<C>>(event: K, ...[data]: SendPayload<C, K>): Promise<this>;
     private transmit;
-    private ping;
     private handle;
     onMessage<K extends InboundEvent<C>>(event: K, callback: (data: MessagePayload<C, K>) => void): () => void;
     simulate<K extends InboundEvent<C>>(event: K, data: MessagePayload<C, K>): void;

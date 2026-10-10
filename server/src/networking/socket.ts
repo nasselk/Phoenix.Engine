@@ -2,7 +2,7 @@ import type { ServerWebSocket } from "bun";
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { warn } from "../../../shared/utils/logger";
-import { PING_CODE, type Contract, type InboundEvent, type MessagePayload, type OutboundEvent, type Protocol, type SendPayload } from "../../../shared/networking/protocol";
+import { type Contract, type InboundEvent, type MessagePayload, type OutboundEvent, type Protocol, type SendPayload } from "../../../shared/networking/protocol";
 import { Seen } from "../world/replication";
 import type { World } from "../world/world";
 
@@ -36,8 +36,6 @@ export enum SocketState {
 }
 
 export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEvents<C>> {
-	private static readonly PING = new Uint8Array([PING_CODE]);
-
 	public readonly id: number;
 	public readonly ip: string;
 	public lastMessage: number;
@@ -82,13 +80,6 @@ export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEv
 		}
 
 		return this;
-	}
-
-	/** Answer the client's ping, with the same single byte. */
-	public answerPing(): void {
-		if (this.readyState === SocketState.OPEN) {
-			this.socket.send(Socket.PING);
-		}
 	}
 
 	/**

@@ -21,7 +21,6 @@ export declare enum SocketState {
     CLOSED = 3
 }
 export declare class Socket<C extends Contract = Contract> extends EventEmitter<SocketEvents<C>> {
-    private static readonly PING;
     readonly id: number;
     readonly ip: string;
     lastMessage: number;
@@ -35,7 +34,6 @@ export declare class Socket<C extends Contract = Contract> extends EventEmitter<
     private manuallyDisconnected;
     constructor(protocol: Protocol<C>, socket: ServerWebSocket<SocketUserData>, id: number);
     send<K extends OutboundEvent<C>>(event: K, ...[data]: SendPayload<C, K>): this;
-    answerPing(): void;
     broadcast<K extends OutboundEvent<C>>(topic: string, event: K, ...[data]: SendPayload<C, K>): this;
     cork(callback: (socket: this) => void): this;
     subscribe(topic: string): this;

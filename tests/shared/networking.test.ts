@@ -46,3 +46,13 @@ describe("MessageHandlers", () => {
 		expect(() => createHandlers().add("jump", () => {})).toThrow();
 	});
 });
+
+describe("ProtocolChannel", () => {
+	test("a direction declares up to 256 events, one per byte, the last one included", () => {
+		const events = Array.from({ length: 256 }, (_, code) => `event${code}`);
+		const channel = new ProtocolChannel({ events }, "inbound");
+
+		expect(channel.name(255)).toBe("event255");
+		expect(() => new ProtocolChannel({ events: [...events, "one more"] }, "inbound")).toThrow(RangeError);
+	});
+});

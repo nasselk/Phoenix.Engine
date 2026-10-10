@@ -1,7 +1,6 @@
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { warn } from "../../../shared/utils/logger";
-import { PING_CODE } from "../../../shared/networking/protocol";
 import { Seen } from "../world/replication";
 export var SocketState;
 (function (SocketState) {
@@ -30,11 +29,6 @@ export class Socket extends EventEmitter {
             this.socket.send(buffer);
         }
         return this;
-    }
-    answerPing() {
-        if (this.readyState === SocketState.OPEN) {
-            this.socket.send(Socket.PING);
-        }
     }
     broadcast(topic, event, ...[data]) {
         this.socket.publish(topic, this.protocol.encode(event, data));
@@ -79,4 +73,3 @@ export class Socket extends EventEmitter {
         return this.socket?.readyState ?? SocketState.CLOSED;
     }
 }
-Socket.PING = new Uint8Array([PING_CODE]);

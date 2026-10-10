@@ -1,6 +1,5 @@
 import { BufferReader, BufferWriter } from "@nasselk/binarypack";
-export const MAX_EVENTS = 255;
-export const PING_CODE = 255;
+export const MAX_EVENTS = 256;
 export const SOCKET_ROUTE = "/ws";
 export class ProtocolChannel {
     constructor(side, label) {

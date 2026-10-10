@@ -3,7 +3,7 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";
 import { error, log } from "../../../shared/utils/logger";
 import { MessageHandlers } from "../../../shared/networking/handlers";
-import { PING_CODE, Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
+import { Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
 import { HttpGate } from "./http";
 import { Socket } from "./socket";
 import { Interval } from "../../../shared/utils/timers/timer";
@@ -163,10 +163,6 @@ export class NetworkSystem extends EventEmitter {
         }
         const reader = new BufferReader(message);
         const code = reader.readUint8();
-        if (code === PING_CODE) {
-            socket.answerPing();
-            return;
-        }
         const event = this.protocol.in.name(code);
         if (event === undefined) {
             socket.disconnect("Unknown event", 1003);
