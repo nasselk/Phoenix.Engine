@@ -19,7 +19,11 @@ export type LoopStats = {
 	};
 };
 
-/** The server's loop: a tick as soon as the rate allows, polled with `setTimeout`, or `setImmediate` in turbo. */
+/**
+ * The server's loop: fixed ticks of exactly 1 / TPS seconds, as many as the time that passed holds,
+ * polled with `setTimeout`, or `setImmediate` in turbo. A server that falls behind catches up with
+ * several ticks in a row, up to a tenth of a second's worth; past that it slows down.
+ */
 export class GameLoop extends Loop<"tick", LoopStats> {
 	/** Poll with `setImmediate` instead of a 1 ms `setTimeout`: closer to the rate, at the cost of a busy core. */
 	public turbo: boolean;
@@ -30,7 +34,7 @@ export class GameLoop extends Loop<"tick", LoopStats> {
 	private immediate = false;
 
 	public constructor(config?: Partial<GameLoopParams>) {
-		super("tick", "Game Loop", config?.TPS ?? 60, config?.speed ?? 1);
+		super("tick", "Game Loop", config?.TPS ?? 60, config?.speed ?? 1, true);
 
 		this.turbo = config?.turbo ?? false;
 

@@ -201,6 +201,7 @@ Engine<In, Out, InSchemas, OutSchemas, D, C>                new Engine(options),
 │
 └─ loop: GameLoop
    ├─ maxTickRate, turbo, speed, tickID, lastTickTime, paused, pause(), resume()
+   ├─ fixed ticks: dt is always 1 / TPS × speed; behind, it catches up (≤ 0.1 s of ticks in a row) and drops the rest
    ├─ stats { TPS, low99, ticks, mspt, memory { total, heap, arraybuffer } }
    └─ on("tickStart" [now] | "tick" [dt, now] | "tickEnd" [tickTime, now] | "stats" | "pause" | "resume" | "destroy")
 

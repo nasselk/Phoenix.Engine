@@ -225,7 +225,7 @@ There is one `Engine` per process on each side, and it owns every subsystem.
 | `entities` | The registry from `defineEntities`: the kinds every room can spawn. |
 | `context` | Handed to every entity as `this.context`. Defaults to the engine; a game passes itself. |
 | `network` | `in`/`out` event lists and schemas, `limits` per event, `port`, `origins`, `TLS`, `proxied`, and `ws`/`http` transport limits. |
-| `loop` | `TPS` (ticks per second), `turbo`, `speed`. |
+| `loop` | `TPS` (ticks per second), `turbo`, `speed`. Every tick is exactly `1 / TPS` seconds (times `speed`): a server that falls behind runs several in a row to catch up, up to a tenth of a second's worth, and drops the rest. So each step of the physics is the same, and a client predicting its own player can run the same steps. |
 | `rooms` | `maximum` rooms per process: `createRoom` throws past it. |
 
 `await engine.init()` loads Rapier, opens the network and starts the loop.

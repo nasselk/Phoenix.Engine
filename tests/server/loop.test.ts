@@ -29,19 +29,19 @@ describe("GameLoop", () => {
 	});
 
 	for (const turbo of [true, false]) {
-		test(`never ticks faster than its rate, and its steps add up to the time that passed (turbo: ${turbo})`, async () => {
+		test(`every tick is exactly 1 / TPS, and the ticks add up to the time that passed (turbo: ${turbo})`, async () => {
 			const steps = await run(turbo, 2);
 
 			expect(steps.length).toBeLessThanOrEqual(121);
-			expect(Math.min(...steps)).toBeGreaterThanOrEqual(1 / 60 - 1e-9);
+			expect(steps.every((step) => step === 1 / 60)).toBe(true);
 			expect(Math.abs(sum(steps) - 2)).toBeLessThan(0.1);
 		});
 	}
 
-	test("caps a step at a tenth of a second after a stall", async () => {
+	test("after a stall, catches up with ticks worth a tenth of a second at most, and drops the rest", async () => {
 		let stalled = false;
 
-		const steps = await run(true, 0.5, () => {
+		const steps = await run(true, 1, () => {
 			if (!stalled) {
 				stalled = true;
 
@@ -51,6 +51,7 @@ describe("GameLoop", () => {
 			}
 		});
 
-		expect(Math.max(...steps)).toBeCloseTo(0.1, 5);
+		expect(steps.every((step) => step === 1 / 60)).toBe(true);
+		expect(Math.abs(sum(steps) - 0.8)).toBeLessThan(0.05);
 	});
 });

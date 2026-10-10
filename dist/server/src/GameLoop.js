@@ -2,7 +2,7 @@ import { Loop } from "../../shared/utils/Loop";
 import { createTimings, toRate } from "../../shared/utils/perfStats";
 export class GameLoop extends Loop {
     constructor(config) {
-        super("tick", "Game Loop", config?.TPS ?? 60, config?.speed ?? 1);
+        super("tick", "Game Loop", config?.TPS ?? 60, config?.speed ?? 1, true);
         this.immediate = false;
         this.turbo = config?.turbo ?? false;
         this.stats = {

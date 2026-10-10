@@ -15,6 +15,11 @@ export type LoopEvents<Step extends string, Stats> = { [K in `${Step}Start`]: [n
  * What both sides' game loops share: the rate cap, the step's delta (capped at a tenth of a second
  * after a stall, scaled by `speed`), the step counter, the timers driven by the loop, and the samples
  * behind the stats. A side only says how the next run is scheduled and what its stats hold.
+ *
+ * A fixed loop steps exactly 1 / rate seconds every time, as many times as the time that passed holds
+ * (up to a tenth of a second's worth after a stall, then the rest is dropped), so every step of a
+ * simulation is the same and a client can run the same steps. A loop that is not fixed steps once per
+ * run by however long it was, at most `rate` times a second.
  */
 export abstract class Loop<Step extends string, Stats> extends EventEmitter<LoopEvents<Step, Stats>> {
 	private static readonly MAX_ID = 2 ** 32 - 1;
@@ -34,12 +39,16 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 	private readonly events: { readonly start: string; readonly step: string; readonly end: string };
 	private readonly statsTimer: Interval;
 	private running: boolean;
+	/** In a fixed loop: milliseconds that passed and were not stepped yet, and when that was last counted. */
+	private owed = 0;
+	private counted = 0;
 
 	protected constructor(
 		step: Step,
 		private readonly label: string,
 		maxRate: number,
 		speed: number,
+		private readonly fixed = false,
 	) {
 		super();
 
@@ -68,6 +77,8 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 		if (!this.running) {
 			this.running = true;
 			this.last = performance.now();
+			this.owed = 0;
+			this.counted = this.last;
 			this.samples.reset(this.last);
 			this.schedule(this.run);
 			this.statsTimer.resume();
@@ -113,12 +124,30 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 
 		this.schedule(this.run);
 
-		const interval = now - this.last;
-		const deltaTime = Math.min(interval, Loop.MAX_STEP) * this.speed;
+		const period = 1000 / (this.maxRate || Infinity);
 
-		if (deltaTime < (1000 / (this.maxRate || Infinity)) * this.speed) {
+		if (this.fixed && period > 0) {
+			this.owed = Math.min(this.owed + now - this.counted, Math.max(Loop.MAX_STEP, period));
+			this.counted = now;
+
+			while (this.owed >= period && this.running) {
+				this.owed -= period;
+				this.step(period * this.speed, performance.now());
+			}
+
 			return;
 		}
+
+		if (now - this.last < period) {
+			return;
+		}
+
+		this.step(Math.min(now - this.last, Loop.MAX_STEP) * this.speed, now);
+	};
+
+	/** One step of `deltaTime` milliseconds. */
+	private step(deltaTime: number, now: number): void {
+		const interval = now - this.last;
 
 		this.last = now;
 		this.id = this.id === Loop.MAX_ID ? 0 : this.id + 1;
@@ -133,7 +162,7 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 
 		this.fire(this.events.end, end - now, end);
 		this.samples.push(interval, end - now);
-	};
+	}
 
 	private report(): void {
 		const now = performance.now();

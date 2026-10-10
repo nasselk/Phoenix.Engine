@@ -3,27 +3,31 @@ import { log } from "./logger";
 import { PerfSampler } from "./perfStats";
 import { Interval, Timer } from "./timers/timer";
 export class Loop extends EventEmitter {
-    constructor(step, label, maxRate, speed) {
+    constructor(step, label, maxRate, speed, fixed = false) {
         super();
         this.label = label;
+        this.fixed = fixed;
+        this.owed = 0;
+        this.counted = 0;
         this.run = (now = performance.now()) => {
             if (!this.running) {
                 return;
             }
             this.schedule(this.run);
-            const interval = now - this.last;
-            const deltaTime = Math.min(interval, Loop.MAX_STEP) * this.speed;
-            if (deltaTime < (1000 / (this.maxRate || Infinity)) * this.speed) {
+            const period = 1000 / (this.maxRate || Infinity);
+            if (this.fixed && period > 0) {
+                this.owed = Math.min(this.owed + now - this.counted, Math.max(Loop.MAX_STEP, period));
+                this.counted = now;
+                while (this.owed >= period && this.running) {
+                    this.owed -= period;
+                    this.step(period * this.speed, performance.now());
+                }
                 return;
             }
-            this.last = now;
-            this.id = this.id === Loop.MAX_ID ? 0 : this.id + 1;
-            this.fire(this.events.start, now);
-            Timer.runAll(now, this.speed);
-            this.fire(this.events.step, deltaTime / 1000, now);
-            const end = performance.now();
-            this.fire(this.events.end, end - now, end);
-            this.samples.push(interval, end - now);
+            if (now - this.last < period) {
+                return;
+            }
+            this.step(Math.min(now - this.last, Loop.MAX_STEP) * this.speed, now);
         };
         this.events = { start: `${step}Start`, step, end: `${step}End` };
         this.maxRate = maxRate;
@@ -39,6 +43,8 @@ export class Loop extends EventEmitter {
         if (!this.running) {
             this.running = true;
             this.last = performance.now();
+            this.owed = 0;
+            this.counted = this.last;
             this.samples.reset(this.last);
             this.schedule(this.run);
             this.statsTimer.resume();
@@ -65,6 +71,17 @@ export class Loop extends EventEmitter {
     }
     get paused() {
         return !this.running;
+    }
+    step(deltaTime, now) {
+        const interval = now - this.last;
+        this.last = now;
+        this.id = this.id === Loop.MAX_ID ? 0 : this.id + 1;
+        this.fire(this.events.start, now);
+        Timer.runAll(now, this.speed);
+        this.fire(this.events.step, deltaTime / 1000, now);
+        const end = performance.now();
+        this.fire(this.events.end, end - now, end);
+        this.samples.push(interval, end - now);
     }
     report() {
         const now = performance.now();
