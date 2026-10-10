@@ -103,4 +103,7 @@ export class World extends EventEmitter {
     get size() {
         return this.living;
     }
+    get hasAvailableEntitySlots() {
+        return this.entities.size < this.capacity;
+    }
 }

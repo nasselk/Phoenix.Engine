@@ -7,6 +7,7 @@ import { type Socket } from "../networking/socket";
 import { RAPIER } from "../../../shared/physics/rapier";
 import type { Entity } from "./entities/entity";
 import type { PositionEntity } from "./entities/position";
+import { RNG } from "../../../shared/math/random";
 export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contract = Contract> = WorldOptions<D, C> & {
     readonly inviteCode: string;
     readonly maxPlayers?: number;
@@ -16,6 +17,7 @@ export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contrac
 export declare const MAX_SERVER_WORLD_SIZE: number;
 export declare class World<D extends EntityDefinitions, C, N extends Contract = Contract> extends BaseWorld<D, C, Entity<C>> {
     readonly inviteCode: string;
+    readonly RNG: RNG;
     readonly sockets: Set<Socket<N>>;
     readonly maxPlayers: number;
     readonly public: boolean;
@@ -24,6 +26,7 @@ export declare class World<D extends EntityDefinitions, C, N extends Contract = 
     destroyed: boolean;
     private readonly network;
     private readonly replication;
+    private readonly events;
     private ticking;
     constructor(options: ServerWorldOptions<D, C, N>);
     protected allocateID(): number;
@@ -36,4 +39,6 @@ export declare class World<D extends EntityDefinitions, C, N extends Contract = 
     broadcast<E extends OutboundEvent<N>>(event: E, ...data: SendPayload<N, E>): this;
     clean(): void;
     destroy(): void;
+    private freePhysics;
+    get hasAvailableSocketSlots(): boolean;
 }

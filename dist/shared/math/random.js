@@ -43,3 +43,15 @@ export function weightedRandom(weights, random = Math.random) {
     }
     return weights.findLastIndex((weight) => weight > 0);
 }
+export class RNG {
+    constructor(seed) {
+        this.seed = seed;
+    }
+    random() {
+        const a = 1664525;
+        const c = 1013904223;
+        const m = 2 ** 32;
+        this.seed = (a * this.seed + c) % m;
+        return this.seed / m;
+    }
+}

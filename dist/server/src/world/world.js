@@ -2,6 +2,7 @@ import { World as BaseWorld } from "../../../shared/world/world";
 import { GRAVITY } from "../../../shared/physics/constants";
 import { RAPIER } from "../../../shared/physics/rapier";
 import { Replication } from "./replication";
+import { RNG } from "../../../shared/math/random";
 export const MAX_SERVER_WORLD_SIZE = 2 ** 16 - 1;
 export class World extends BaseWorld {
     constructor(options) {
@@ -22,6 +23,8 @@ export class World extends BaseWorld {
         this.network = options.network;
         this.replication = new Replication(this.registry);
         this.physics = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 });
+        this.events = new RAPIER.EventQueue(true);
+        this.RNG = new RNG(Math.floor(Math.random() * 2 ** 32));
     }
     allocateID() {
         const id = this.ids.allocate();
@@ -80,7 +83,7 @@ export class World extends BaseWorld {
         finally {
             this.ticking = false;
             if (this.destroyed) {
-                this.physics.free();
+                this.freePhysics();
             }
         }
     }
@@ -95,12 +98,23 @@ export class World extends BaseWorld {
             }
         }
         physics.timestep = deltaTime;
-        physics.step();
+        physics.step(this.events);
         for (const entity of bodies) {
             if (entity.alive) {
                 entity.afterPhysics();
             }
         }
+        this.events.drainCollisionEvents((first, second, started) => {
+            const a = physics.getCollider(first)?.parent()?.userData;
+            const b = physics.getCollider(second)?.parent()?.userData;
+            if (a === undefined || b === undefined || a === b || !a.alive || !b.alive) {
+                return;
+            }
+            a.touch(b, started);
+            if (a.alive && b.alive) {
+                b.touch(a, started);
+            }
+        });
     }
     frame(socket, visible) {
         if (socket.room !== this) {
@@ -131,7 +145,14 @@ export class World extends BaseWorld {
         super.destroy();
         this.replication.reset();
         if (!this.ticking) {
-            this.physics.free();
+            this.freePhysics();
         }
+    }
+    freePhysics() {
+        this.physics.free();
+        this.events.free();
+    }
+    get hasAvailableSocketSlots() {
+        return this.sockets.size < this.maxPlayers;
     }
 }

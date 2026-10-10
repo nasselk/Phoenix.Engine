@@ -14,6 +14,7 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 | A model, texture or sound file | `engine.assets.load(kind, id, url)` / `loadAll(manifest)`, then `get` or `instance(id)` |
 | Many static meshes drawn cheaply | `engine.renderer.batcher.batch(root)` |
 | Text in the 3D scene, a name tag | `new Text("…", { billboard: true })` from `phoenix.engine/text` |
+| Something touching something (kill brick, checkpoint, coin, pad) | override `onTouch(other)` / `onTouchEnd(other)` on the server entity; a zone is a collider with `setSensor(true)` |
 | A player acting on one thing (grab, buy, hit) | send the entity's `id`; the server checks it with `room.get(id, Kind)`. Never let each side pick the target |
 | Keys and mouse buttons | `binds` option + `engine.inputs.onActionStart/isActionRunning` |
 | A touch stick, a HUD layout | `Joystick`, `GridLayout` from `phoenix.engine/ui/*.svelte` |
@@ -241,6 +242,8 @@ Entity<C>                                    abstract
    ├─ body?: RAPIER.RigidBody                body.userData is the entity
    ├─ embody(bodyDesc, ...colliderDescs)     protected; call in the constructor
    ├─ beforePhysics(), afterPhysics()        copy to and from the body around the step
+   ├─ onTouch(other), onTouchEnd(other)      override to listen: once per entity pair, solid or sensor (setSensor(true)), after the step
+   ├─ isTouching(other), touch(other, started)   touch is the room's call
    ├─ teleport(x, y, z) / teleport(vector)
    ├─ room                                   protected: the World it is in
    └─ MovingEntity<C>

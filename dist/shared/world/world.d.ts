@@ -41,4 +41,5 @@ export declare abstract class World<D extends EntityDefinitions, C, E extends En
     clear(...kinds: KindQuery[]): void;
     destroy(): void;
     get size(): number;
+    get hasAvailableEntitySlots(): boolean;
 }

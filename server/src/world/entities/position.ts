@@ -2,6 +2,7 @@ import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-
 import { BufferWriter } from "@nasselk/binarypack";
 import { ObservableVector3 } from "../../../../shared/math/vector3";
 import { ObservableQuaternion, Quaternion } from "../../../../shared/math/quaternion";
+import { RAPIER } from "../../../../shared/physics/rapier";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import { Entity } from "./entity";
 import type { World } from "../world";
@@ -43,6 +44,9 @@ export abstract class PositionEntity<C> extends Entity<C> {
 	/** Whether the body was asleep after the last step: one asleep before and after a step cannot have moved. */
 	private asleep = false;
 
+	/** What it is touching, and through how many pairs of colliders, so two colliders on one entity make one touch. */
+	private readonly touching = new Map<PositionEntity<any>, number>();
+
 	public constructor(world: World<any, any>, context: C, options: PositionEntityOptions = {}) {
 		super(world, context, options);
 
@@ -72,15 +76,64 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		body.userData = this;
 
 		this.turns = body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ;
+		this.untouchAll();
 		this.body = physics.createRigidBody(body);
 
+		const listens = this.onTouch !== PositionEntity.prototype.onTouch || this.onTouchEnd !== PositionEntity.prototype.onTouchEnd;
+
 		for (const shape of shapes) {
+			if (listens) {
+				shape.setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS).setActiveCollisionTypes(RAPIER.ActiveCollisionTypes.ALL);
+			}
+
 			physics.createCollider(shape, this.body);
 		}
 
 		this.room.bodies.add(this);
 
 		return this.body;
+	}
+
+	/**
+	 * Another entity started touching this one: a solid contact, or overlapping a sensor collider
+	 * (`ColliderDesc.setSensor(true)`). Once per entity however many of their colliders touch. Override
+	 * it, or `onTouchEnd`, and this entity's colliders report touches; any other entity they touch hears
+	 * of it too. Two fixed bodies never touch: one of the two must move.
+	 */
+	public onTouch(other: PositionEntity<any>): void {}
+
+	/** Another entity stopped touching this one, moved apart or destroyed. */
+	public onTouchEnd(other: PositionEntity<any>): void {}
+
+	/** A pair of their colliders started or stopped touching. Called by the room after each step. */
+	public touch(other: PositionEntity<any>, started: boolean): void {
+		const pairs = (this.touching.get(other) ?? 0) + (started ? 1 : -1);
+
+		if (pairs > 0) {
+			this.touching.set(other, pairs);
+
+			if (started && pairs === 1) {
+				this.onTouch(other);
+			}
+		} else if (this.touching.delete(other)) {
+			this.onTouchEnd(other);
+		}
+	}
+
+	/** Whether it is touching that entity right now. */
+	public isTouching(other: PositionEntity<any>): boolean {
+		return this.touching.has(other);
+	}
+
+	/** End every touch at once, on both sides, when its body goes: its colliders will never report the end themselves. */
+	private untouchAll(): void {
+		for (const other of this.touching.keys()) {
+			if (other.touching.delete(this)) {
+				other.onTouchEnd(this);
+			}
+		}
+
+		this.touching.clear();
 	}
 
 	/** Before the step: what code decided about this body since the last one. */
@@ -119,6 +172,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		super.onDestroy();
 
 		if (this.body !== undefined) {
+			this.untouchAll();
 			this.room.physics.removeRigidBody(this.body);
 			this.room.bodies.delete(this);
 

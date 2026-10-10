@@ -4,3 +4,8 @@ export declare function randomAngle(min?: number, max?: number, random?: () => n
 export declare function randomElement<T>(array: readonly T[], random?: () => number): T;
 export declare function randomBoolean(w1?: number, w2?: number, random?: () => number): boolean;
 export declare function weightedRandom(weights: readonly number[], random?: () => number): number;
+export declare class RNG {
+    seed: number;
+    constructor(seed: number);
+    random(): number;
+}

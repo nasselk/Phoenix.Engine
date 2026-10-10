@@ -10,6 +10,7 @@ import { RAPIER } from "../../../shared/physics/rapier";
 import type { Entity } from "./entities/entity";
 import type { PositionEntity } from "./entities/position";
 import { Replication } from "./replication";
+import { RNG } from "../../../shared/math/random";
 
 export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contract = Contract> = WorldOptions<D, C> & {
 	readonly inviteCode: string;
@@ -27,6 +28,8 @@ export const MAX_SERVER_WORLD_SIZE = 2 ** 16 - 1; // 16 bits
 export class World<D extends EntityDefinitions, C, N extends Contract = Contract> extends BaseWorld<D, C, Entity<C>> {
 	/** What identifies this room: the code players join it by, and the topic its broadcasts go out on. */
 	public readonly inviteCode: string;
+
+	public readonly RNG: RNG;
 
 	/** Everyone who joined, and so hears `broadcast`. */
 	public readonly sockets = new Set<Socket<N>>();
@@ -52,6 +55,9 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 
 	private readonly replication: Replication;
 
+	/** Where a step reports colliders starting and stopping to touch. Only colliders of entities that listen report. */
+	private readonly events: RAPIER.EventQueue;
+
 	private ticking = false;
 
 	public constructor(options: ServerWorldOptions<D, C, N>) {
@@ -71,6 +77,8 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		this.network = options.network;
 		this.replication = new Replication(this.registry);
 		this.physics = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 });
+		this.events = new RAPIER.EventQueue(true);
+		this.RNG = new RNG(Math.floor(Math.random() * 2 ** 32));
 	}
 
 	/**
@@ -172,7 +180,7 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 			this.ticking = false;
 
 			if (this.destroyed) {
-				this.physics.free();
+				this.freePhysics();
 			}
 		}
 	}
@@ -192,13 +200,28 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		}
 
 		physics.timestep = deltaTime;
-		physics.step();
+		physics.step(this.events);
 
 		for (const entity of bodies) {
 			if (entity.alive) {
 				entity.afterPhysics();
 			}
 		}
+
+		this.events.drainCollisionEvents((first, second, started) => {
+			const a = physics.getCollider(first)?.parent()?.userData as PositionEntity<any> | undefined;
+			const b = physics.getCollider(second)?.parent()?.userData as PositionEntity<any> | undefined;
+
+			if (a === undefined || b === undefined || a === b || !a.alive || !b.alive) {
+				return;
+			}
+
+			a.touch(b, started);
+
+			if (a.alive && b.alive) {
+				b.touch(a, started);
+			}
+		});
 	}
 
 	/**
@@ -256,7 +279,17 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 
 		// Every entity took its body out as it went; what is left is the world's own memory, outside JavaScript's.
 		if (!this.ticking) {
-			this.physics.free();
+			this.freePhysics();
 		}
+	}
+
+	private freePhysics(): void {
+		this.physics.free();
+		this.events.free();
+	}
+
+	/** Whether the world has available slots for new sockets. */
+	public get hasAvailableSocketSlots(): boolean {
+		return this.sockets.size < this.maxPlayers;
 	}
 }

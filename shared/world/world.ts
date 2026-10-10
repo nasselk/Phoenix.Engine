@@ -212,4 +212,9 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 	public get size(): number {
 		return this.living;
 	}
+
+	/** Whether the world has available slots for new entities. */
+	public get hasAvailableEntitySlots(): boolean {
+		return this.entities.size < this.capacity;
+	}
 }

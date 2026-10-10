@@ -312,7 +312,7 @@ A **name** is what the two sides agree on — never a class. A kind's wire code 
 Every server tick, for every room, in this order:
 
 1. every entity's `update(dt)` — game rules, input turned into velocity;
-2. the physics step: `beforePhysics()` on every body (code-driven rotation goes in), `physics.step()`, then `afterPhysics()` (Rapier's positions come back out);
+2. the physics step: `beforePhysics()` on every body (code-driven rotation goes in), `physics.step()`, then `afterPhysics()` (Rapier's positions come back out), then `onTouch`/`onTouchEnd` for every touch that started or ended;
 3. the room's `"update"` event — where a game sends its frames, then calls `room.clean()`.
 
 So what goes out in a frame is always the state *after* contact. The client runs the same shape every display frame: `world.update(dt)` (every entity eases toward the last state the server sent, and its `group` follows), then the renderer's `"render"` event (the place for code that must see this frame's positions), then `camera.update(dt)` (the camera follows its target), then the draw.
@@ -331,6 +331,23 @@ this.embody(RigidBodyDesc.dynamic(), ColliderDesc.cuboid(0.5, 0.5, 0.5).setFrict
 - **Rotation** is a quaternion, `entity.rotation`, copied to and from Rapier's as it is. A body with all rotations locked (`lockRotations()`) is turned by code: set `entity.yaw` (a turn about the vertical axis, standing it upright) or `entity.rotation.setFromEuler(pitch, yaw, roll)`, and it goes into the body before each step. Otherwise the physics turns it, and its rotation comes back out after. Spawn options take `pitch`, `yaw`, `roll` in radians, applied yaw, then pitch, then roll.
 - **`body.userData`** is the entity, so a raycast or contact can find what it hit: `hit.collider.parent()?.userData`.
 - **Sleeping**: a body at rest sleeps; its position stops changing, so it drops out of every frame.
+- **Touches**: override `onTouch(other)` and `onTouchEnd(other)` on a server entity and it hears every other entity it starts or stops touching, after the step, once per pair of entities however many colliders touch. A collider with `setSensor(true)` is a zone things pass through: a kill brick, a checkpoint, a coin. Only entities that override one of the two make their colliders report, so resting crates cost nothing; the entity they touch hears of it too, through its own hooks. Destroying either side ends the touch on the other. Two fixed bodies never touch: one of the two must move.
+
+```ts
+class Coin extends PositionEntity<Game> {
+	public constructor(world: World<any, Game>, context: Game, options: PositionEntityOptions) {
+		super(world, context, options);
+		this.embody(RigidBodyDesc.fixed(), ColliderDesc.ball(0.4).setSensor(true));
+	}
+
+	public override onTouch(other: PositionEntity<any>): void {
+		if (other instanceof Player) {
+			other.coins++;
+			this.destroy();
+		}
+	}
+}
+```
 
 ### Replication
 

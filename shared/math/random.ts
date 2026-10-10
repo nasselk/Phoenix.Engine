@@ -141,3 +141,21 @@ export function weightedRandom(weights: readonly number[], random: () => number 
 
 	return weights.findLastIndex((weight) => weight > 0);
 }
+
+export class RNG {
+	public seed: number;
+
+	public constructor(seed: number) {
+		this.seed = seed;
+	}
+
+	public random() {
+		const a = 1664525;
+		const c = 1013904223;
+		const m = 2 ** 32;
+
+		this.seed = (a * this.seed + c) % m;
+
+		return this.seed / m;
+	}
+}

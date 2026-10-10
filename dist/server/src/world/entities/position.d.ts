@@ -23,8 +23,14 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     private turns;
     private readonly pushed;
     private asleep;
+    private readonly touching;
     constructor(world: World<any, any>, context: C, options?: PositionEntityOptions);
     protected embody(body: RigidBodyDesc, ...shapes: readonly ColliderDesc[]): RigidBody;
+    onTouch(other: PositionEntity<any>): void;
+    onTouchEnd(other: PositionEntity<any>): void;
+    touch(other: PositionEntity<any>, started: boolean): void;
+    isTouching(other: PositionEntity<any>): boolean;
+    private untouchAll;
     beforePhysics(): void;
     afterPhysics(): void;
     onDestroy(): void;

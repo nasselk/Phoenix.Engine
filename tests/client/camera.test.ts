@@ -105,7 +105,13 @@ describe("Camera", () => {
 		camera.flyForward = 1;
 		camera.update(0.05);
 
-		expect(camera.position.clone().sub(start).toArray().map((value) => value / 0.5)).toEqual(forward.toArray().map((value) => expect.closeTo(value, 5)));
+		expect(
+			camera.position
+				.clone()
+				.sub(start)
+				.toArray()
+				.map((value) => value / 0.5),
+		).toEqual(forward.toArray().map((value) => expect.closeTo(value, 5)));
 
 		const before = camera.position.clone();
 
