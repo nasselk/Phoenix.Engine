@@ -1,3 +1,4 @@
+import { randomSeed, RNG } from "../math/random";
 import { EventEmitter } from "../utils/EventEmitter";
 import { IDAllocator } from "../utils/IDAllocator";
 import type { Entity, EntityClass } from "./entity";
@@ -15,6 +16,8 @@ export type WorldOptions<D extends EntityDefinitions, C> = {
 	readonly capacity?: number;
 	readonly entities: EntityRegistry<D>;
 	readonly context?: C;
+	/** What its `RNG` starts from. A random seed by default. */
+	readonly seed?: number;
 };
 
 export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> = Entity<C>> extends EventEmitter<WorldEvents> {
@@ -23,6 +26,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 	public readonly registry: EntityRegistry<D>;
 	protected readonly context: C;
 	protected readonly ids = new IDAllocator();
+	public readonly RNG: RNG;
 	private living = 0;
 	public time = 0;
 
@@ -40,6 +44,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 		this.capacity = capacity;
 		this.registry = options.entities;
 		this.context = options.context as C;
+		this.RNG = new RNG(options.seed ?? randomSeed());
 	}
 
 	/**

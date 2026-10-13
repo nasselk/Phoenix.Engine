@@ -10,7 +10,6 @@ import { RAPIER } from "../../../shared/physics/rapier";
 import type { Entity } from "./entities/entity";
 import type { PositionEntity } from "./entities/position";
 import { Replication } from "./replication";
-import { RNG } from "../../../shared/math/random";
 
 export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contract = Contract> = WorldOptions<D, C> & {
 	readonly inviteCode: string;
@@ -28,8 +27,6 @@ export const MAX_SERVER_WORLD_SIZE = 2 ** 16 - 1; // 16 bits
 export class World<D extends EntityDefinitions, C, N extends Contract = Contract> extends BaseWorld<D, C, Entity<C>> {
 	/** What identifies this room: the code players join it by, and the topic its broadcasts go out on. */
 	public readonly inviteCode: string;
-
-	public readonly RNG: RNG;
 
 	/** Everyone who joined, and so hears `broadcast`. */
 	public readonly sockets = new Set<Socket<N>>();
@@ -78,7 +75,6 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		this.replication = new Replication(this.registry);
 		this.physics = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 });
 		this.events = new RAPIER.EventQueue(true);
-		this.RNG = new RNG(Math.floor(Math.random() * 2 ** 32));
 	}
 
 	/**

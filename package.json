@@ -31,8 +31,7 @@
 	},
 	"workspaces": [
 		"client",
-		"server",
-		"shared"
+		"server"
 	],
 	"engines": {
 		"node": ">=22.0.0 <23.0.0 || >=24.0.0"
@@ -52,7 +51,9 @@
 		"build:client": "rm -rf dist/client dist/client.tsconfig.tsbuildinfo && cd client && bun run build",
 		"build:server": "rm -rf dist/server dist/server.tsconfig.tsbuildinfo && cd server && bun run build",
 		"test": "bun test tests",
-		"types:check": "cd client && bun run types:check && cd ../server && bun run types:check && cd .. && tsc -p tests",
+		"types:check": "bun run --parallel types:client types:server",
+		"types:client": "cd client && bun run types:check",
+		"types:server": "cd server && bun run types:check",
 		"format": "biome format --write",
 		"prepare": "husky || true"
 	},

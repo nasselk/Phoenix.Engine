@@ -142,6 +142,12 @@ export function weightedRandom(weights: readonly number[], random: () => number 
 	return weights.findLastIndex((weight) => weight > 0);
 }
 
+/** A seed for RNG: any of the 2^32 it can start from, at random. */
+export function randomSeed(): number {
+	return randomInt(0, 2 ** 32 - 1);
+}
+
+/** A seeded source of randomness: the same seed gives the same numbers, in the same order. Pass `() => rng.random()` to any helper above. */
 export class RNG {
 	public seed: number;
 

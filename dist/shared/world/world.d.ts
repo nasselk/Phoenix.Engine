@@ -1,3 +1,4 @@
+import { RNG } from "../math/random";
 import { EventEmitter } from "../utils/EventEmitter";
 import { IDAllocator } from "../utils/IDAllocator";
 import type { Entity, EntityClass } from "./entity";
@@ -12,6 +13,7 @@ export type WorldOptions<D extends EntityDefinitions, C> = {
     readonly capacity?: number;
     readonly entities: EntityRegistry<D>;
     readonly context?: C;
+    readonly seed?: number;
 };
 export declare abstract class World<D extends EntityDefinitions, C, E extends Entity<C> = Entity<C>> extends EventEmitter<WorldEvents> {
     readonly entities: Map<number, E>;
@@ -19,6 +21,7 @@ export declare abstract class World<D extends EntityDefinitions, C, E extends En
     readonly registry: EntityRegistry<D>;
     protected readonly context: C;
     protected readonly ids: IDAllocator;
+    readonly RNG: RNG;
     private living;
     time: number;
     protected abstract allocateID(): number;

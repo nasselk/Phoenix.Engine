@@ -35,7 +35,7 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 
 ```
 Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options), one per page
-├─ options: world { entities, context?, capacity? }, network? { in, out, simulation? { latency, loss } },
+├─ options: world { entities, context?, capacity?, seed? }, network? { in, out, simulation? { latency, loss } },
 │           inputs? { binds }, loop? { FPS, speed },
 │           assets? (AssetManagerOptions), renderer? (RendererSettings), audio? { globalVolume, muteInitial },
 │           native? (true | { target, contextMenu, zoom, drag, viewport })
@@ -182,7 +182,7 @@ Engine<In, Out, InSchemas, OutSchemas, D, C>                new Engine(options),
 ├─ options: entities (defineEntities), context?, network?, loop? { TPS, turbo, speed }, rooms? { maximum }
 ├─ init()                                    loads Rapier, opens the port, starts ticking
 ├─ destroy()
-├─ createRoom({ maxPlayers?, capacity?, public = true, inviteCode? }) → World     RoomOptions
+├─ createRoom({ maxPlayers?, capacity?, public = true, inviteCode?, seed? }) → World     RoomOptions; seed: random by default
 ├─ getRoom(code), destroyRoom(code), rooms: Map<code, World>
 ├─ Room                                     type only: this engine's room type, `typeof engine.Room` or `MyEngine["Room"]`
 ├─ fullestRoom(...excludeCodes)              public room with the most players and a free seat
@@ -261,6 +261,7 @@ Worlds (both sides)                          client World and server room
 ├─ has(id, kind?), each(kind, cb), all(kind) → [], count(kind)   kind is a name or a class
 ├─ clear(...kinds), destroy()
 ├─ entities: Map<id, Entity>, size, capacity, registry, time
+├─ RNG                                       seeded by the `seed` option (random by default): RNG.random(), or () => RNG.random() to any random helper
 └─ on("spawn" [entity] | "destroy" [entity] | "beforeUpdate" [dt] | "update" [dt])   beforeUpdate: before any entity updates (input, a local simulation)
 
 SpatialGrid<T extends { position }>(cellSize)   what is near a point, without scanning everything
@@ -300,6 +301,7 @@ getOppositeAngle, degreesToRadians, radiansToDegrees      normalizeAnglePI retur
               factor is the share of the gap closed per frame; pass frames = deltaTime * 60 for frame-rate independence
 randomInt, randomFloat, randomAngle, randomBoolean(w1?, w2?, random?), randomElement(array, random?),
 weightedRandom(weights[], random?) → index   every helper takes an optional random source, for seeded runs
+RNG(seed): random() → [0, 1), seed           randomSeed() → any 32-bit seed
 wave(min, max, speed?, now?), syncedWave, pointsSyncedWave, fadeInHoldAndFadeOut
 GRAVITY (-9.81), EPSILON
 

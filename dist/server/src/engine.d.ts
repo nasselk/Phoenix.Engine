@@ -24,6 +24,7 @@ export type RoomOptions = {
     readonly capacity?: number;
     readonly public?: boolean;
     readonly inviteCode?: string;
+    readonly seed?: number;
 };
 type ContextOf<C, Self> = [C] extends [never] ? Self : C;
 export declare class Engine<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, const D extends EntityDefinitions = EntityDefinitions, C = never> extends EventEmitter<EngineEvents> {
@@ -36,7 +37,7 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     private readonly context;
     constructor(options: EngineOptions<In, Out, InSchemas, OutSchemas, D, C>);
     init(): Promise<void>;
-    createRoom({ maxPlayers, capacity, public: isPublic, inviteCode }?: RoomOptions): this["Room"];
+    createRoom({ maxPlayers, capacity, public: isPublic, inviteCode, seed }?: RoomOptions): this["Room"];
     occupancy(): Record<string, RoomOccupancy>;
     private occupancyOf;
     fullestRoom(...exclude: string[]): this["Room"] | undefined;

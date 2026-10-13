@@ -1,3 +1,4 @@
+import { randomSeed, RNG } from "../math/random";
 import { EventEmitter } from "../utils/EventEmitter";
 import { IDAllocator } from "../utils/IDAllocator";
 export class World extends EventEmitter {
@@ -14,6 +15,7 @@ export class World extends EventEmitter {
         this.capacity = capacity;
         this.registry = options.entities;
         this.context = options.context;
+        this.RNG = new RNG(options.seed ?? randomSeed());
     }
     insert(kind, entity, id) {
         if (this.living >= this.capacity) {

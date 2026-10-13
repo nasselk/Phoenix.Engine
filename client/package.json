@@ -5,8 +5,8 @@
 	"private": true,
 	"description": "Typescript multiplayer game client",
 	"scripts": {
-		"build": " bun run --bun tsc",
-		"types:check": "bun run --bun tsc --noEmit"
+		"build": "bun run --bun tsc",
+		"types:check": "bun check"
 	},
 	"dependencies": {
 		"howler": "^2.2.4",

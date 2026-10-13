@@ -20,6 +20,6 @@ export { ObservableVector3, Vector3, type Vector3Structure } from "./math/vector
 export { eulerToQuaternion, ObservableQuaternion, Quaternion, quaternionToEuler, type QuaternionStructure } from "./math/quaternion";
 export { clamp, wrap } from "./math/utils";
 export { censorText, normalizeText, validateText } from "./utils/validation/text";
-export { randomElement, randomFloat, randomInt, randomAngle, randomBoolean, weightedRandom } from "./math/random";
+export { randomElement, randomFloat, randomInt, randomAngle, randomBoolean, randomSeed, RNG, weightedRandom } from "./math/random";
 export { get, post, put, del, type RequestSettings, type Response as HTTPResponse, type ResponseError } from "./utils/fetch";
 export { extractRGBA, getRandomColor, hex, hexToRgba, isHexColor, isRGBA, rgbaToHex } from "./utils/color";

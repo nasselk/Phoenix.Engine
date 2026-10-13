@@ -101,6 +101,15 @@ describe("Engine rooms", () => {
 		expect(() => room.update(1 / 60)).not.toThrow();
 	});
 
+	test("a room draws from its seed: the same seed, the same numbers; none, a random one", () => {
+		const engine = createEngine();
+		const draw = (room: ReturnType<typeof engine.createRoom>) => [room.RNG.random(), room.RNG.random(), room.RNG.random()];
+		const first = draw(engine.createRoom({ seed: 42 }));
+
+		expect(draw(engine.createRoom({ seed: 42 }))).toEqual(first);
+		expect(draw(engine.createRoom())).not.toEqual(draw(engine.createRoom()));
+	});
+
 	test("a spawn into a full room throws and leaves no body behind", () => {
 		const engine = createEngine();
 		const room = engine.createRoom({ maxPlayers: 1, capacity: 1 });

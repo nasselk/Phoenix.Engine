@@ -43,6 +43,9 @@ export function weightedRandom(weights, random = Math.random) {
     }
     return weights.findLastIndex((weight) => weight > 0);
 }
+export function randomSeed() {
+    return randomInt(0, 2 ** 32 - 1);
+}
 export class RNG {
     constructor(seed) {
         this.seed = seed;

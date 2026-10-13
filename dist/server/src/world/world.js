@@ -2,7 +2,6 @@ import { World as BaseWorld } from "../../../shared/world/world";
 import { GRAVITY } from "../../../shared/physics/constants";
 import { RAPIER } from "../../../shared/physics/rapier";
 import { Replication } from "./replication";
-import { RNG } from "../../../shared/math/random";
 export const MAX_SERVER_WORLD_SIZE = 2 ** 16 - 1;
 export class World extends BaseWorld {
     constructor(options) {
@@ -24,7 +23,6 @@ export class World extends BaseWorld {
         this.replication = new Replication(this.registry);
         this.physics = new RAPIER.World({ x: 0, y: GRAVITY, z: 0 });
         this.events = new RAPIER.EventQueue(true);
-        this.RNG = new RNG(Math.floor(Math.random() * 2 ** 32));
     }
     allocateID() {
         const id = this.ids.allocate();

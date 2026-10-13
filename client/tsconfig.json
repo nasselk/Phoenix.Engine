@@ -6,7 +6,7 @@
 		"rootDir": "../",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"experimentalDecorators": true,
-		"types": ["vite/client", "@types/howler", "cloudflare-turnstile"]
+		"types": ["@types/howler"]
 	},
 	"include": ["src/**/*", "types/**/*", "../shared/**/*"]
 }

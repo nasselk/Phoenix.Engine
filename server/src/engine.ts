@@ -36,6 +36,8 @@ export type RoomOptions = {
 	readonly public?: boolean;
 	/** A free random code by default. */
 	readonly inviteCode?: string;
+	/** What its `RNG` starts from. A random seed by default. */
+	readonly seed?: number;
 };
 
 type ContextOf<C, Self> = [C] extends [never] ? Self : C;
@@ -124,7 +126,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	 * characters from INVITE_CODE_ALPHABET. Whatever it needs beyond entities — a sync loop, a round
 	 * timer — is built by the caller against the room it just got, and listens for `room.on("update")`.
 	 */
-	public createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.freeInviteCode() }: RoomOptions = {}): this["Room"] {
+	public createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.freeInviteCode(), seed }: RoomOptions = {}): this["Room"] {
 		if (this.rooms.has(inviteCode)) {
 			throw new Error(`A room with invite code "${inviteCode}" already exists`);
 		}
@@ -133,7 +135,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 			throw new Error(`The engine is at its maximum of ${this.maxRooms} rooms`);
 		}
 
-		const room: this["Room"] = new World({ inviteCode, maxPlayers, capacity, public: isPublic, entities: this.entities, context: this.context, network: this.network });
+		const room: this["Room"] = new World({ inviteCode, maxPlayers, capacity, public: isPublic, seed, entities: this.entities, context: this.context, network: this.network });
 
 		this.rooms.set(inviteCode, room);
 
