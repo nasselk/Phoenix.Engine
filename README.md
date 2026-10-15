@@ -58,7 +58,7 @@ One package, several subpath exports. Each side's entry point re-exports everyth
 | `phoenix.engine/client` | browser | Everything shared, plus the client `Engine`, `World` (a mirror), `Entity`/`PositionEntity`/`MovingEntity` that **read** themselves, `RenderSystem`, cameras, `InputSystem`, `AudioSystem`, `AssetManager`, `NetworkSystem`, `EditorView`, `storage`, `isMobileDevice`. |
 | `phoenix.engine/text` | browser | `Text`: crisp signed-distance-field text in the scene, optionally facing the camera; `preloadFont`, `fontLoader`, `configureText`. Separate so a game that draws no text bundles none. |
 | `phoenix.engine/native.css` | browser | Default styles that make the page behave like an app (no selection, no overscroll, no tap highlight). |
-| `phoenix.engine/ui/<Name>.svelte` | browser | Svelte 5 components: `Joystick`, `GridLayout`. |
+| `phoenix.engine/ui/<Name>.svelte` | browser | Svelte 5 components: `Joystick`, `GridLayout`, `EngineEditor`. |
 
 The game imports Rapier, three.js and Svelte from their own packages; the engine re-exports none of them. `@nasselk/binaryschema` is a peer too: the game installs it and writes its event schemas with it, and the engine only calls the schemas it is handed. `@nasselk/binarypack` is the other way round: the engine creates and checks buffers itself, so it is the engine's own dependency, re-exported from `phoenix.engine`. A game never installs it and imports `BufferReader`/`BufferWriter` from `phoenix.engine`.
 
@@ -252,7 +252,7 @@ A room is safe to destroy from inside its own tick, with `engine.destroyRoom(cod
 | `loop` | `FPS` cap (`Infinity` for the display's rate), `speed`. |
 | `renderer` | Resolution, background, fullscreen, WebGL/WebGPU, `shadows` (a three.js shadow map type such as `PCFShadowMap`; unset, no shadows), `toneMapping` (such as `NeutralToneMapping`) and `exposure`, and three.js renderer parameters. |
 | `audio` | `globalVolume` (0 to 1) and `muteInitial`. |
-| `native` | App-like page behaviour (no context menu, no pinch zoom). On by default. |
+| `native` | App-like page behaviour (no context menu, no pinch zoom, no focus from Tab or from a press on a button). On by default. |
 
 `await engine.init()` builds the renderer, the audio context and the inputs, then starts the loop. `engine.isMobile` says which camera controls were chosen.
 
@@ -430,12 +430,14 @@ Socket API: `socket.send(event, data)`, `socket.cork(fn)` (batch), `socket.disco
 import "phoenix.engine/native.css";                        // first, so the game's styles override it
 import Joystick from "phoenix.engine/ui/Joystick.svelte";  // multi-touch virtual stick
 import GridLayout from "phoenix.engine/ui/GridLayout.svelte";
+import EngineEditor from "phoenix.engine/ui/EngineEditor.svelte";  // development editor panel
 ```
 
 - **`Joystick`**: placed with `top`/`left`/`right`/`bottom`, sized with `size` (any CSS length), with a `deadZone` (default 0.15). With a `stickyZone` element, pressing anywhere in it brings the stick to the finger, and `fade` hides it while nobody holds it. `onmove` gives `{ x, y, angle, distance }`: `angle` counterclockwise from the right, `distance` from 0 to 1 with the dead zone already taken out. Use these as they are. `onstart` and `onstop` bracket a touch. Styled through CSS variables: `--joystick-size`, `--joystick-base`, `--joystick-base-border`, `--joystick-blur`, `--joystick-layer`, `--joystick-fade-time`, `--joystick-stick`, `--joystick-stick-size`, `--joystick-stick-border`, `--joystick-stick-held`, `--joystick-return`. Unset, they fall back to the `--ui-*` tokens a game may define (`--ui-sunken`, `--ui-accent-fill`, …), then to built-in colours.
 - **`GridLayout`**: a full-screen 3 × 3 grid filled through snippets (`top_left`, `top_center`, … `bottom_right`), with `padding` and `gap`. Each cell stacks its content along `<cell>_direction`: `"row"` by default in the centre column, `"column"` on the sides. The grid lets clicks through except on what a cell holds.
+- **`EngineEditor`**: the development editor, drawn over the game: a vertical toolbar on the left with the tools play (`none`), free camera, select, move and rotate, and remove (`EditorTool`). Picking one highlights it; the tools do nothing yet. It takes no props yet. Its look is its own (translucent glass, an orange highlight) and ignores the game's theme; it scales with the window like the template's interface. Load it only in development, with a dynamic `import()` behind `import.meta.env.DEV`, so it stays out of the production bundle.
 
-The engine's `native` option (on by default) blocks the context menu, pinch zoom and dragging out of the page; `native.css` makes the page unselectable and removes overscroll and tap highlights.
+The engine's `native` option (on by default) blocks the context menu, pinch zoom and dragging out of the page, and keeps focus off buttons: Tab moves nothing, and a click or tap on a button does not focus it (so no focus ring, and Space does not press it again), while text fields focus as usual. `native: { focus: false }` brings keyboard navigation back; `native.css` makes the page unselectable and removes overscroll and tap highlights.
 
 ### Shared utilities
 

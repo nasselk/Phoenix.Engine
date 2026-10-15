@@ -17,7 +17,7 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 | Something touching something (kill brick, checkpoint, coin, pad) | override `onTouch(other)` / `onTouchEnd(other)` on the server entity; a zone is a collider with `setSensor(true)` |
 | A player acting on one thing (grab, buy, hit) | send the entity's `id`; the server checks it with `room.get(id, Kind)`. Never let each side pick the target |
 | Keys and mouse buttons | `binds` option + `engine.inputs.onActionStart/isActionRunning` |
-| A touch stick, a HUD layout | `Joystick`, `GridLayout` from `phoenix.engine/ui/*.svelte` |
+| A touch stick, a HUD layout, the development editor | `Joystick`, `GridLayout`, `EngineEditor` from `phoenix.engine/ui/*.svelte` |
 | Following an entity with the camera | `engine.renderer.camera.target = entity.position` |
 | Smoothing, easing, tweens | `Interpolator.lerp/lerpAngle/lerpVector/slerpQuaternion/tween*`; an entity's own motion in `updatePosition`/`updateRotation` |
 | Angles | `angleDistance`, `signedAngleDistance`, `normalizeAnglePI`, `wrap`; turn toward a point with `entity.yaw = position.azimuthTo(target)` |
@@ -38,7 +38,7 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 ├─ options: world { entities, context?, capacity?, seed? }, network? { in, out, simulation? { latency, loss } },
 │           inputs? { binds }, loop? { FPS, speed },
 │           assets? (AssetManagerOptions), renderer? (RendererSettings), audio? { globalVolume, muteInitial },
-│           native? (true | { target, contextMenu, zoom, drag, viewport })
+│           native? (true | { target, contextMenu, zoom, drag, viewport, focus })
 ├─ init(...promises)            builds renderer, audio, inputs, starts the loop; awaits the extra promises too
 ├─ destroy()
 ├─ isMobile                      true → TouchCamera, false → DesktopCamera
@@ -359,5 +359,8 @@ Joystick.svelte      props: top, left, right, bottom, size, deadZone = 0.15, sti
 GridLayout.svelte    full-screen 3 × 3 grid: snippets top_left … bottom_right, <slot>_direction "row" | "column"
                      (default "row" for the centre column, "column" for the sides),
                      padding, gap, id, class
+EngineEditor.svelte  development editor: a vertical toolbar on the left (EditorTool: "none" | "camera" |
+                     "select" | "move" | "remove"), the picked one highlighted; tools do nothing yet.
+                     No props yet. Load it in development only
 native.css           import first: no selection, no overscroll, no tap highlight
 ```

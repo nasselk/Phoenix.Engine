@@ -58,6 +58,7 @@
 		"prepare": "husky || true"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.57.0",
 		"@nasselk/binarypack": "github:nasselk/BinaryPack",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
@@ -69,7 +70,7 @@
 		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"@biomejs/biome": "2.5.15",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
-		"@types/bun": "^1.4.2",
+		"@types/bun": "^1.4.3",
 		"@types/three": "^0.186.0",
 		"husky": "^9.1.7",
 		"typescript": "^7.0.2"

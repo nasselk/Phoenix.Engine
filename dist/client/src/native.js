@@ -37,6 +37,23 @@ export function native(options = {}) {
             }
         });
     }
+    if (options.focus !== false) {
+        on("keydown", (event) => {
+            if (event.key === "Tab") {
+                event.preventDefault();
+            }
+        });
+        on("mousedown", (event) => {
+            if (isTextField(event.target)) {
+                return;
+            }
+            event.preventDefault();
+            document.activeElement?.blur?.();
+            if (!document.hasFocus()) {
+                window.focus();
+            }
+        });
+    }
     if (options.viewport !== false) {
         let meta = document.querySelector('meta[name="viewport"]');
         if (meta === null) {
