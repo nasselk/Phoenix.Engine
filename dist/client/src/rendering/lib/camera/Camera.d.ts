@@ -21,6 +21,7 @@ export type OrbitCameraOptions = Partial<{
     readonly tiltSpeed: number;
     readonly flySpeed: number;
     readonly boost: number;
+    readonly panSpeed: number;
     readonly zoomSpeed: number;
     readonly dragging: boolean;
     readonly zooming: boolean;
@@ -47,6 +48,7 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     flyBoost: boolean;
     flySpeed: number;
     boost: number;
+    panSpeed: number;
     dragging: boolean;
     zooming: boolean;
     minZoom: number;
@@ -76,5 +78,6 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     protected abstract unlisten(element: HTMLElement | Window): void;
     private fly;
     protected drag(x: number, y: number): void;
+    protected pan(x: number, y: number): void;
     protected zoomByDelta(delta: number): void;
 }

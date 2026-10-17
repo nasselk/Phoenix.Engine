@@ -29,6 +29,7 @@ export class OrbitCamera extends PerspectiveCamera {
         this.tiltSpeed = options.tiltSpeed ?? 1.5;
         this.flySpeed = options.flySpeed ?? 20;
         this.boost = options.boost ?? 4;
+        this.panSpeed = options.panSpeed ?? 0.03;
         this.zoomSpeed = options.zoomSpeed ?? 0.001;
         this.dragging = options.dragging ?? true;
         this.zooming = options.zooming ?? true;
@@ -154,6 +155,15 @@ export class OrbitCamera extends PerspectiveCamera {
             return;
         }
         this.rotate(-x * this.rotateSpeed, y * this.rotateSpeed);
+    }
+    pan(x, y) {
+        if (!this.free) {
+            return;
+        }
+        const speed = this.panSpeed / this.zoom;
+        RIGHT.set(1, 0, 0).applyQuaternion(this.quaternion);
+        STEP.set(0, 1, 0).applyQuaternion(this.quaternion);
+        this.position.addScaledVector(RIGHT, -x * speed).addScaledVector(STEP, y * speed);
     }
     zoomByDelta(delta) {
         if (!this.zooming) {

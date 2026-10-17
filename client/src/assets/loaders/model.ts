@@ -1,4 +1,5 @@
 import { type LoadingManager, Mesh, type Object3D, Texture, type WebGLRenderer } from "three";
+import type { WebGPURenderer } from "three/webgpu";
 import type { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader, type GLTFLoaderPlugin, type GLTFParser } from "three/addons/loaders/GLTFLoader.js";
 import type { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
@@ -24,9 +25,9 @@ export class ModelLoader implements AssetLoader<Object3D> {
 	/** Settles once every decoder the options ask for is loaded and attached; models wait on it. */
 	private readonly decoders: Promise<void>;
 
-	private provideRenderer!: (renderer: WebGLRenderer) => void;
+	private provideRenderer!: (renderer: WebGLRenderer | WebGPURenderer) => void;
 
-	private readonly renderer = new Promise<WebGLRenderer>((resolve) => (this.provideRenderer = resolve));
+	private readonly renderer = new Promise<WebGLRenderer | WebGPURenderer>((resolve) => (this.provideRenderer = resolve));
 
 	private destroyed = false;
 
@@ -44,7 +45,7 @@ export class ModelLoader implements AssetLoader<Object3D> {
 	}
 
 	/** KTX2 textures can only be decoded into a format the GPU supports, so with `ktx2` set, models wait for this. */
-	public init(renderer: WebGLRenderer): void {
+	public init(renderer: WebGLRenderer | WebGPURenderer): void {
 		this.provideRenderer(renderer);
 	}
 

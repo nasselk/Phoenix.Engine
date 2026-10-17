@@ -1,4 +1,5 @@
 import { LoadingManager, type Object3D, type WebGLRenderer } from "three";
+import type { WebGPURenderer } from "three/webgpu";
 import type { GLTFLoaderPlugin, GLTFParser } from "three/addons/loaders/GLTFLoader.js";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { AssetCache, type AssetKind, type AssetKinds } from "./AssetCache";
@@ -40,7 +41,7 @@ export declare class AssetManager extends EventEmitter<AssetManagerEvents> {
     private requested;
     private settled;
     constructor(options?: AssetManagerOptions, cache?: AssetCache);
-    init(renderer: WebGLRenderer): void;
+    init(renderer: WebGLRenderer | WebGPURenderer): void;
     extendGLTF(plugin: (parser: GLTFParser) => GLTFLoaderPlugin): this;
     register<K extends AssetKind>(kind: K, loader: AssetLoader<AssetKinds[K], AssetSource<K>>): this;
     load<K extends AssetKind>(kind: K, id: string, source: AssetSource<K>): Promise<AssetKinds[K]>;

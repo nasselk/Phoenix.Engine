@@ -13,6 +13,7 @@ export {
 	defineEntities,
 	Entity,
 	EntityRegistry,
+	HashGrid3D,
 	MAX_ENTITY_KINDS,
 	SpatialGrid,
 	World,
@@ -20,6 +21,9 @@ export {
 	type EntityOptions,
 	type EntityConstructor,
 	type EntityDefinitions,
+	type HashGridOptions,
+	type HashGridResult,
+	type HashGridTypes,
 	type Positioned,
 	type WorldEvents,
 	type WorldOptions,
@@ -49,6 +53,7 @@ export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";
 export { EventEmitter } from "./utils/EventEmitter";
 export { IDAllocator } from "./utils/IDAllocator";
+export { Thread, type ThreadMessages, type ThreadRequestOptions } from "./utils/thread";
 export { error, log, warn } from "./utils/logger";
 export { Interval, Timeout, Timer } from "./utils/timers/timer";
 export type { Timings } from "./utils/perfStats";

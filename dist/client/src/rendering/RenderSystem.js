@@ -31,22 +31,7 @@ export class RenderSystem extends EventEmitter {
         }
         this.initialized = RenderSystemState.INITIALIZING;
         this.resolution = settings.resolution ?? 1;
-        switch (settings.renderer) {
-            case "WebGPU":
-                throw new Error("WebGPU is not yet supported");
-                this.internals = new WebGLRenderer({
-                    powerPreference: "high-performance",
-                    ...settings.three,
-                    canvas: this.canvas,
-                });
-            case "WebGL":
-            default:
-                this.internals = new WebGLRenderer({
-                    powerPreference: "high-performance",
-                    ...settings.three,
-                    canvas: this.canvas,
-                });
-        }
+        this.internals = settings.renderer === "WebGPU" ? await this.createWebGPURenderer(settings.three) : new WebGLRenderer({ powerPreference: "high-performance", ...settings.three, canvas: this.canvas });
         this.internals.setClearColor(settings.backgroundColor ?? "black");
         this.internals.shadowMap.enabled = settings.shadows !== undefined;
         this.internals.shadowMap.type = settings.shadows ?? this.internals.shadowMap.type;
@@ -60,7 +45,7 @@ export class RenderSystem extends EventEmitter {
         this.observer = new ResizeObserver(() => this.resize());
         this.observer.observe(this.canvas);
         this.emit("init", this.canvas);
-        log("Renderer", "Successfully initialized WebGL renderer");
+        log("Renderer", `Successfully initialized the ${this.backend} renderer`);
         return this.internals;
     }
     render(deltaTime, now = performance.now()) {
@@ -98,6 +83,30 @@ export class RenderSystem extends EventEmitter {
         canvas.style.zIndex;
         return canvas;
     }
+    get backend() {
+        if (this.internals instanceof WebGLRenderer) {
+            return "WebGL";
+        }
+        return this.internals.backend.isWebGPUBackend ? "WebGPU" : "WebGPU (WebGL 2)";
+    }
+    async createWebGPURenderer(three = {}) {
+        const { WebGPURenderer } = await import("three/webgpu");
+        const { antialias, alpha, depth, stencil, logarithmicDepthBuffer } = three;
+        const renderer = new WebGPURenderer({ canvas: this.canvas, powerPreference: "high-performance", antialias, alpha, depth, stencil, logarithmicDepthBuffer });
+        const { library } = renderer;
+        const lightNodeClass = library.getLightNodeClass.bind(library);
+        library.getLightNodeClass = (light) => {
+            for (let type = light; type !== null && type !== Function.prototype; type = Object.getPrototypeOf(type)) {
+                const found = lightNodeClass(type);
+                if (found !== null) {
+                    return found;
+                }
+            }
+            return null;
+        };
+        await renderer.init();
+        return renderer;
+    }
     get ready() {
         return this.initialized === RenderSystemState.INITIALIZED;
     }
@@ -127,7 +136,9 @@ export class RenderSystem extends EventEmitter {
             this.canvas.remove();
         }
         this.internals.dispose();
-        this.internals.forceContextLoss();
+        if (this.internals instanceof WebGLRenderer) {
+            this.internals.forceContextLoss();
+        }
         this.initialized = RenderSystemState.DESTROYED;
         this.emit("destroy");
         this.removeAllListeners();

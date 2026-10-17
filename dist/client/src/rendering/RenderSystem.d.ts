@@ -1,4 +1,5 @@
 import { type ColorRepresentation, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
+import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import type { OrbitCamera } from "./lib/camera/Camera";
 import { TextureBuilder } from "./lib/TextureBuilder";
@@ -28,7 +29,7 @@ export declare enum RenderSystemState {
 }
 export declare class RenderSystem extends EventEmitter<RenderSystemEvents> {
     protected canvas: HTMLCanvasElement;
-    readonly internals: WebGLRenderer;
+    readonly internals: WebGLRenderer | WebGPURenderer;
     readonly scene: Scene;
     camera: OrbitCamera;
     readonly textureBuilder: TextureBuilder;
@@ -37,10 +38,12 @@ export declare class RenderSystem extends EventEmitter<RenderSystemEvents> {
     resolution: number;
     private observer?;
     constructor(cache: AssetCache, view?: HTMLCanvasElement, touch?: boolean);
-    init(settings?: RenderSystemOptions): Promise<WebGLRenderer>;
+    init(settings?: RenderSystemOptions): Promise<WebGLRenderer | WebGPURenderer>;
     render(deltaTime: number, now?: number): void;
     setFullscreen(fullScreen?: boolean): Promise<this>;
     createRenderingView(width?: string, height?: string): HTMLCanvasElement;
+    get backend(): string;
+    private createWebGPURenderer;
     get ready(): boolean;
     resize(width?: number, height?: number | undefined): this;
     destroy(view?: boolean): void;

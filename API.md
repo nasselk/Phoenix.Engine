@@ -22,9 +22,11 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 | Smoothing, easing, tweens | `Interpolator.lerp/lerpAngle/lerpVector/slerpQuaternion/tween*`; an entity's own motion in `updatePosition`/`updateRotation` |
 | Angles | `angleDistance`, `signedAngleDistance`, `normalizeAnglePI`, `wrap`; turn toward a point with `entity.yaw = position.azimuthTo(target)` |
 | What is near a player (interest management, AoE, proximity) | `SpatialGrid`: `insert`/`update`/`remove`, then `query(center, radius, out)` |
+| Things with a size: what a box touches, by class, or every overlapping pair (custom collisions, triggers) | `HashGrid3D`: `query(center, size)`, `each`, `pairs`; `types` sorts by class |
 | Packing a small number into a few bits | `BufferWriter.toPrecision` / `BufferReader.fromPrecision` |
 | Delays, repeats | `wait`, `Timeout`, `Interval` |
 | Events on your own class | `extends EventEmitter<{ name: [args] }>` |
+| Work on another thread (a worker) | `new Thread(new Worker(...))` in the page or server, `Thread.parent()` in the worker; `request`/`onRequest` |
 | HTTP JSON with retries | `get`/`post`/`put`/`del` |
 | Player text (names, chat) | `normalizeText`, `validateText`, `censorText` |
 | Saved settings | `storage` (falls back to `sessionStorage`, then memory) |
@@ -52,13 +54,15 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  │  ├─ yaw, pitch, distance                min/maxPitch, min/maxDistance
 │  │  ├─ turn (-1…1), turnSpeed; tilt (-1…1), tiltSpeed   turn and tilt every frame, from the game's actions or a stick
 │  │  ├─ flyForward, flyRight (-1…1), flyBoost, flySpeed, boost   fly a detached camera every frame
+│  │  ├─ panSpeed                            units per pixel a detached camera slides when panned
 │  │  │                                      the camera reads no keys: the game sets these from its actions
 │  │  ├─ rotateSpeed, zoomSpeed, dragging, zooming, minZoom, maxZoom
 │  │  ├─ verticalFov, minHorizontalFov       fov widens on narrow screens to keep minHorizontalFov
 │  │  ├─ rotate(yaw, pitch), zoomBy(amount), pinchBy(ratio), setZoom(zoom)
 │  │  ├─ detached (get/set)                  true flies free from where it is; false snaps back to orbiting
 │  │  ├─ isOrbiting, fit(aspect?), update(dt?), connect(element?), destroy()
-│  │  ├─ DesktopCamera: button (mouse drag turns it, wheel zooms)
+│  │  ├─ DesktopCamera: button (mouse drag turns it, wheel zooms); detached: freeButton = 2 (right drag
+│  │  │                 turns it), panButton = 0 (left drag slides it across its view)
 │  │  └─ TouchCamera: pinchSpeed
 │  ├─ textureBuilder: TextureBuilder         textures drawn on an OffscreenCanvas
 │  │  ├─ draw(ctx => …, clear = true, width?, height?)   resets transform/alpha/styles, then calls you
@@ -68,7 +72,9 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  ├─ batcher: Batcher
 │  │  └─ batch(root) → BatchedMesh[]         static meshes under root → one BatchedMesh per material, in place
 │  │                                         skips sprites, Text, invisible, userData.batch = false
-│  ├─ internals: three.WebGLRenderer
+│  ├─ internals: three.WebGLRenderer | WebGPURenderer   renderer: "WebGPU" loads three/webgpu (falls back to WebGL 2 without WebGPU);
+│  │                                         it draws built-in materials only: no ShaderMaterial, onBeforeCompile or Text (troika)
+│  ├─ backend                                "WebGL" | "WebGPU" | "WebGPU (WebGL 2)"
 │  ├─ view: HTMLCanvasElement                mount it: document.body.appendChild(engine.renderer.view)
 │  ├─ resolution                             fraction of device pixels; call resize() after changing
 │  ├─ resize(w?, h?), render(dt, now?), setFullscreen(b?), isFullscreen
@@ -168,7 +174,7 @@ Also exported: `OrbitCamera`, `OrbitCameraOptions`, `OrbitTarget`, `DesktopCamer
 EditorView extends three.Group               new EditorView(engine, { plane?, grid?, axes? }); add it to the scene
 ├─ init(selector)                            mounts FPS / ms / memory / ping / bandwidth / TPS panels in that element
 │                                            TPS: server frames received per second, 0 while the room is still
-├─ toggleCamera(attach?)  (F)                free fly camera
+├─ toggleCamera(attach?)                     free fly camera (the EngineEditor camera tool)
 ├─ toggleWireframe(on?)   (V)
 ├─ plane, grid, axes, stats, destroy()
 storage                                      localStorage, else sessionStorage, else memory, whichever is reachable; setStorage(replacement)
@@ -270,6 +276,17 @@ SpatialGrid<T extends { position }>(cellSize)   what is near a point, without sc
                                              interest management: room.frame(socket, grid.query(player.position, 60, visible))
 Positioned
 
+HashGrid3D<T>({ cellSize, bounds, types? })   sized items in a bounded grid: box queries, early-exit visits, overlapping pairs
+├─ HashGridOptions: cellSize (number or per axis), bounds { min, max } (beyond: edge cells), types { name: Class } sorts items by class
+├─ insert(item, size?, type?)                 size: box width (number or per axis), a point by default; typed: type is the class unless named
+├─ update(item, size?) after it moved/resized (free while in the same cells), remove(item), has(item), size, cellCount
+├─ query(center, size?, out?) → HashGridResult   T[], typed { name: Class[] }; overlapping boxes, once each; out reused by default
+├─ each(center, size, cb → true stops, type?) → stopped
+├─ pairs((a, b) => …) → count                 every two overlapping boxes, once, across types
+├─ clear()                                    for a rebuild each tick: keeps cells and records, a warm grid allocates nothing
+└─ resize(bounds, cellSize?)                  keeps every item; nothing may change or query the grid inside each/pairs
+HashGridTypes
+
 defineEntities({ name: Class, … }) → EntityRegistry      same names on both sides
 EntityRegistry: names, size, has(name), code(name), kind(code), class(name), kindOf(entity),
                 matches(entity, kind) (type guard), describe()
@@ -321,6 +338,13 @@ EventEmitter<{ event: [args] }>              on(e, cb) → unsubscribe, off, rem
 Timeout(cb, delay), Interval(cb, delay)      Timer: pause, resume, reschedule, clear, elapsedTime, remainingTime, active
                                              paused time never counts; resume picks up with what remained
 wait(ms) → Promise
+Thread<ThreadMessages>(worker | port)         messages and awaited requests between threads, Bun and browsers; both ends declare { event: { data, response? } }
+├─ Thread.parent()                            inside a worker: the thread that started it (throws elsewhere)
+├─ Thread.getChannel() → [port, port]         transfer one to a worker, wrap each in a Thread
+├─ send(event, data, transfer?), on(event, cb) → unsubscribe
+├─ request(event, data, ThreadRequestOptions { transfer?, timeout? }) → Promise<response>   rejects on throw, no handler, timeout, terminate, worker stop
+├─ onRequest(event, (data, transfer) => response | Promise) → unsubscribe   one per event; push to transfer to hand buffers back
+└─ terminate()                                stops the worker / closes the port, rejects what is waiting
 IDAllocator: allocate, allocateNegative, free, freeWithTimeout, processTimeouts, clear
 CounterMap<K>: increment, decrement, getCount, has, delete, outOfBounds, clear
 get / post / put / del(baseURL, route, body?, settings?) → HTTPResponse<T> { success, data, error? }
@@ -360,7 +384,8 @@ GridLayout.svelte    full-screen 3 × 3 grid: snippets top_left … bottom_right
                      (default "row" for the centre column, "column" for the sides),
                      padding, gap, id, class
 EngineEditor.svelte  development editor: a vertical toolbar on the left (EditorTool: "none" | "camera" |
-                     "select" | "move" | "remove"), the picked one highlighted; tools do nothing yet.
-                     No props yet. Load it in development only
+                     "select" | "move" | "remove"), the picked one highlighted. props: view (the EditorView).
+                     "camera" flies view's camera until another tool is picked; the rest do nothing yet.
+                     Load it in development only
 native.css           import first: no selection, no overscroll, no tap highlight
 ```

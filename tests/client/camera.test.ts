@@ -121,6 +121,67 @@ describe("Camera", () => {
 		expect(camera.position.distanceTo(before)).toBeCloseTo(1.5, 5);
 	});
 
+	test("detached, a pan slides it across its view at panSpeed per pixel without turning it, and attached a pan does nothing", () => {
+		const camera = new DesktopCamera({ panSpeed: 0.1 });
+		const pan = (x: number, y: number) => (camera as unknown as { pan(x: number, y: number): void }).pan(x, y);
+
+		camera.target = { x: 0, y: 0, z: 0 };
+		camera.update();
+
+		const attached = camera.position.clone();
+
+		pan(10, 10);
+		expect(camera.position.toArray()).toEqual(attached.toArray());
+
+		camera.detached = true;
+
+		const start = camera.position.clone();
+		const facing = camera.quaternion.clone();
+		const right = new Vector3(1, 0, 0).applyQuaternion(facing);
+		const up = new Vector3(0, 1, 0).applyQuaternion(facing);
+
+		pan(20, -10);
+
+		const moved = camera.position.clone().sub(start);
+
+		expect(moved.dot(right)).toBeCloseTo(-2, 5);
+		expect(moved.dot(up)).toBeCloseTo(-1, 5);
+		expect(camera.quaternion.angleTo(facing)).toBeCloseTo(0, 5);
+	});
+
+	test("a desktop camera turns on the left button while attached, and once detached turns on the right one and pans on the left", () => {
+		const camera = new DesktopCamera();
+		const mouse = camera as unknown as Record<"onPointerDown" | "onPointerMove" | "onPointerUp", (event: object) => void>;
+		const drag = (button: number) => {
+			mouse.onPointerDown({ button, pointerId: 1 });
+			mouse.onPointerMove({ pointerId: 1, movementX: 40, movementY: 0 });
+			mouse.onPointerUp({ pointerId: 1 });
+		};
+
+		camera.target = { x: 0, y: 0, z: 0 };
+		camera.update();
+
+		const yaw = camera.yaw;
+
+		drag(0);
+		expect(camera.yaw).not.toBeCloseTo(yaw, 5);
+
+		camera.detached = true;
+
+		const position = camera.position.clone();
+		const facing = camera.quaternion.clone();
+
+		drag(2);
+		expect(camera.quaternion.angleTo(facing)).toBeGreaterThan(0.01);
+		expect(camera.position.toArray()).toEqual(position.toArray());
+
+		const turned = camera.quaternion.clone();
+
+		drag(0);
+		expect(camera.position.distanceTo(position)).toBeGreaterThan(0.5);
+		expect(camera.quaternion.angleTo(turned)).toBeCloseTo(0, 5);
+	});
+
 	test("attached again, it orbits its target where it was before detaching", () => {
 		const camera = new DesktopCamera({ flySpeed: 10 });
 

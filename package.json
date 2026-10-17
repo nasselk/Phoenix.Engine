@@ -51,7 +51,7 @@
 		"build:client": "rm -rf dist/client dist/client.tsconfig.tsbuildinfo && cd client && bun run build",
 		"build:server": "rm -rf dist/server dist/server.tsconfig.tsbuildinfo && cd server && bun run build",
 		"test": "bun test tests",
-		"types:check": "bun run --parallel types:client types:server",
+		"types:check": "bun run --sequential --no-exit-on-error types:client types:server",
 		"types:client": "cd client && bun run types:check",
 		"types:server": "cd server && bun run types:check",
 		"format": "biome format --write",

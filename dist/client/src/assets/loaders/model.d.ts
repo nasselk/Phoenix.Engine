@@ -1,4 +1,5 @@
 import { type LoadingManager, type Object3D, type WebGLRenderer } from "three";
+import type { WebGPURenderer } from "three/webgpu";
 import { type GLTFLoaderPlugin, type GLTFParser } from "three/addons/loaders/GLTFLoader.js";
 import type { AssetLoader } from "../AssetManager";
 import { type RequestOptions } from "./request";
@@ -17,7 +18,7 @@ export declare class ModelLoader implements AssetLoader<Object3D> {
     private readonly renderer;
     private destroyed;
     constructor(manager: LoadingManager, options?: ModelLoaderOptions);
-    init(renderer: WebGLRenderer): void;
+    init(renderer: WebGLRenderer | WebGPURenderer): void;
     extend(plugin: (parser: GLTFParser) => GLTFLoaderPlugin): void;
     load(url: string): Promise<Object3D>;
     unload(model: Object3D): void;

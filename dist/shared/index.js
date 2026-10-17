@@ -1,4 +1,4 @@
-export { defineEntities, Entity, EntityRegistry, MAX_ENTITY_KINDS, SpatialGrid, World, } from "./world/index";
+export { defineEntities, Entity, EntityRegistry, HashGrid3D, MAX_ENTITY_KINDS, SpatialGrid, World, } from "./world/index";
 export * from "./physics/index";
 export { BufferReader, BufferWriter } from "@nasselk/binarypack";
 export { MAX_EVENTS, Protocol, ProtocolChannel } from "./networking/protocol";
@@ -7,6 +7,7 @@ export { CounterMap } from "./utils/CounterMap";
 export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export { EventEmitter } from "./utils/EventEmitter";
 export { IDAllocator } from "./utils/IDAllocator";
+export { Thread } from "./utils/thread";
 export { error, log, warn } from "./utils/logger";
 export { Interval, Timeout, Timer } from "./utils/timers/timer";
 export { wait } from "./utils/timers/wait";

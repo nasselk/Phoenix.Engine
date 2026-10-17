@@ -1,4 +1,4 @@
-export { defineEntities, Entity, EntityRegistry, MAX_ENTITY_KINDS, SpatialGrid, World, type EntityClass, type EntityOptions, type EntityConstructor, type EntityDefinitions, type Positioned, type WorldEvents, type WorldOptions, } from "./world/index";
+export { defineEntities, Entity, EntityRegistry, HashGrid3D, MAX_ENTITY_KINDS, SpatialGrid, World, type EntityClass, type EntityOptions, type EntityConstructor, type EntityDefinitions, type HashGridOptions, type HashGridResult, type HashGridTypes, type Positioned, type WorldEvents, type WorldOptions, } from "./world/index";
 export * from "./physics/index";
 export { BufferReader, BufferWriter, type Buffers } from "@nasselk/binarypack";
 export { MAX_EVENTS, Protocol, ProtocolChannel, type Contract, type ContractOf, type InboundEvent, type InboundSchemas, type MessagePayload, type OutboundEvent, type OutboundSchemas, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
@@ -8,6 +8,7 @@ export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";
 export { EventEmitter } from "./utils/EventEmitter";
 export { IDAllocator } from "./utils/IDAllocator";
+export { Thread, type ThreadMessages, type ThreadRequestOptions } from "./utils/thread";
 export { error, log, warn } from "./utils/logger";
 export { Interval, Timeout, Timer } from "./utils/timers/timer";
 export type { Timings } from "./utils/perfStats";

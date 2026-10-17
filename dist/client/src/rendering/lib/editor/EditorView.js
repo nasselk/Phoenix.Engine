@@ -76,9 +76,6 @@ export class EditorView extends Group {
             this.lastSample = now;
         }), this.context.inputs.onPressInput((event) => {
             switch (event.code) {
-                case "KeyF":
-                    this.toggleCamera();
-                    break;
                 case "KeyV":
                     this.toggleWireframe();
                     break;

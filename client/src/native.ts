@@ -16,7 +16,7 @@ export type NativeOptions = {
 	readonly drag?: boolean;
 	/** Write the viewport meta tag phones need, which is what stops pinch zoom there. */
 	readonly viewport?: boolean;
-	/** Keep focus where a game expects it: Tab moves nothing, and a click or tap on a button does not focus it, so no focus ring appears and Space does not press it again. */
+	/** Drop Tab moving focus from one control to the next. */
 	readonly focus?: boolean;
 };
 
@@ -79,21 +79,6 @@ export function native(options: NativeOptions = {}): () => void {
 		on("keydown", (event: KeyboardEvent) => {
 			if (event.key === "Tab") {
 				event.preventDefault();
-			}
-		});
-
-		on("mousedown", (event: MouseEvent) => {
-			if (isTextField(event.target)) {
-				return;
-			}
-
-			event.preventDefault();
-
-			(document.activeElement as HTMLElement | null)?.blur?.();
-
-			// Inside a frame (a game portal), the press is also what gives the frame the keyboard.
-			if (!document.hasFocus()) {
-				window.focus();
 			}
 		});
 	}

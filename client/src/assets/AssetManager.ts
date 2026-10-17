@@ -1,4 +1,5 @@
 import { LoadingManager, type Object3D, type WebGLRenderer } from "three";
+import type { WebGPURenderer } from "three/webgpu";
 import type { GLTFLoaderPlugin, GLTFParser } from "three/addons/loaders/GLTFLoader.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
@@ -100,10 +101,10 @@ export class AssetManager extends EventEmitter<AssetManagerEvents> {
 	}
 
 	/**
-	 * Hand over the WebGL renderer once it exists. KTX2 textures can only be decoded into a format the
+	 * Hand over the renderer once it exists. KTX2 textures can only be decoded into a format the
 	 * GPU supports, so with `ktx2` set, models wait for this before loading. The engine calls it.
 	 */
-	public init(renderer: WebGLRenderer): void {
+	public init(renderer: WebGLRenderer | WebGPURenderer): void {
 		this.models.init(renderer);
 	}
 

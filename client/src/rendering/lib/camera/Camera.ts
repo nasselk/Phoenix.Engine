@@ -25,6 +25,7 @@ export type OrbitCameraOptions = Partial<{
 	readonly tiltSpeed: number;
 	readonly flySpeed: number;
 	readonly boost: number;
+	readonly panSpeed: number;
 	readonly zoomSpeed: number;
 	readonly dragging: boolean;
 	readonly zooming: boolean;
@@ -85,6 +86,8 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 	/** Units per second a detached camera flies at. */
 	public flySpeed: number;
 	public boost: number;
+	/** Units a detached camera slides per pixel dragged while panning. */
+	public panSpeed: number;
 
 	public dragging: boolean;
 	public zooming: boolean;
@@ -121,6 +124,7 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		this.tiltSpeed = options.tiltSpeed ?? 1.5;
 		this.flySpeed = options.flySpeed ?? 20;
 		this.boost = options.boost ?? 4;
+		this.panSpeed = options.panSpeed ?? 0.03;
 		this.zoomSpeed = options.zoomSpeed ?? 0.001;
 		this.dragging = options.dragging ?? true;
 		this.zooming = options.zooming ?? true;
@@ -325,6 +329,23 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		}
 
 		this.rotate(-x * this.rotateSpeed, y * this.rotateSpeed);
+	}
+
+	/**
+	 * A drag of so many pixels that slides a detached camera across what it looks at, the picture
+	 * following the pointer: along its own right and up, without turning. Attached it does nothing.
+	 */
+	protected pan(x: number, y: number): void {
+		if (!this.free) {
+			return;
+		}
+
+		const speed = this.panSpeed / this.zoom;
+
+		RIGHT.set(1, 0, 0).applyQuaternion(this.quaternion);
+		STEP.set(0, 1, 0).applyQuaternion(this.quaternion);
+
+		this.position.addScaledVector(RIGHT, -x * speed).addScaledVector(STEP, y * speed);
 	}
 
 	/** A wheel notch, or anything else that zooms by a distance rather than by a ratio. */

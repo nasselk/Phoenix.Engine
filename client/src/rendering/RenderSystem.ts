@@ -1,4 +1,5 @@
 import { type ColorRepresentation, NoToneMapping, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
+import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
 import { waitForUserGesture } from "../utils/gesture";
@@ -17,6 +18,7 @@ type RenderSystemEvents = {
 };
 
 export type RenderSystemOptions = {
+	/** "WebGPU" uses three.js's WebGPURenderer, loaded only then, which falls back to WebGL 2 where WebGPU is missing. It draws the built-in materials, not `ShaderMaterial` or `onBeforeCompile` patches. */
 	readonly renderer?: "WebGL" | "WebGPU";
 	readonly resolution?: number;
 	readonly fullscreen?: boolean;
@@ -27,6 +29,7 @@ export type RenderSystemOptions = {
 	readonly toneMapping?: ToneMapping;
 	/** Brightness before tone mapping. Defaults to 1. */
 	readonly exposure?: number;
+	/** Passed to the WebGL renderer; the WebGPU one takes `antialias`, `alpha`, `depth`, `stencil` and `logarithmicDepthBuffer` from it. */
 	readonly three?: Omit<WebGLRendererParameters, "canvas">;
 };
 
@@ -37,11 +40,11 @@ export enum RenderSystemState {
 	DESTROYED,
 }
 
-/** The three.js renderer: the canvas, the WebGL context, the scene and the camera. */
+/** The three.js renderer: the canvas, the WebGL or WebGPU context, the scene and the camera. */
 export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	protected canvas!: HTMLCanvasElement;
 
-	public readonly internals!: WebGLRenderer;
+	public readonly internals!: WebGLRenderer | WebGPURenderer;
 
 	/** The 3D scene */
 	public readonly scene: Scene;
@@ -88,7 +91,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 *
 	 * @returns A promise that resolves when the renderer is initialized and ready to use.
 	 */
-	public async init(settings: RenderSystemOptions = {}): Promise<WebGLRenderer> {
+	public async init(settings: RenderSystemOptions = {}): Promise<WebGLRenderer | WebGPURenderer> {
 		if (this.initialized !== RenderSystemState.NULL) {
 			throw new Error("Renderer is already initialized or destroyed");
 		}
@@ -96,24 +99,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 		this.initialized = RenderSystemState.INITIALIZING;
 		this.resolution = settings.resolution ?? 1;
 
-		switch (settings.renderer) {
-			case "WebGPU":
-				throw new Error("WebGPU is not yet supported");
-
-				(this.internals as any) = new WebGLRenderer({
-					powerPreference: "high-performance",
-					...settings.three,
-					canvas: this.canvas,
-				});
-
-			case "WebGL":
-			default:
-				(this.internals as any) = new WebGLRenderer({
-					powerPreference: "high-performance",
-					...settings.three,
-					canvas: this.canvas,
-				});
-		}
+		(this as { internals: WebGLRenderer | WebGPURenderer }).internals = settings.renderer === "WebGPU" ? await this.createWebGPURenderer(settings.three) : new WebGLRenderer({ powerPreference: "high-performance", ...settings.three, canvas: this.canvas });
 
 		this.internals.setClearColor(settings.backgroundColor ?? "black");
 
@@ -135,7 +121,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.emit("init", this.canvas);
 
-		log("Renderer", "Successfully initialized WebGL renderer");
+		log("Renderer", `Successfully initialized the ${this.backend} renderer`);
 
 		return this.internals;
 	}
@@ -209,6 +195,39 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 		return canvas;
 	}
 
+	/** What draws: "WebGL", "WebGPU", or "WebGPU (WebGL 2)" when WebGPU was asked for on a browser without it. */
+	public get backend(): string {
+		if (this.internals instanceof WebGLRenderer) {
+			return "WebGL";
+		}
+
+		return (this.internals.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? "WebGPU" : "WebGPU (WebGL 2)";
+	}
+
+	private async createWebGPURenderer(three: RenderSystemOptions["three"] = {}): Promise<WebGPURenderer> {
+		const { WebGPURenderer } = await import("three/webgpu");
+		const { antialias, alpha, depth, stencil, logarithmicDepthBuffer } = three;
+		const renderer = new WebGPURenderer({ canvas: this.canvas, powerPreference: "high-performance", antialias, alpha, depth, stencil, logarithmicDepthBuffer });
+		const { library } = renderer;
+		const lightNodeClass = library.getLightNodeClass.bind(library);
+
+		library.getLightNodeClass = (light) => {
+			for (let type: typeof light | null = light; type !== null && type !== Function.prototype; type = Object.getPrototypeOf(type)) {
+				const found = lightNodeClass(type);
+
+				if (found !== null) {
+					return found;
+				}
+			}
+
+			return null;
+		};
+
+		await renderer.init();
+
+		return renderer;
+	}
+
 	/** Whether there is a context to draw with: false before `init` and after `destroy`. */
 	public get ready(): boolean {
 		return this.initialized === RenderSystemState.INITIALIZED;
@@ -256,7 +275,10 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 		}
 
 		this.internals.dispose();
-		this.internals.forceContextLoss();
+
+		if (this.internals instanceof WebGLRenderer) {
+			this.internals.forceContextLoss();
+		}
 
 		this.initialized = RenderSystemState.DESTROYED;
 

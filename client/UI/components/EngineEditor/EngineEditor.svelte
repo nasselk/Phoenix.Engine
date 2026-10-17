@@ -5,7 +5,10 @@
 	import Move3d from "@lucide/svelte/icons/move-3d";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
 	import Grid from "../GridLayout/GridLayout.svelte";
-	import type { EditorTool } from "./EngineEditor.types";
+	import type { EditorTool, EngineEditorProps } from "./EngineEditor.types";
+	import { editor } from "./state.svelte";
+
+	const { view }: EngineEditorProps = $props();
 
 	const TOOLS = [
 		{ id: "none", label: "Play", icon: Gamepad2 },
@@ -15,9 +18,17 @@
 		{ id: "remove", label: "Remove", icon: Trash2 },
 	] as const satisfies readonly { id: EditorTool; label: string; icon: unknown }[];
 
-	let tool: EditorTool = $state("none");
+	const index = $derived(TOOLS.findIndex((entry) => entry.id === editor.tool));
 
-	const index = $derived(TOOLS.findIndex((entry) => entry.id === tool));
+	$effect(() => {
+		if (editor.tool !== "camera") {
+			return;
+		}
+
+		view.toggleCamera(false);
+
+		return () => view.toggleCamera(true);
+	});
 </script>
 
 <Grid>
@@ -26,7 +37,7 @@
 			<span class="indicator" aria-hidden="true"></span>
 
 			{#each TOOLS as entry (entry.id)}
-				<button type="button" class="tool" class:selected={tool === entry.id} aria-label={entry.label} aria-pressed={tool === entry.id} title={entry.label} onclick={() => (tool = entry.id)}>
+				<button type="button" class="tool" class:selected={editor.tool === entry.id} aria-label={entry.label} aria-pressed={editor.tool === entry.id} title={entry.label} onclick={() => (editor.tool = entry.id)}>
 					<entry.icon />
 				</button>
 			{/each}
