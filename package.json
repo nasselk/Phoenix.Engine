@@ -50,6 +50,7 @@
 		"build": "rm -rf dist && bun run build:client && bun run build:server",
 		"build:client": "rm -rf dist/client dist/client.tsconfig.tsbuildinfo && cd client && bun run build",
 		"build:server": "rm -rf dist/server dist/server.tsconfig.tsbuildinfo && cd server && bun run build",
+		"push": "bun run build && git add . && git commit -m 'build' && git push",
 		"test": "bun test tests",
 		"types:check": "bun run --sequential --no-exit-on-error types:client types:server",
 		"types:client": "cd client && bun run types:check",
@@ -58,7 +59,7 @@
 		"prepare": "husky || true"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^1.57.0",
+		"@lucide/svelte": "^1.59.0",
 		"@nasselk/binarypack": "github:nasselk/BinaryPack",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
