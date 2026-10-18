@@ -1,13 +1,11 @@
-import { error, log, warn } from "../../../shared/utils/logger";
-
-import { Interval, Timeout } from "../../../shared/utils/timers/timer";
-
-import { wait } from "../../../shared/utils/timers/wait";
+import { BufferReader, type Buffers } from "@nasselk/binarypack";
+import { MessageHandlers } from "../../../shared/networking/handlers";
+import { type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, Protocol, type SchemasFor, type SendPayload, SOCKET_ROUTE } from "../../../shared/networking/protocol";
 
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
-import { MessageHandlers } from "../../../shared/networking/handlers";
-import { Protocol, SOCKET_ROUTE, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
-import { BufferReader, type Buffers } from "@nasselk/binarypack";
+import { error, log, warn } from "../../../shared/utils/logger";
+import { Interval, Timeout } from "../../../shared/utils/timers/timer";
+import { wait } from "../../../shared/utils/timers/wait";
 
 type NetworkEvents = {
 	connection: [];
@@ -252,7 +250,7 @@ export class NetworkSystem<
 
 		// The socket can close while the simulated latency is being waited out.
 		if (this.readyState === NetworkState.OPEN) {
-			this.socket!.send(buffer);
+			this.socket?.send(buffer);
 		}
 	}
 

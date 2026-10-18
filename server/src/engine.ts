@@ -1,12 +1,12 @@
-import { credit, log } from "../../shared/utils/logger";
-import { initPhysics } from "../../shared/physics/rapier";
-import { GameLoop, type GameLoopParams } from "./GameLoop";
-import { World } from "./world/world";
 import { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "../../shared/networking/invite";
-import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
 import type { ContractOf, SchemasFor } from "../../shared/networking/protocol";
-import type { EntityDefinitions, EntityRegistry } from "../../shared/world/registry";
+import { initPhysics } from "../../shared/physics/rapier";
 import { EventEmitter } from "../../shared/utils/EventEmitter";
+import { credit, log } from "../../shared/utils/logger";
+import type { EntityDefinitions, EntityRegistry } from "../../shared/world/registry";
+import { GameLoop, type GameLoopParams } from "./GameLoop";
+import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
+import { World } from "./world/world";
 
 type EngineEvents = {
 	init: [];

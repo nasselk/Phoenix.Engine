@@ -1,4 +1,4 @@
-import { type BufferGeometry, type Camera, type ColorRepresentation, type Group, type Material, Mesh, Quaternion, type Scene, type WebGLRenderer } from "three";
+import { type BufferGeometry, type Camera, type ColorRepresentation, type Group, type Material, type Mesh, Quaternion, type Scene, type WebGLRenderer } from "three";
 import { configureTextBuilder, preloadFont as preloadTroikaFont, Text as TroikaText } from "troika-three-text";
 import type { AssetLoader } from "../assets/AssetManager";
 

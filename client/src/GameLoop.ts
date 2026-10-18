@@ -1,5 +1,5 @@
 import { Loop } from "../../shared/utils/Loop";
-import { createTimings, toRate, type Timings } from "../../shared/utils/perfStats";
+import { createTimings, type Timings, toRate } from "../../shared/utils/perfStats";
 
 export type GameLoopParams = {
 	FPS: number;

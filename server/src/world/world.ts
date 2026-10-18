@@ -1,12 +1,12 @@
-import type { EntityDefinitions } from "../../../shared/world/registry";
-import { World as BaseWorld, type WorldOptions } from "../../../shared/world/world";
-import type { OptionsOf, SpawnArguments } from "../../../shared/world/options";
-import type { EntityOptions } from "../../../shared/world/entity";
 import type { Contract, OutboundEvent, SendPayload } from "../../../shared/networking/protocol";
-import type { NetworkSystem } from "../networking/NetworkSystem";
-import { type Socket } from "../networking/socket";
 import { GRAVITY } from "../../../shared/physics/constants";
 import { RAPIER } from "../../../shared/physics/rapier";
+import type { EntityOptions } from "../../../shared/world/entity";
+import type { OptionsOf, SpawnArguments } from "../../../shared/world/options";
+import type { EntityDefinitions } from "../../../shared/world/registry";
+import { World as BaseWorld, type WorldOptions } from "../../../shared/world/world";
+import type { NetworkSystem } from "../networking/NetworkSystem";
+import type { Socket } from "../networking/socket";
 import type { Entity } from "./entities/entity";
 import type { PositionEntity } from "./entities/position";
 import { Replication } from "./replication";

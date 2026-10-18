@@ -1,5 +1,5 @@
 import { SRGBColorSpace, Texture } from "three";
-import { AssetCache } from "../../assets/AssetCache";
+import type { AssetCache } from "../../assets/AssetCache";
 
 export class TextureBuilder {
 	private readonly canvas: OffscreenCanvas;

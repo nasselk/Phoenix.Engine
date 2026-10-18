@@ -1,0 +1,4 @@
+#!/bin/sh
+
+bun run biome:check
+git update-index --again

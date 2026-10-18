@@ -1,8 +1,8 @@
 import type { BufferReader } from "@nasselk/binarypack";
-import type { EntityDefinitions } from "../../../shared/world/registry";
 import { Group } from "three";
 import type { EntityOptions } from "../../../shared/world/entity";
 import type { OptionsOf, SpawnArguments } from "../../../shared/world/options";
+import type { EntityDefinitions } from "../../../shared/world/registry";
 import { World as BaseWorld, type WorldOptions } from "../../../shared/world/world";
 import type { Entity } from "./entities/entity";
 

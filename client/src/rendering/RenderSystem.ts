@@ -2,13 +2,13 @@ import { type ColorRepresentation, NoToneMapping, Scene, type ShadowMapType, typ
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
+import type { AssetCache } from "../assets/AssetCache";
 import { waitForUserGesture } from "../utils/gesture";
+import { Batcher } from "./lib/Batcher";
 import type { OrbitCamera } from "./lib/camera/Camera";
 import { DesktopCamera } from "./lib/camera/DesktopCamera";
-import { TextureBuilder } from "./lib/TextureBuilder";
-import { Batcher } from "./lib/Batcher";
 import { TouchCamera } from "./lib/camera/TouchCamera";
-import { AssetCache } from "../assets/AssetCache";
+import { TextureBuilder } from "./lib/TextureBuilder";
 
 type RenderSystemEvents = {
 	init: [renderer: HTMLCanvasElement];

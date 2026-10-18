@@ -1,4 +1,4 @@
-import { get, RoomOccupancy } from "../../../shared";
+import { get, type RoomOccupancy } from "../../../shared";
 import countries from "./countries.json";
 
 type CountryCode = keyof typeof countries;

@@ -7,7 +7,6 @@
 				"noShadowRestrictedNames": "off"
 			},
 			"complexity": {
-				"useArrowFunction": "off",
 				"noThisInStatic": "off"
 			}
 		}
@@ -19,13 +18,6 @@
 		"lineWidth": 320,
 		"lineEnding": "lf"
 	},
-	"assist": {
-		"actions": {
-			"source": {
-				"organizeImports": "off"
-			}
-		}
-	},
 	"javascript": {
 		"formatter": {
 			"semicolons": "always",
@@ -33,6 +25,6 @@
 		}
 	},
 	"files": {
-		"includes": ["**/*.*", "!node_modules/**/*", "!dist/**/*", "!**/*.svelte"]
+		"includes": ["**/*.*", "!**/node_modules", "!**/dist", "!**/builds", "!**/*.svelte"]
 	}
 }

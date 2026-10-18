@@ -1,16 +1,16 @@
-import { credit, log } from "../../shared/utils/logger";
 import type { SchemasFor } from "../../shared/networking/protocol";
+import { EventEmitter } from "../../shared/utils/EventEmitter";
+import { credit, log } from "../../shared/utils/logger";
 import type { EntityDefinitions } from "../../shared/world/registry";
-import { type ClientWorldOptions, World } from "./world/world";
+import { AssetManager, type AssetManagerOptions } from "./assets/AssetManager";
+import { type AudioOptions, AudioSystem } from "./audio/AudioSystem";
+import { InputSystem, type InputSystemOptions } from "./controls/InputSystem";
+import { GameLoop, type GameLoopParams } from "./GameLoop";
+import { type NativeOptions, native } from "./native";
 import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
 import { RenderSystem, type RenderSystemOptions } from "./rendering/RenderSystem";
-import { GameLoop, type GameLoopParams } from "./GameLoop";
-import { AudioSystem, type AudioOptions } from "./audio/AudioSystem";
-import { InputSystem, type InputSystemOptions } from "./controls/InputSystem";
-import { EventEmitter } from "../../shared/utils/EventEmitter";
-import { AssetManager, type AssetManagerOptions } from "./assets/AssetManager";
-import { native, type NativeOptions } from "./native";
 import { isMobileDevice } from "./utils/mobile";
+import { type ClientWorldOptions, World } from "./world/world";
 
 type EngineEvents = {
 	init: [];

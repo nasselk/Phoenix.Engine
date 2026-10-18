@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { BatchedMesh, BoxGeometry, BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial, Object3D, Sprite, Vector3 } from "three";
+import { BatchedMesh, BoxGeometry, BufferAttribute, Group, Matrix4, Mesh, MeshBasicMaterial, type Object3D, Sprite, Vector3 } from "three";
 import { Batcher } from "../../client/src/rendering/lib/Batcher";
 
 function batch(root: Object3D): BatchedMesh[] {

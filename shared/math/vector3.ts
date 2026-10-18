@@ -941,4 +941,4 @@ class ObservableVector3 extends Vector3 {
 	}
 }
 
-export { Vector3, ObservableVector3, type Vector3Structure };
+export { ObservableVector3, Vector3, type Vector3Structure };

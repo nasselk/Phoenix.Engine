@@ -1,4 +1,4 @@
-import { randomSeed, RNG } from "../math/random";
+import { RNG, randomSeed } from "../math/random";
 import { EventEmitter } from "../utils/EventEmitter";
 import { IDAllocator } from "../utils/IDAllocator";
 import type { Entity, EntityClass } from "./entity";

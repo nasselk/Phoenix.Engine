@@ -1,4 +1,4 @@
-import { BufferReader, BufferWriter, type Buffers } from "@nasselk/binarypack";
+import { BufferReader, type Buffers, BufferWriter } from "@nasselk/binarypack";
 import type { DecodedData, EncodedData, Schema } from "@nasselk/binaryschema";
 
 /**

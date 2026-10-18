@@ -1,6 +1,6 @@
-import { JsonObject } from "./types";
+import type { JsonObject } from "./types";
 
-export function removeFromArray<T>(array: T[], item?: T, index?: number): T | void {
+export function removeFromArray<T>(array: T[], item?: T, index?: number): T | undefined {
 	if (index !== undefined) {
 		const last = array.pop()!;
 
@@ -24,6 +24,8 @@ export function removeFromArray<T>(array: T[], item?: T, index?: number): T | vo
 			}
 		}
 	}
+
+	return undefined;
 }
 
 export function deepMerge<A extends JsonObject, B extends JsonObject>(target: A, source: B): A & B {

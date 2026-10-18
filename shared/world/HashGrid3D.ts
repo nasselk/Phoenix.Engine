@@ -1,5 +1,5 @@
-import type { Vector3Structure } from "../math/vector3";
 import { clamp } from "../math/utils";
+import type { Vector3Structure } from "../math/vector3";
 import { removeFromArray } from "../utils/utils";
 import type { Positioned } from "./SpatialGrid";
 
@@ -264,7 +264,7 @@ export class HashGrid3D<T extends Positioned = Positioned, Types extends HashGri
 	 * Calls `callback` once for every item whose filed box overlaps the box `size` wide around
 	 * `center`, only those of `type` when one is named, until it returns true. Returns whether it did.
 	 */
-	public each<K extends TypeKey<Types> = TypeKey<Types>>(center: Vector3Structure, size: number | Vector3Structure, callback: (item: ItemOfType<T, Types, K>) => boolean | void, type?: K): boolean {
+	public each<K extends TypeKey<Types> = TypeKey<Types>>(center: Vector3Structure, size: number | Vector3Structure, callback: (item: ItemOfType<T, Types, K>) => boolean | undefined, type?: K): boolean {
 		this.assertIdle();
 
 		this.aim(center, size);
@@ -569,7 +569,6 @@ export class HashGrid3D<T extends Positioned = Positioned, Types extends HashGri
 		if (this.busy) {
 			throw new Error("A grid cannot be changed or queried from inside its own each() or pairs()");
 		}
-		
 	}
 
 	/** Whether this cell is the first both boxes cover, where their pair is counted: their overlap is a box, and its first cell is the larger of their minima. */

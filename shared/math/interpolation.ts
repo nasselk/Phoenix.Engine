@@ -1,4 +1,4 @@
-import { Vector3Like } from "three";
+import type { Vector3Like } from "three";
 import { extractRGBA } from "../utils/color";
 
 import { normalizeAnglePI } from "./angle";
@@ -34,7 +34,7 @@ function lerp(start: number, end: number, factor: number, deltaTime: number = 1,
 		return end;
 	}
 
-	const f = 1 - Math.pow(1 - factor, deltaTime);
+	const f = 1 - (1 - factor) ** deltaTime;
 
 	return start + delta * f;
 }
@@ -59,7 +59,7 @@ export function slerpQuaternion(start: Quaternion, end: Quaternion, factor: numb
 		return;
 	}
 
-	start.slerp(end, 1 - Math.pow(1 - factor, deltaTime));
+	start.slerp(end, 1 - (1 - factor) ** deltaTime);
 }
 
 function lerpColor(start: string, end: string, factor: number = 0.05, deltaTime: number = 1, limit: number = 0): string {

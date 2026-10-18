@@ -6,33 +6,6 @@
  * shared between a game's own client and server imports from here.
  */
 
-// The object model: what a game's own classes extend, and the world that ticks them.
-// `Entity` and `World` are the halves both sides share; each side's entry point exports its own
-// `Entity`, `PositionEntity`, `MovingEntity` and `World` over the top of these.
-export {
-	defineEntities,
-	Entity,
-	EntityRegistry,
-	HashGrid3D,
-	MAX_ENTITY_KINDS,
-	SpatialGrid,
-	World,
-	type EntityClass,
-	type EntityOptions,
-	type EntityConstructor,
-	type EntityDefinitions,
-	type HashGridOptions,
-	type HashGridResult,
-	type HashGridTypes,
-	type Positioned,
-	type WorldEvents,
-	type WorldOptions,
-} from "./world/index";
-
-// Physics: the integration and the collisions, the same on both sides, for a game that simulates on
-// either. A collider attaches to anything with a position, so a client can run what the server ran.
-export * from "./physics/index";
-
 /**
  * The binary primitives, re-exported from the engine's own copy of them.
  *
@@ -41,33 +14,55 @@ export * from "./physics/index";
  * from another copy would fail the `instanceof` check inside the engine's protocol and be encoded as
  * no payload at all.
  */
-export { BufferReader, BufferWriter, type Buffers } from "@nasselk/binarypack";
-
-// Networking: the wire contract types both sides declare against
-export { MAX_EVENTS, Protocol, ProtocolChannel, type Contract, type ContractOf, type InboundEvent, type InboundSchemas, type MessagePayload, type OutboundEvent, type OutboundSchemas, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
-export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "./networking/invite";
-
-// Utilities
-export { CounterMap } from "./utils/CounterMap";
-export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
-export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";
-export { EventEmitter } from "./utils/EventEmitter";
-export { IDAllocator } from "./utils/IDAllocator";
-export { Thread, type ThreadMessages, type ThreadRequestOptions } from "./utils/thread";
-export { error, log, warn } from "./utils/logger";
-export { Interval, Timeout, Timer } from "./utils/timers/timer";
-export type { Timings } from "./utils/perfStats";
-export { wait } from "./utils/timers/wait";
-
-// Math
-export { InterpolationCurve, Interpolator } from "./math/interpolation";
+export { BufferReader, type Buffers, BufferWriter } from "@nasselk/binarypack";
 export { angleDistance, closestAngle, degreesToRadians, getOppositeAngle, normalizeAngle2PI, normalizeAnglePI, radiansToDegrees, signedAngleDistance } from "./math/angle";
 export { fadeInHoldAndFadeOut, pointsSyncedWave, syncedWave, wave } from "./math/animations";
+// Math
+export { InterpolationCurve, Interpolator } from "./math/interpolation";
+export { eulerToQuaternion, ObservableQuaternion, Quaternion, type QuaternionStructure, quaternionToEuler } from "./math/quaternion";
+export { RNG, randomAngle, randomBoolean, randomElement, randomFloat, randomInt, randomSeed, weightedRandom } from "./math/random";
+export { clamp, wrap } from "./math/utils";
 export { ObservableVector2, Vector2, type Vector2Structure } from "./math/vector2";
 export { ObservableVector3, Vector3, type Vector3Structure } from "./math/vector3";
-export { eulerToQuaternion, ObservableQuaternion, Quaternion, quaternionToEuler, type QuaternionStructure } from "./math/quaternion";
-export { clamp, wrap } from "./math/utils";
-export { censorText, normalizeText, validateText } from "./utils/validation/text";
-export { randomElement, randomFloat, randomInt, randomAngle, randomBoolean, randomSeed, RNG, weightedRandom } from "./math/random";
-export { get, post, put, del, type RequestSettings, type Response as HTTPResponse, type ResponseError } from "./utils/fetch";
+export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "./networking/invite";
+// Networking: the wire contract types both sides declare against
+export { type Contract, type ContractOf, type InboundEvent, type InboundSchemas, MAX_EVENTS, type MessagePayload, type OutboundEvent, type OutboundSchemas, Protocol, ProtocolChannel, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
+// Physics: the integration and the collisions, the same on both sides, for a game that simulates on
+// either. A collider attaches to anything with a position, so a client can run what the server ran.
+export * from "./physics/index";
+// Utilities
+export { CounterMap } from "./utils/CounterMap";
 export { extractRGBA, getRandomColor, hex, hexToRgba, isHexColor, isRGBA, rgbaToHex } from "./utils/color";
+export { EventEmitter } from "./utils/EventEmitter";
+export { del, get, post, put, type RequestSettings, type Response as HTTPResponse, type ResponseError } from "./utils/fetch";
+export { IDAllocator } from "./utils/IDAllocator";
+export { error, log, warn } from "./utils/logger";
+export type { Timings } from "./utils/perfStats";
+export { Thread, type ThreadMessages, type ThreadRequestOptions } from "./utils/thread";
+export { Interval, Timeout, Timer } from "./utils/timers/timer";
+export { wait } from "./utils/timers/wait";
+export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";
+export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
+export { censorText, normalizeText, validateText } from "./utils/validation/text";
+// The object model: what a game's own classes extend, and the world that ticks them.
+// `Entity` and `World` are the halves both sides share; each side's entry point exports its own
+// `Entity`, `PositionEntity`, `MovingEntity` and `World` over the top of these.
+export {
+	defineEntities,
+	Entity,
+	type EntityClass,
+	type EntityConstructor,
+	type EntityDefinitions,
+	type EntityOptions,
+	EntityRegistry,
+	HashGrid3D,
+	type HashGridOptions,
+	type HashGridResult,
+	type HashGridTypes,
+	MAX_ENTITY_KINDS,
+	type Positioned,
+	SpatialGrid,
+	World,
+	type WorldEvents,
+	type WorldOptions,
+} from "./world/index";

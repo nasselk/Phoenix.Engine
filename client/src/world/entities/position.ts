@@ -1,10 +1,10 @@
-import { BufferReader } from "@nasselk/binarypack";
-import { Vector3 } from "../../../../shared/math/vector3";
+import type { BufferReader } from "@nasselk/binarypack";
+import { Group, type Vector3Like } from "three";
 import { Quaternion } from "../../../../shared/math/quaternion";
-import { Group, Vector3Like } from "three";
+import { Vector3 } from "../../../../shared/math/vector3";
 import type { EntityOptions } from "../../../../shared/world/entity";
-import { Entity } from "./entity";
 import type { World } from "../world";
+import { Entity } from "./entity";
 
 export type PositionEntityOptions = EntityOptions & {
 	readonly x?: number;

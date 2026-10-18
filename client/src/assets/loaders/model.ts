@@ -1,8 +1,8 @@
 import { type LoadingManager, Mesh, type Object3D, Texture, type WebGLRenderer } from "three";
-import type { WebGPURenderer } from "three/webgpu";
 import type { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { GLTFLoader, type GLTFLoaderPlugin, type GLTFParser } from "three/addons/loaders/GLTFLoader.js";
 import type { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
+import type { WebGPURenderer } from "three/webgpu";
 import type { AssetLoader } from "../AssetManager";
 import { applyRequestOptions, type RequestOptions } from "./request";
 
