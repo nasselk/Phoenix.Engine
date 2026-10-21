@@ -28,3 +28,4 @@ export async function waitForUserGesture(enforceNewGesture = false) {
         return gesturePromise;
     }
 }
+//# sourceMappingURL=gesture.js.map

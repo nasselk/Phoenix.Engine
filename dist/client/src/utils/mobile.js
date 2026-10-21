@@ -10,3 +10,4 @@ export function isMobileDevice() {
         any: isMobile || isTablet,
     };
 }
+//# sourceMappingURL=mobile.js.map

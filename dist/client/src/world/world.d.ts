@@ -1,7 +1,7 @@
 import type { BufferReader } from "@nasselk/binarypack";
-import type { EntityDefinitions } from "../../../shared/world/registry";
 import { Group } from "three";
 import type { SpawnArguments } from "../../../shared/world/options";
+import type { EntityDefinitions } from "../../../shared/world/registry";
 import { World as BaseWorld, type WorldOptions } from "../../../shared/world/world";
 import type { Entity } from "./entities/entity";
 export type ClientWorldOptions<D extends EntityDefinitions, C> = WorldOptions<D, C>;

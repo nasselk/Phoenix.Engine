@@ -1,6 +1,6 @@
-import { EventEmitter } from "../../../shared/utils/EventEmitter";
-import { Protocol, type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
 import { BufferReader } from "@nasselk/binarypack";
+import { type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, Protocol, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
+import { EventEmitter } from "../../../shared/utils/EventEmitter";
 type NetworkEvents = {
     connection: [];
     disconnection: [code: number, reason: string, manual: boolean];

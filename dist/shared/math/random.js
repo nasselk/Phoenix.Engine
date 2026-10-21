@@ -58,3 +58,4 @@ export class RNG {
         return this.seed / m;
     }
 }
+//# sourceMappingURL=random.js.map

@@ -28,3 +28,4 @@ export function credit(source, ...messages) {
     const emitter = formatSource(source);
     console.log(`${date} ${emitter} ${credit} | Powered by Phoenix.Engine`, ...messages);
 }
+//# sourceMappingURL=logger.js.map

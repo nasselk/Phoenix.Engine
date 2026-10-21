@@ -40,3 +40,4 @@ export function fadeInHoldAndFadeOut(time, fadeInTime, fadeOutTime, totalTime = 
     }
     return (1 - t) * min + t * max;
 }
+//# sourceMappingURL=animations.js.map

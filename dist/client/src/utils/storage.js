@@ -38,3 +38,4 @@ catch {
         error("Storage", "SessionStorage is not available, using in-memory storage instead");
     }
 }
+//# sourceMappingURL=storage.js.map

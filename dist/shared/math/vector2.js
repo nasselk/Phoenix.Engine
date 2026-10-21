@@ -261,4 +261,5 @@ class ObservableVector2 extends Vector2 {
         return false;
     }
 }
-export { Vector2, ObservableVector2 };
+export { ObservableVector2, Vector2 };
+//# sourceMappingURL=vector2.js.map

@@ -23,3 +23,4 @@ export class MovingEntity extends PositionEntity {
     }
     update(_deltaTime) { }
 }
+//# sourceMappingURL=moving.js.map

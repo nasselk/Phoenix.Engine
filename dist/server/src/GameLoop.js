@@ -53,3 +53,4 @@ export class GameLoop extends Loop {
         samples.measureExecution(stats.mspt);
     }
 }
+//# sourceMappingURL=GameLoop.js.map

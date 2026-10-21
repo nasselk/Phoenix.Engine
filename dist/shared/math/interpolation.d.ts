@@ -1,4 +1,4 @@
-import { Vector3Like } from "three";
+import type { Vector3Like } from "three";
 import type { Quaternion } from "./quaternion";
 export declare enum InterpolationCurve {
     LINEAR = 0,

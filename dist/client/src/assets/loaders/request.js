@@ -6,3 +6,4 @@ export function applyRequestOptions(loader, { crossOrigin, headers }) {
         loader.setRequestHeader({ ...headers });
     }
 }
+//# sourceMappingURL=request.js.map

@@ -1,6 +1,6 @@
+import { error } from "./logger";
 import { Timeout } from "./timers/timer";
 import { wait } from "./timers/wait";
-import { error } from "./logger";
 const RETRIABLE_STATUS = new Set([408, 425, 429]);
 function isRetriable(status) {
     return status >= 500 || RETRIABLE_STATUS.has(status);
@@ -113,3 +113,4 @@ export async function del(baseURL = "./", route, body, settings) {
         body: body ? JSON.stringify(body) : undefined,
     });
 }
+//# sourceMappingURL=fetch.js.map

@@ -1,9 +1,9 @@
+import Stats from "stats.js";
 import { Group } from "three";
+import type { Engine } from "../../../engine";
 import { AxisLines, type AxisLinesOptions } from "./AxisLines";
 import { InfiniteGrid, type InfiniteGridOptions } from "./InfiniteGrid";
 import { InfinitePlane, type InfinitePlaneOptions } from "./InfinitePlane";
-import Stats from "stats.js";
-import type { Engine } from "../../../engine";
 export interface EditorViewOptions {
     readonly plane?: InfinitePlaneOptions;
     readonly grid?: InfiniteGridOptions;

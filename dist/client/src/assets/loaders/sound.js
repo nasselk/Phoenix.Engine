@@ -19,3 +19,4 @@ export class SoundLoader {
         howl.unload();
     }
 }
+//# sourceMappingURL=sound.js.map

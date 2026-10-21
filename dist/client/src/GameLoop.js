@@ -38,3 +38,4 @@ export class GameLoop extends Loop {
         samples.measureExecution(stats.frames.cpu);
     }
 }
+//# sourceMappingURL=GameLoop.js.map

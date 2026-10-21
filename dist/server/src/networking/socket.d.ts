@@ -1,7 +1,7 @@
 import type { ServerWebSocket } from "bun";
+import type { Contract, InboundEvent, MessagePayload, OutboundEvent, Protocol, SendPayload } from "../../../shared/networking/protocol";
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
-import { type Contract, type InboundEvent, type MessagePayload, type OutboundEvent, type Protocol, type SendPayload } from "../../../shared/networking/protocol";
 import { Seen } from "../world/replication";
 import type { World } from "../world/world";
 type SocketEvents<C extends Contract> = {

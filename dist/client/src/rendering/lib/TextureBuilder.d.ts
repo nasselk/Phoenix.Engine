@@ -1,5 +1,5 @@
 import { Texture } from "three";
-import { AssetCache } from "../../assets/AssetCache";
+import type { AssetCache } from "../../assets/AssetCache";
 export declare class TextureBuilder {
     private readonly canvas;
     private readonly context;

@@ -1,6 +1,6 @@
 import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
-import { PositionEntity, type PositionEntityOptions } from "./position";
 import type { World } from "../world";
+import { PositionEntity, type PositionEntityOptions } from "./position";
 type VectorOptions = {
     readonly x?: number;
     readonly y?: number;

@@ -95,3 +95,4 @@ export class Loop extends EventEmitter {
 }
 Loop.MAX_ID = 2 ** 32 - 1;
 Loop.MAX_STEP = 100;
+//# sourceMappingURL=Loop.js.map

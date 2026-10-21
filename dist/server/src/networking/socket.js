@@ -73,3 +73,4 @@ export class Socket extends EventEmitter {
         return this.socket?.readyState ?? SocketState.CLOSED;
     }
 }
+//# sourceMappingURL=socket.js.map

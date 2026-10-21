@@ -38,3 +38,4 @@ export function closestAngle(reference, ...angles) {
     }
     return closest;
 }
+//# sourceMappingURL=angle.js.map

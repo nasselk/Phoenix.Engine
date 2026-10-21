@@ -145,3 +145,4 @@ export class Batcher {
         return geometry.getAttribute("position") !== undefined && Object.keys(geometry.morphAttributes).length === 0;
     }
 }
+//# sourceMappingURL=Batcher.js.map

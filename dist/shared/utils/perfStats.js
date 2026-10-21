@@ -83,3 +83,4 @@ export class PerfSampler {
         this.since = now;
     }
 }
+//# sourceMappingURL=perfStats.js.map

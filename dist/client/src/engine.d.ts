@@ -1,14 +1,14 @@
 import type { SchemasFor } from "../../shared/networking/protocol";
+import { EventEmitter } from "../../shared/utils/EventEmitter";
 import type { EntityDefinitions } from "../../shared/world/registry";
-import { type ClientWorldOptions, World } from "./world/world";
+import { AssetManager, type AssetManagerOptions } from "./assets/AssetManager";
+import { type AudioOptions, AudioSystem } from "./audio/AudioSystem";
+import { InputSystem, type InputSystemOptions } from "./controls/InputSystem";
+import { GameLoop, type GameLoopParams } from "./GameLoop";
+import { type NativeOptions } from "./native";
 import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
 import { RenderSystem, type RenderSystemOptions } from "./rendering/RenderSystem";
-import { GameLoop, type GameLoopParams } from "./GameLoop";
-import { AudioSystem, type AudioOptions } from "./audio/AudioSystem";
-import { InputSystem, type InputSystemOptions } from "./controls/InputSystem";
-import { EventEmitter } from "../../shared/utils/EventEmitter";
-import { AssetManager, type AssetManagerOptions } from "./assets/AssetManager";
-import { type NativeOptions } from "./native";
+import { type ClientWorldOptions, World } from "./world/world";
 type EngineEvents = {
     init: [];
     destroy: [];

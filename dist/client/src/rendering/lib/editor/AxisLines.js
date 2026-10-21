@@ -52,3 +52,4 @@ export class AxisLines extends LineSegments {
         return this.material.uniforms;
     }
 }
+//# sourceMappingURL=AxisLines.js.map

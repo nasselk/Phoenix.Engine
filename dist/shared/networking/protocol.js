@@ -82,3 +82,4 @@ export class Protocol {
         return schema ? schema.decode(reader) : reader;
     }
 }
+//# sourceMappingURL=protocol.js.map

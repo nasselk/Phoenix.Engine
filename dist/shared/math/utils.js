@@ -41,3 +41,4 @@ export function distanceSquared(x1, y1, x2, y2) {
     const dy = y2 - y1;
     return dx ** 2 + dy ** 2;
 }
+//# sourceMappingURL=utils.js.map

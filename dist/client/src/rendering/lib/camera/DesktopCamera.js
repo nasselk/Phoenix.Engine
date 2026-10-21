@@ -53,3 +53,4 @@ export class DesktopCamera extends OrbitCamera {
         this.pointer = this.panPointer = -1;
     }
 }
+//# sourceMappingURL=DesktopCamera.js.map

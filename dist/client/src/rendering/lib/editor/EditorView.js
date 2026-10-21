@@ -1,8 +1,8 @@
+import Stats from "stats.js";
 import { Group } from "three";
 import { AxisLines } from "./AxisLines";
 import { InfiniteGrid } from "./InfiniteGrid";
 import { InfinitePlane } from "./InfinitePlane";
-import Stats from "stats.js";
 export class EditorView extends Group {
     constructor(engine, { plane, grid, axes } = {}) {
         super();
@@ -145,3 +145,4 @@ export class EditorView extends Group {
         }
     }
 }
+//# sourceMappingURL=EditorView.js.map

@@ -1,14 +1,14 @@
+import { EventEmitter } from "../../shared/utils/EventEmitter";
 import { credit, log } from "../../shared/utils/logger";
-import { World } from "./world/world";
-import { NetworkSystem } from "./networking/NetworkSystem";
-import { RenderSystem } from "./rendering/RenderSystem";
-import { GameLoop } from "./GameLoop";
+import { AssetManager } from "./assets/AssetManager";
 import { AudioSystem } from "./audio/AudioSystem";
 import { InputSystem } from "./controls/InputSystem";
-import { EventEmitter } from "../../shared/utils/EventEmitter";
-import { AssetManager } from "./assets/AssetManager";
+import { GameLoop } from "./GameLoop";
 import { native } from "./native";
+import { NetworkSystem } from "./networking/NetworkSystem";
+import { RenderSystem } from "./rendering/RenderSystem";
 import { isMobileDevice } from "./utils/mobile";
+import { World } from "./world/world";
 export class Engine extends EventEmitter {
     constructor(options) {
         super();
@@ -64,3 +64,4 @@ export class Engine extends EventEmitter {
         this.removeAllListeners();
     }
 }
+//# sourceMappingURL=engine.js.map

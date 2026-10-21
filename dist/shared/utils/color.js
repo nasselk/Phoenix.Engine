@@ -70,3 +70,4 @@ export function extractRGBA(color) {
     }
     return { r, g, b, a };
 }
+//# sourceMappingURL=color.js.map

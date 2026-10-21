@@ -64,3 +64,4 @@ export class TextureBuilder {
         return this.canvas.height;
     }
 }
+//# sourceMappingURL=TextureBuilder.js.map

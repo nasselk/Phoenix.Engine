@@ -1,4 +1,4 @@
-import { randomSeed, RNG } from "../math/random";
+import { RNG, randomSeed } from "../math/random";
 import { EventEmitter } from "../utils/EventEmitter";
 import { IDAllocator } from "../utils/IDAllocator";
 export class World extends EventEmitter {
@@ -110,3 +110,4 @@ export class World extends EventEmitter {
         return this.entities.size < this.capacity;
     }
 }
+//# sourceMappingURL=world.js.map

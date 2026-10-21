@@ -1,2 +1,3 @@
 export const INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 export const INVITE_CODE_LENGTH = 6;
+//# sourceMappingURL=invite.js.map

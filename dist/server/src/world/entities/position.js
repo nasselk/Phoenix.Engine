@@ -1,5 +1,5 @@
-import { ObservableVector3 } from "../../../../shared/math/vector3";
 import { ObservableQuaternion, Quaternion } from "../../../../shared/math/quaternion";
+import { ObservableVector3 } from "../../../../shared/math/vector3";
 import { RAPIER } from "../../../../shared/physics/rapier";
 import { Entity } from "./entity";
 export const POSITION_EPSILON = 0.000001;
@@ -162,3 +162,4 @@ export class PositionEntity extends Entity {
         return this.position.hasUpdated(POSITION_EPSILON) || this.rotation.hasUpdated(ROTATION_EPSILON);
     }
 }
+//# sourceMappingURL=position.js.map

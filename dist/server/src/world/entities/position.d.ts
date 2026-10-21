@@ -1,11 +1,11 @@
 import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
-import { BufferWriter } from "@nasselk/binarypack";
-import { ObservableVector3 } from "../../../../shared/math/vector3";
+import type { BufferWriter } from "@nasselk/binarypack";
+import type { Vector3Like } from "three";
 import { ObservableQuaternion } from "../../../../shared/math/quaternion";
+import { ObservableVector3 } from "../../../../shared/math/vector3";
 import type { EntityOptions } from "../../../../shared/world/entity";
-import { Entity } from "./entity";
 import type { World } from "../world";
-import { Vector3Like } from "three";
+import { Entity } from "./entity";
 export declare const POSITION_EPSILON = 0.000001;
 export declare const ROTATION_EPSILON = 0.01;
 export type PositionEntityOptions = EntityOptions & {

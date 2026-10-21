@@ -1,10 +1,10 @@
-import { GameLoop, type GameLoopParams } from "./GameLoop";
-import { World } from "./world/world";
 import { type RoomOccupancy } from "../../shared/networking/invite";
-import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
 import type { ContractOf, SchemasFor } from "../../shared/networking/protocol";
-import type { EntityDefinitions, EntityRegistry } from "../../shared/world/registry";
 import { EventEmitter } from "../../shared/utils/EventEmitter";
+import type { EntityDefinitions, EntityRegistry } from "../../shared/world/registry";
+import { GameLoop, type GameLoopParams } from "./GameLoop";
+import { NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
+import { World } from "./world/world";
 type EngineEvents = {
     init: [];
     destroy: [];

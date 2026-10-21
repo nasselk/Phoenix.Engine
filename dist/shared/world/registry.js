@@ -61,3 +61,4 @@ export class EntityRegistry {
 export function defineEntities(definitions) {
     return new EntityRegistry(definitions);
 }
+//# sourceMappingURL=registry.js.map

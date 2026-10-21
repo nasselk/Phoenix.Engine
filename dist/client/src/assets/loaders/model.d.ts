@@ -1,6 +1,6 @@
 import { type LoadingManager, type Object3D, type WebGLRenderer } from "three";
-import type { WebGPURenderer } from "three/webgpu";
 import { type GLTFLoaderPlugin, type GLTFParser } from "three/addons/loaders/GLTFLoader.js";
+import type { WebGPURenderer } from "three/webgpu";
 import type { AssetLoader } from "../AssetManager";
 import { type RequestOptions } from "./request";
 export type ModelLoaderOptions = RequestOptions & {

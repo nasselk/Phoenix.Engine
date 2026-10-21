@@ -18,6 +18,7 @@ export function removeFromArray(array, item, index) {
             }
         }
     }
+    return undefined;
 }
 export function deepMerge(target, source) {
     for (const key of Object.keys(source)) {
@@ -47,3 +48,4 @@ export function deepCopy(source) {
     }
     return target;
 }
+//# sourceMappingURL=utils.js.map

@@ -121,3 +121,4 @@ export class Interval extends Timer {
         super(callback, delay, true, customLoop, ...params);
     }
 }
+//# sourceMappingURL=timer.js.map

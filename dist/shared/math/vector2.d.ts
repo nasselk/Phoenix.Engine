@@ -68,4 +68,4 @@ declare class ObservableVector2 extends Vector2 {
     hasUpdatedY(minimumDelta?: number): boolean;
     hasUpdated(minimumDelta?: number): boolean;
 }
-export { Vector2, ObservableVector2, type Vector2Structure };
+export { ObservableVector2, Vector2, type Vector2Structure };

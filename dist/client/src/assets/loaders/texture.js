@@ -12,3 +12,4 @@ export class TextureLoader {
         texture.dispose();
     }
 }
+//# sourceMappingURL=texture.js.map

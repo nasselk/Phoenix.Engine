@@ -2,10 +2,10 @@ import { NoToneMapping, Scene, WebGLRenderer } from "three";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
 import { waitForUserGesture } from "../utils/gesture";
-import { DesktopCamera } from "./lib/camera/DesktopCamera";
-import { TextureBuilder } from "./lib/TextureBuilder";
 import { Batcher } from "./lib/Batcher";
+import { DesktopCamera } from "./lib/camera/DesktopCamera";
 import { TouchCamera } from "./lib/camera/TouchCamera";
+import { TextureBuilder } from "./lib/TextureBuilder";
 export var RenderSystemState;
 (function (RenderSystemState) {
     RenderSystemState[RenderSystemState["NULL"] = 0] = "NULL";
@@ -180,3 +180,4 @@ export class RenderSystem extends EventEmitter {
         return document.fullscreenElement !== null;
     }
 }
+//# sourceMappingURL=RenderSystem.js.map

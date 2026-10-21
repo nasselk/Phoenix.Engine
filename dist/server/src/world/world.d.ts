@@ -1,10 +1,10 @@
+import type { Contract, OutboundEvent, SendPayload } from "../../../shared/networking/protocol";
+import { RAPIER } from "../../../shared/physics/rapier";
+import type { SpawnArguments } from "../../../shared/world/options";
 import type { EntityDefinitions } from "../../../shared/world/registry";
 import { World as BaseWorld, type WorldOptions } from "../../../shared/world/world";
-import type { SpawnArguments } from "../../../shared/world/options";
-import type { Contract, OutboundEvent, SendPayload } from "../../../shared/networking/protocol";
 import type { NetworkSystem } from "../networking/NetworkSystem";
-import { type Socket } from "../networking/socket";
-import { RAPIER } from "../../../shared/physics/rapier";
+import type { Socket } from "../networking/socket";
 import type { Entity } from "./entities/entity";
 import type { PositionEntity } from "./entities/position";
 export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contract = Contract> = WorldOptions<D, C> & {

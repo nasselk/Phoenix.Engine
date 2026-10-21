@@ -52,7 +52,7 @@ export declare class HashGrid3D<T extends Positioned = Positioned, Types extends
     remove(item: ItemOf<T, Types>): boolean;
     has(item: ItemOf<T, Types>): boolean;
     query(center: Vector3Structure, size?: number | Vector3Structure, out?: HashGridResult<ItemOf<T, Types>, Types>): HashGridResult<ItemOf<T, Types>, Types>;
-    each<K extends TypeKey<Types> = TypeKey<Types>>(center: Vector3Structure, size: number | Vector3Structure, callback: (item: ItemOfType<T, Types, K>) => boolean | void, type?: K): boolean;
+    each<K extends TypeKey<Types> = TypeKey<Types>>(center: Vector3Structure, size: number | Vector3Structure, callback: (item: ItemOfType<T, Types, K>) => boolean | undefined, type?: K): boolean;
     pairs(callback: (first: ItemOf<T, Types>, second: ItemOf<T, Types>) => void): number;
     clear(): this;
     resize(bounds: HashGridOptions<Types>["bounds"], cellSize?: number | Vector3Structure): this;

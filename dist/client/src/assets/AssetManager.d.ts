@@ -1,6 +1,6 @@
 import { LoadingManager, type Object3D, type WebGLRenderer } from "three";
-import type { WebGPURenderer } from "three/webgpu";
 import type { GLTFLoaderPlugin, GLTFParser } from "three/addons/loaders/GLTFLoader.js";
+import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { AssetCache, type AssetKind, type AssetKinds } from "./AssetCache";
 import { type SoundSource } from "./loaders/sound";

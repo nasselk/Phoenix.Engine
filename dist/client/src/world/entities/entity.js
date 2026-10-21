@@ -4,3 +4,4 @@ export class Entity extends BaseEntity {
         super(world, context);
     }
 }
+//# sourceMappingURL=entity.js.map

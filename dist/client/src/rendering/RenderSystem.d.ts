@@ -1,10 +1,10 @@
 import { type ColorRepresentation, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
+import type { AssetCache } from "../assets/AssetCache";
+import { Batcher } from "./lib/Batcher";
 import type { OrbitCamera } from "./lib/camera/Camera";
 import { TextureBuilder } from "./lib/TextureBuilder";
-import { Batcher } from "./lib/Batcher";
-import { AssetCache } from "../assets/AssetCache";
 type RenderSystemEvents = {
     init: [renderer: HTMLCanvasElement];
     render: [deltaTime: number, now: number];

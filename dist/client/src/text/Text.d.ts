@@ -1,4 +1,4 @@
-import { type BufferGeometry, type Camera, type ColorRepresentation, type Group, type Material, Mesh, type Scene, type WebGLRenderer } from "three";
+import { type BufferGeometry, type Camera, type ColorRepresentation, type Group, type Material, type Mesh, type Scene, type WebGLRenderer } from "three";
 import type { AssetLoader } from "../assets/AssetManager";
 type Length = number | `${number}%`;
 export interface TextProperties {

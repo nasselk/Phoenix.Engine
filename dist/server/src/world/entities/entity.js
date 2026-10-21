@@ -10,3 +10,4 @@ export class Entity extends BaseEntity {
     }
     clean() { }
 }
+//# sourceMappingURL=entity.js.map

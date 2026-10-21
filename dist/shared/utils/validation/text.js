@@ -36,3 +36,4 @@ export function censorText(text) {
     }
     return text;
 }
+//# sourceMappingURL=text.js.map

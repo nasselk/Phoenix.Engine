@@ -6,3 +6,4 @@ export function initPhysics() {
     return loading;
 }
 export { eulerToQuaternion, quaternionToEuler } from "../math/quaternion";
+//# sourceMappingURL=rapier.js.map

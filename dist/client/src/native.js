@@ -69,3 +69,4 @@ export function native(options = {}) {
         undo.length = 0;
     };
 }
+//# sourceMappingURL=native.js.map

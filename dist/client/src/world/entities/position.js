@@ -1,6 +1,6 @@
-import { Vector3 } from "../../../../shared/math/vector3";
-import { Quaternion } from "../../../../shared/math/quaternion";
 import { Group } from "three";
+import { Quaternion } from "../../../../shared/math/quaternion";
+import { Vector3 } from "../../../../shared/math/vector3";
 import { Entity } from "./entity";
 export class PositionEntity extends Entity {
     constructor(world, context, options = {}) {
@@ -78,3 +78,4 @@ export class PositionEntity extends Entity {
         return this.rotation.yaw;
     }
 }
+//# sourceMappingURL=position.js.map

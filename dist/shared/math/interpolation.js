@@ -21,7 +21,7 @@ function lerp(start, end, factor, deltaTime = 1, limit = 0) {
     if (Math.abs(delta) < limit || view?.hidden) {
         return end;
     }
-    const f = 1 - Math.pow(1 - factor, deltaTime);
+    const f = 1 - (1 - factor) ** deltaTime;
     return start + delta * f;
 }
 function lerpAngle(start, end, factor, deltaTime, limit) {
@@ -38,7 +38,7 @@ export function slerpQuaternion(start, end, factor, deltaTime = 1, limit = 0) {
         start.set(end);
         return;
     }
-    start.slerp(end, 1 - Math.pow(1 - factor, deltaTime));
+    start.slerp(end, 1 - (1 - factor) ** deltaTime);
 }
 function lerpColor(start, end, factor = 0.05, deltaTime = 1, limit = 0) {
     const startChannels = extractRGBA(start);
@@ -100,3 +100,4 @@ export const Interpolator = {
     tweenColor,
 };
 export default Interpolator;
+//# sourceMappingURL=interpolation.js.map

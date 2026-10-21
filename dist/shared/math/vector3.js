@@ -328,4 +328,5 @@ class ObservableVector3 extends Vector3 {
         return false;
     }
 }
-export { Vector3, ObservableVector3 };
+export { ObservableVector3, Vector3 };
+//# sourceMappingURL=vector3.js.map

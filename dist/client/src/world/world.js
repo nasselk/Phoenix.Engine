@@ -60,3 +60,4 @@ export class World extends BaseWorld {
         this.group.removeFromParent();
     }
 }
+//# sourceMappingURL=world.js.map

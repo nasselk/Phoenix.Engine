@@ -154,3 +154,4 @@ function dataURL(blob) {
         reader.readAsDataURL(blob);
     });
 }
+//# sourceMappingURL=SoundBuilder.js.map

@@ -202,3 +202,4 @@ class ObservableQuaternion extends Quaternion {
     }
 }
 export { ObservableQuaternion, Quaternion };
+//# sourceMappingURL=quaternion.js.map

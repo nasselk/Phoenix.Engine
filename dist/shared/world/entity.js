@@ -24,3 +24,4 @@ export class Entity {
         return this.constructor.name;
     }
 }
+//# sourceMappingURL=entity.js.map

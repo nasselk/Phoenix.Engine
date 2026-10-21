@@ -43,3 +43,4 @@ export class InfinitePlane extends Mesh {
         return this.material.uniforms;
     }
 }
+//# sourceMappingURL=InfinitePlane.js.map

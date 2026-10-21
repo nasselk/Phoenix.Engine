@@ -66,3 +66,4 @@ export class TouchCamera extends OrbitCamera {
         return Math.hypot(second.x - first.x, second.y - first.y);
     }
 }
+//# sourceMappingURL=TouchCamera.js.map

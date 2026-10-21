@@ -1,6 +1,6 @@
-import { World as BaseWorld } from "../../../shared/world/world";
 import { GRAVITY } from "../../../shared/physics/constants";
 import { RAPIER } from "../../../shared/physics/rapier";
+import { World as BaseWorld } from "../../../shared/world/world";
 import { Replication } from "./replication";
 export const MAX_SERVER_WORLD_SIZE = 2 ** 16 - 1;
 export class World extends BaseWorld {
@@ -154,3 +154,4 @@ export class World extends BaseWorld {
         return this.sockets.size < this.maxPlayers;
     }
 }
+//# sourceMappingURL=world.js.map

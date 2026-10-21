@@ -1,10 +1,10 @@
+import { BufferReader } from "@nasselk/binarypack";
+import { MessageHandlers } from "../../../shared/networking/handlers";
+import { Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
+import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { error, log, warn } from "../../../shared/utils/logger";
 import { Interval, Timeout } from "../../../shared/utils/timers/timer";
 import { wait } from "../../../shared/utils/timers/wait";
-import { EventEmitter } from "../../../shared/utils/EventEmitter";
-import { MessageHandlers } from "../../../shared/networking/handlers";
-import { Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
-import { BufferReader } from "@nasselk/binarypack";
 export var NetworkState;
 (function (NetworkState) {
     NetworkState[NetworkState["CONNECTING"] = 0] = "CONNECTING";
@@ -113,7 +113,7 @@ export class NetworkSystem extends EventEmitter {
             await wait(this.simulation.latency / 2);
         }
         if (this.readyState === NetworkState.OPEN) {
-            this.socket.send(buffer);
+            this.socket?.send(buffer);
         }
     }
     async handle(data) {
@@ -234,3 +234,4 @@ export class NetworkSystem extends EventEmitter {
         this.simulation.loss = loss;
     }
 }
+//# sourceMappingURL=NetworkSystem.js.map

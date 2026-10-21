@@ -47,3 +47,4 @@ export function fontLoader(characters = LATIN) {
 export function configureText(config) {
     configureTextBuilder(config);
 }
+//# sourceMappingURL=Text.js.map

@@ -1,10 +1,10 @@
-import { credit, log } from "../../shared/utils/logger";
-import { initPhysics } from "../../shared/physics/rapier";
-import { GameLoop } from "./GameLoop";
-import { World } from "./world/world";
 import { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "../../shared/networking/invite";
-import { NetworkSystem } from "./networking/NetworkSystem";
+import { initPhysics } from "../../shared/physics/rapier";
 import { EventEmitter } from "../../shared/utils/EventEmitter";
+import { credit, log } from "../../shared/utils/logger";
+import { GameLoop } from "./GameLoop";
+import { NetworkSystem } from "./networking/NetworkSystem";
+import { World } from "./world/world";
 export const MAX_INVITE_CODE_ATTEMPTS = 100;
 export class Engine extends EventEmitter {
     constructor(options) {
@@ -106,3 +106,4 @@ export class Engine extends EventEmitter {
         this.removeAllListeners();
     }
 }
+//# sourceMappingURL=engine.js.map

@@ -139,3 +139,4 @@ export class AssetManager extends EventEmitter {
         }
     }
 }
+//# sourceMappingURL=AssetManager.js.map

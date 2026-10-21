@@ -1,13 +1,13 @@
+import { BufferReader } from "@nasselk/binarypack";
+import { MessageHandlers } from "../../../shared/networking/handlers";
+import { Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";
 import { error, log } from "../../../shared/utils/logger";
-import { MessageHandlers } from "../../../shared/networking/handlers";
-import { Protocol, SOCKET_ROUTE } from "../../../shared/networking/protocol";
+import { Interval } from "../../../shared/utils/timers/timer";
 import { HttpGate } from "./http";
 import { Socket } from "./socket";
-import { Interval } from "../../../shared/utils/timers/timer";
-import { BufferReader } from "@nasselk/binarypack";
 export const DEFAULT_NETWORK_SETTINGS = {
     port: 3000,
     proxied: false,
@@ -251,3 +251,4 @@ export class NetworkSystem extends EventEmitter {
         this.removeAllListeners();
     }
 }
+//# sourceMappingURL=NetworkSystem.js.map

@@ -54,3 +54,4 @@ export class InfiniteGrid extends Mesh {
         return this.material.uniforms;
     }
 }
+//# sourceMappingURL=InfiniteGrid.js.map
