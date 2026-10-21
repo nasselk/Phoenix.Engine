@@ -44,3 +44,4 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     set yaw(value: number);
     get isDirty(): boolean;
 }
+//# sourceMappingURL=position.d.ts.map

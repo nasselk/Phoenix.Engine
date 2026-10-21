@@ -4,3 +4,4 @@ export type DeviceType = {
     readonly any: boolean;
 };
 export declare function isMobileDevice(): DeviceType;
+//# sourceMappingURL=mobile.d.ts.map

@@ -14,3 +14,4 @@ export declare class World<D extends EntityDefinitions, C> extends BaseWorld<D, 
     sync(reader: BufferReader): void;
     destroy(): void;
 }
+//# sourceMappingURL=world.d.ts.map

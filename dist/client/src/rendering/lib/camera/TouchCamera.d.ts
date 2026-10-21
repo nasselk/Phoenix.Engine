@@ -14,3 +14,4 @@ export declare class TouchCamera extends OrbitCamera {
     protected unlisten(element: HTMLElement | Window): void;
     private apart;
 }
+//# sourceMappingURL=TouchCamera.d.ts.map

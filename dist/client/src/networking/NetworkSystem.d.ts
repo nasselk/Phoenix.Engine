@@ -74,3 +74,4 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     set loss(loss: number);
 }
 export {};
+//# sourceMappingURL=NetworkSystem.d.ts.map

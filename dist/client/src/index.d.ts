@@ -19,3 +19,4 @@ export { Entity } from "./world/entities/entity";
 export { MovingEntity, type MovingEntityOptions } from "./world/entities/moving";
 export { PositionEntity, type PositionEntityOptions } from "./world/entities/position";
 export { type ClientWorldOptions, World } from "./world/world";
+//# sourceMappingURL=index.d.ts.map

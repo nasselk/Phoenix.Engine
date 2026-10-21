@@ -25,3 +25,4 @@ export declare class SoundBuilder {
     download(name: string): Promise<void>;
     clear(): this;
 }
+//# sourceMappingURL=SoundBuilder.d.ts.map

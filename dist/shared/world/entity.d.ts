@@ -18,3 +18,4 @@ export declare abstract class Entity<C> {
     get type(): string;
 }
 export type EntityClass<T extends Entity<any> = Entity<any>> = abstract new (...args: never[]) => T;
+//# sourceMappingURL=entity.d.ts.map

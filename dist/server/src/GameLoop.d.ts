@@ -30,3 +30,4 @@ export declare class GameLoop extends Loop<"tick", LoopStats> {
     protected cancel(): void;
     protected measure(now: number): void;
 }
+//# sourceMappingURL=GameLoop.d.ts.map

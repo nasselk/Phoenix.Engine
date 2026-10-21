@@ -7,3 +7,4 @@ export declare class SoundLoader implements AssetLoader<Howl, SoundSource> {
     load(source: SoundSource): Promise<Howl>;
     unload(howl: Howl): void;
 }
+//# sourceMappingURL=sound.d.ts.map

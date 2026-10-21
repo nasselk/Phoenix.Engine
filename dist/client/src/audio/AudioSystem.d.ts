@@ -37,3 +37,4 @@ export declare class AudioSystem extends EventEmitter<AudioSystemEvents> {
     private assertInitialized;
 }
 export {};
+//# sourceMappingURL=AudioSystem.d.ts.map

@@ -31,3 +31,4 @@ export declare class PerfSampler {
     rate(now?: number): number;
     reset(now?: number): void;
 }
+//# sourceMappingURL=perfStats.d.ts.map

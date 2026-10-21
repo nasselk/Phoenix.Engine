@@ -45,3 +45,4 @@ export declare class Socket<C extends Contract = Contract> extends EventEmitter<
     get readyState(): SocketState;
 }
 export {};
+//# sourceMappingURL=socket.d.ts.map

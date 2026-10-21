@@ -18,3 +18,4 @@ export declare class DesktopCamera extends OrbitCamera {
     protected listen(element: HTMLElement | Window): void;
     protected unlisten(element: HTMLElement | Window): void;
 }
+//# sourceMappingURL=DesktopCamera.d.ts.map

@@ -36,3 +36,4 @@ export declare class Interval extends Timer {
     constructor(callback: TimerCallback, delay: number | [number, number], customLoop?: boolean, ...params: any[]);
 }
 export {};
+//# sourceMappingURL=timer.d.ts.map

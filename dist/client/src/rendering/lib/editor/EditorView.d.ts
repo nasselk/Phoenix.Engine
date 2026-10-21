@@ -38,3 +38,4 @@ export declare class EditorView extends Group {
     private wireScene;
     destroy(): void;
 }
+//# sourceMappingURL=EditorView.d.ts.map

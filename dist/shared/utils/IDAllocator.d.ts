@@ -15,3 +15,4 @@ export declare class IDAllocator {
     get pendingTimeouts(): number;
     clear(): this;
 }
+//# sourceMappingURL=IDAllocator.d.ts.map

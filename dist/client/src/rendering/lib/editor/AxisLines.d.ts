@@ -13,3 +13,4 @@ export declare class AxisLines extends LineSegments<BufferGeometry, ShaderMateri
         [uniform: string]: import("three").IUniform<any>;
     };
 }
+//# sourceMappingURL=AxisLines.d.ts.map

@@ -70,3 +70,4 @@ declare module "../assets/AssetCache" {
 export declare function fontLoader(characters?: string | readonly string[]): AssetLoader<string>;
 export declare function configureText(config: TextConfig): void;
 export {};
+//# sourceMappingURL=Text.d.ts.map

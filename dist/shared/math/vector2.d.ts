@@ -69,3 +69,4 @@ declare class ObservableVector2 extends Vector2 {
     hasUpdated(minimumDelta?: number): boolean;
 }
 export { ObservableVector2, Vector2, type Vector2Structure };
+//# sourceMappingURL=vector2.d.ts.map

@@ -81,3 +81,4 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     protected pan(x: number, y: number): void;
     protected zoomByDelta(delta: number): void;
 }
+//# sourceMappingURL=Camera.d.ts.map

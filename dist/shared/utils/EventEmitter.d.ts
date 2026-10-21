@@ -5,3 +5,4 @@ export declare class EventEmitter<Events extends Record<string, any[]>> {
     removeAllListeners(): void;
     protected emit<K extends keyof Events>(event: K, ...args: Events[K]): void;
 }
+//# sourceMappingURL=EventEmitter.d.ts.map

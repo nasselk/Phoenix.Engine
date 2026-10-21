@@ -28,3 +28,4 @@ export declare class Replication {
     private update;
     private copy;
 }
+//# sourceMappingURL=replication.d.ts.map

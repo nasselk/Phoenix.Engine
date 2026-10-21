@@ -19,3 +19,4 @@ export declare abstract class MovingEntity<C> extends PositionEntity<C> {
     update(_deltaTime: number): void;
 }
 export {};
+//# sourceMappingURL=moving.d.ts.map

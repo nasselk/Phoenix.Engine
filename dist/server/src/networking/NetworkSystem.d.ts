@@ -83,3 +83,4 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     destroy(): void;
 }
 export {};
+//# sourceMappingURL=NetworkSystem.d.ts.map

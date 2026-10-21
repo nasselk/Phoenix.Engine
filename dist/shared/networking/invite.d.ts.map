@@ -1,0 +1,1 @@
+{"version":3,"file":"invite.d.ts","sourceRoot":"","sources":["../../../shared/networking/invite.ts"],"names":[],"mappings":"AACA,eAAO,MAAM,oBAAoB,qCAAqC,CAAC;AAEvE,eAAO,MAAM,kBAAkB,IAAI,CAAC;AAGpC,MAAM,MAAM,aAAa,GAAG;IAC3B,QAAQ,CAAC,OAAO,EAAE,MAAM,CAAC;IACzB,QAAQ,CAAC,UAAU,EAAE,MAAM,CAAC;IAC5B,QAAQ,CAAC,MAAM,EAAE,OAAO,CAAC;CACzB,CAAC"}

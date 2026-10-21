@@ -24,3 +24,4 @@ export declare class GameLoop extends Loop<"frame", LoopStats> {
     protected cancel(): void;
     protected measure(now: number): void;
 }
+//# sourceMappingURL=GameLoop.d.ts.map

@@ -7,3 +7,4 @@ export declare class Batcher {
     private static part;
     private static batchable;
 }
+//# sourceMappingURL=Batcher.d.ts.map

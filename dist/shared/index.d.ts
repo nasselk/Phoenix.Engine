@@ -24,3 +24,4 @@ export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } f
 export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export { censorText, normalizeText, validateText } from "./utils/validation/text";
 export { defineEntities, Entity, type EntityClass, type EntityConstructor, type EntityDefinitions, type EntityOptions, EntityRegistry, HashGrid3D, type HashGridOptions, type HashGridResult, type HashGridTypes, MAX_ENTITY_KINDS, type Positioned, SpatialGrid, World, type WorldEvents, type WorldOptions, } from "./world/index";
+//# sourceMappingURL=index.d.ts.map

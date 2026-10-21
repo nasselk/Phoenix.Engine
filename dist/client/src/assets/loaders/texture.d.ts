@@ -7,3 +7,4 @@ export declare class TextureLoader implements AssetLoader<Texture> {
     load(url: string): Promise<Texture>;
     unload(texture: Texture): void;
 }
+//# sourceMappingURL=texture.d.ts.map

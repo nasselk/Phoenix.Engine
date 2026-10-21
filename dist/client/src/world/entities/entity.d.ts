@@ -8,3 +8,4 @@ export declare abstract class Entity<C> extends BaseEntity<C> {
     abstract deserialize(reader: BufferReader): void;
     abstract deserializeUpdate(reader: BufferReader): void;
 }
+//# sourceMappingURL=entity.d.ts.map

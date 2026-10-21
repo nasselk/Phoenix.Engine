@@ -14,3 +14,4 @@ export declare class TextureBuilder {
     get width(): number;
     get height(): number;
 }
+//# sourceMappingURL=TextureBuilder.d.ts.map

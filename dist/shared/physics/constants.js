@@ -1,3 +1,3 @@
 export const GRAVITY = -9.81;
 export const EPSILON = 1e-6;
-//# sourceMappingURL=constants.js.map
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiY29uc3RhbnRzLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vc2hhcmVkL3BoeXNpY3MvY29uc3RhbnRzLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiJBQUFBLE1BQU0sQ0FBQyxNQUFNLE9BQU8sR0FBRyxDQUFDLElBQUksQ0FBQztBQUU3QixNQUFNLENBQUMsTUFBTSxPQUFPLEdBQUcsSUFBSSxDQUFDIn0=

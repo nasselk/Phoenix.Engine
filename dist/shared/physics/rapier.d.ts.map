@@ -1,0 +1,1 @@
+{"version":3,"file":"rapier.d.ts","sourceRoot":"","sources":["../../../shared/physics/rapier.ts"],"names":[],"mappings":"AAAA,OAAO,MAAM,MAAM,gCAAgC,CAAC;AAEpD,OAAO,EAAE,MAAM,EAAE,CAAC;AAQlB,wBAAgB,WAAW,IAAI,OAAO,CAAC,IAAI,CAAC,CAI3C;AAED,OAAO,EAAE,iBAAiB,EAAE,iBAAiB,EAAE,MAAM,oBAAoB,CAAC"}

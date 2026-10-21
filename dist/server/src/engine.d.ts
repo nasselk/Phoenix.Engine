@@ -47,3 +47,4 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     destroy(): void;
 }
 export {};
+//# sourceMappingURL=engine.d.ts.map

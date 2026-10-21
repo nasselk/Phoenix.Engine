@@ -46,3 +46,4 @@ declare class ObservableQuaternion extends Quaternion {
     hasUpdated(minimumAngle?: number): boolean;
 }
 export { ObservableQuaternion, Quaternion };
+//# sourceMappingURL=quaternion.d.ts.map

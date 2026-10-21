@@ -10,3 +10,4 @@ export declare class RNG {
     constructor(seed: number);
     random(): number;
 }
+//# sourceMappingURL=random.d.ts.map

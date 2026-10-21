@@ -12,3 +12,4 @@ export declare class InfinitePlane extends Mesh<PlaneGeometry, ShaderMaterial> {
         [uniform: string]: import("three").IUniform<any>;
     };
 }
+//# sourceMappingURL=InfinitePlane.d.ts.map

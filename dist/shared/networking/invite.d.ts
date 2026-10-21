@@ -5,3 +5,4 @@ export type RoomOccupancy = {
     readonly maxPlayers: number;
     readonly public: boolean;
 };
+//# sourceMappingURL=invite.d.ts.map

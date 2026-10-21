@@ -1,4 +1,4 @@
 import { PositionEntity } from "./position";
 export class MovingEntity extends PositionEntity {
 }
-//# sourceMappingURL=moving.js.map
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibW92aW5nLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vLi4vLi4vY2xpZW50L3NyYy93b3JsZC9lbnRpdGllcy9tb3ZpbmcudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQUEsT0FBTyxFQUFFLGNBQWMsRUFBOEIsTUFBTSxZQUFZLENBQUM7QUFTeEUsTUFBTSxPQUFnQixZQUFnQixTQUFRLGNBQWlCO0NBQUcifQ==

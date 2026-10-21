@@ -57,3 +57,4 @@ export declare class AssetManager extends EventEmitter<AssetManagerEvents> {
     private settle;
 }
 export {};
+//# sourceMappingURL=AssetManager.d.ts.map

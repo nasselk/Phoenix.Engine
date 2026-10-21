@@ -32,3 +32,4 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     deserializeUpdate(reader: BufferReader): void;
     get yaw(): number;
 }
+//# sourceMappingURL=position.d.ts.map

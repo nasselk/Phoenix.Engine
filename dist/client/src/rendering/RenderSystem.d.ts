@@ -58,3 +58,4 @@ export declare class RenderSystem extends EventEmitter<RenderSystemEvents> {
     get isFullscreen(): boolean;
 }
 export {};
+//# sourceMappingURL=RenderSystem.d.ts.map

@@ -25,3 +25,4 @@ export declare class ModelLoader implements AssetLoader<Object3D> {
     destroy(): void;
     private attachDecoders;
 }
+//# sourceMappingURL=model.d.ts.map

@@ -10,3 +10,4 @@ export declare abstract class Entity<C> extends BaseEntity<C> {
     get isDirty(): boolean;
     clean(): void;
 }
+//# sourceMappingURL=entity.d.ts.map

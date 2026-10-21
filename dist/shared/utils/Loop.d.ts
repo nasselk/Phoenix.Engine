@@ -41,3 +41,4 @@ export declare abstract class Loop<Step extends string, Stats> extends EventEmit
     private report;
     private fire;
 }
+//# sourceMappingURL=Loop.d.ts.map

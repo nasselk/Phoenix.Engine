@@ -22,3 +22,4 @@ export declare class EntityRegistry<D extends EntityDefinitions = EntityDefiniti
     describe(): string;
 }
 export declare function defineEntities<const D extends EntityDefinitions>(definitions: D): EntityRegistry<D>;
+//# sourceMappingURL=registry.d.ts.map

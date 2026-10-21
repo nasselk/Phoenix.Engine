@@ -6,3 +6,4 @@ export declare class MessageHandlers<Handler extends (...args: any[]) => void> {
     add(event: string, handler: Handler): () => void;
     get(code: number): Handler | undefined;
 }
+//# sourceMappingURL=handlers.d.ts.map

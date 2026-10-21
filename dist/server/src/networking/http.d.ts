@@ -23,3 +23,4 @@ export declare class HttpGate {
     private invoke;
     private static compileOrigins;
 }
+//# sourceMappingURL=http.d.ts.map

@@ -21,3 +21,4 @@ export declare function post<T = any>(baseURL: string | undefined, route: string
 export declare function get<T = any>(baseURL: string | undefined, route: string, settings?: RequestSettings): Promise<Response<T>>;
 export declare function put<T = any>(baseURL: string | undefined, route: string, body: JsonValue, settings?: RequestSettings): Promise<Response<T>>;
 export declare function del<T = any>(baseURL: string | undefined, route: string, body?: JsonValue, settings?: RequestSettings): Promise<Response<T>>;
+//# sourceMappingURL=fetch.d.ts.map

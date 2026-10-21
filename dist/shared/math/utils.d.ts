@@ -5,3 +5,4 @@ export declare function percentage(value: number, max?: number, round?: boolean)
 export declare function normalizeArray(array: number[]): number[];
 export declare function distance(x1: number, y1: number, x2: number, y2: number): number;
 export declare function distanceSquared(x1: number, y1: number, x2: number, y2: number): number;
+//# sourceMappingURL=utils.d.ts.map

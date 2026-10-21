@@ -11,3 +11,4 @@ export declare class CounterMap<K> {
     outOfBounds(key: K, min?: number, max?: number): boolean;
     clear(): void;
 }
+//# sourceMappingURL=CounterMap.d.ts.map

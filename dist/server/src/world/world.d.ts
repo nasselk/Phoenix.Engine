@@ -40,3 +40,4 @@ export declare class World<D extends EntityDefinitions, C, N extends Contract = 
     private freePhysics;
     get hasAvailableSocketSlots(): boolean;
 }
+//# sourceMappingURL=world.d.ts.map

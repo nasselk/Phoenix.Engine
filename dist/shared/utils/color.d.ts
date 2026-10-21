@@ -10,3 +10,4 @@ export declare function extractRGBA(color: string): {
     b: number;
     a: number;
 } | null;
+//# sourceMappingURL=color.d.ts.map

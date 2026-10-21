@@ -7,3 +7,4 @@ export type NativeOptions = {
     readonly focus?: boolean;
 };
 export declare function native(options?: NativeOptions): () => void;
+//# sourceMappingURL=native.d.ts.map

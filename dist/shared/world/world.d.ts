@@ -47,3 +47,4 @@ export declare abstract class World<D extends EntityDefinitions, C, E extends En
     get size(): number;
     get hasAvailableEntitySlots(): boolean;
 }
+//# sourceMappingURL=world.d.ts.map

@@ -4,3 +4,4 @@ export type RequestOptions = {
     readonly headers?: Readonly<Record<string, string>>;
 };
 export declare function applyRequestOptions(loader: Pick<Loader, "setCrossOrigin" | "setRequestHeader">, { crossOrigin, headers }: RequestOptions): void;
+//# sourceMappingURL=request.d.ts.map

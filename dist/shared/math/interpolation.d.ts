@@ -29,3 +29,4 @@ export declare const Interpolator: {
     tweenColor: typeof tweenColor;
 };
 export default Interpolator;
+//# sourceMappingURL=interpolation.d.ts.map

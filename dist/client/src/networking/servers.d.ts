@@ -16,3 +16,4 @@ export declare function getCountryCode(cloudflareHosted?: boolean): Promise<Coun
 export declare function closestServer(servers: readonly Server[], country?: CountryCode): Server | undefined;
 export declare function findRoomServer(servers: readonly Server[], code: string): Promise<Server | undefined>;
 export {};
+//# sourceMappingURL=servers.d.ts.map

@@ -23,3 +23,4 @@ export declare class AssetCache {
     private free;
     private table;
 }
+//# sourceMappingURL=AssetCache.d.ts.map

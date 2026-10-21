@@ -13,3 +13,4 @@ export declare class InfiniteGrid extends Mesh<PlaneGeometry, ShaderMaterial> {
         [uniform: string]: import("three").IUniform<any>;
     };
 }
+//# sourceMappingURL=InfiniteGrid.d.ts.map

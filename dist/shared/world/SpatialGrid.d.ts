@@ -19,3 +19,4 @@ export declare class SpatialGrid<T extends Positioned> {
     private cell;
     private take;
 }
+//# sourceMappingURL=SpatialGrid.d.ts.map

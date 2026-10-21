@@ -51,3 +51,4 @@ export declare class Protocol<C extends Contract = Contract> {
     encode(event: string, data?: Buffers | Record<string, any>, inbound?: boolean): Uint8Array<ArrayBuffer>;
     decode(event: string, reader: BufferReader): any;
 }
+//# sourceMappingURL=protocol.d.ts.map

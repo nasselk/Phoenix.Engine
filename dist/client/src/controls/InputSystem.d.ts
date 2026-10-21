@@ -31,3 +31,4 @@ export declare class InputSystem<const Action extends string = never> {
     private syntheticEvent;
     destroy(): void;
 }
+//# sourceMappingURL=InputSystem.d.ts.map

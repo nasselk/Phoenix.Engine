@@ -36,3 +36,4 @@ export declare class Thread<M extends ThreadMessages> {
     private post;
 }
 export {};
+//# sourceMappingURL=thread.d.ts.map
