@@ -2,4 +2,4 @@ import { Timeout } from "./timer";
 export function wait(timeout, customLoop = false) {
     return new Promise((resolve) => new Timeout(resolve, timeout, customLoop));
 }
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoid2FpdC5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uLy4uLy4uL3NoYXJlZC91dGlscy90aW1lcnMvd2FpdC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxPQUFPLEVBQUUsT0FBTyxFQUFFLE1BQU0sU0FBUyxDQUFDO0FBRWxDLE1BQU0sVUFBVSxJQUFJLENBQUMsT0FBZSxFQUFFLFVBQVUsR0FBWSxLQUFLO0lBQ2hFLE9BQU8sSUFBSSxPQUFPLENBQUMsQ0FBQyxPQUFPLEVBQUUsRUFBRSxDQUFDLElBQUksT0FBTyxDQUFDLE9BQU8sRUFBRSxPQUFPLEVBQUUsVUFBVSxDQUFDLENBQUMsQ0FBQztBQUM1RSxDQUFDIn0=
+//# sourceMappingURL=wait.js.map

@@ -2,4 +2,4 @@ const TEXT_FIELDS = "input, textarea, select, [contenteditable]";
 export function isTextField(target) {
     return target instanceof Element && target.closest(TEXT_FIELDS) !== null;
 }
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoidGV4dEZpZWxkLmpzIiwic291cmNlUm9vdCI6IiIsInNvdXJjZXMiOlsiLi4vLi4vLi4vLi4vY2xpZW50L3NyYy91dGlscy90ZXh0RmllbGQudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IkFBQ0EsTUFBTSxXQUFXLEdBQUcsNENBQTRDLENBQUM7QUFHakUsTUFBTSxVQUFVLFdBQVcsQ0FBQyxNQUEwQjtJQUNyRCxPQUFPLE1BQU0sWUFBWSxPQUFPLElBQUksTUFBTSxDQUFDLE9BQU8sQ0FBQyxXQUFXLENBQUMsS0FBSyxJQUFJLENBQUM7QUFDMUUsQ0FBQyJ9
+//# sourceMappingURL=textField.js.map
