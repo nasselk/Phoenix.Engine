@@ -1,4 +1,4 @@
-import { LoadingManager, type Object3D, type WebGLRenderer } from "three";
+import { LoadingManager, Material, Object3D, Texture, type WebGLRenderer } from "three";
 import type { GLTFLoaderPlugin, GLTFParser } from "three/addons/loaders/GLTFLoader.js";
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
@@ -40,8 +40,14 @@ export declare class AssetManager extends EventEmitter<AssetManagerEvents> {
     private readonly pending;
     private requested;
     private settled;
+    private requestedAnisotropy;
+    private supportedAnisotropy;
     constructor(options?: AssetManagerOptions, cache?: AssetCache);
     init(renderer: WebGLRenderer | WebGPURenderer): void;
+    get maxAnisotropy(): number;
+    get anisotropy(): number;
+    set anisotropy(value: number);
+    applyAnisotropy(asset: Texture | Material | Object3D): void;
     extendGLTF(plugin: (parser: GLTFParser) => GLTFLoaderPlugin): this;
     register<K extends AssetKind>(kind: K, loader: AssetLoader<AssetKinds[K], AssetSource<K>>): this;
     load<K extends AssetKind>(kind: K, id: string, source: AssetSource<K>): Promise<AssetKinds[K]>;
@@ -54,6 +60,7 @@ export declare class AssetManager extends EventEmitter<AssetManagerEvents> {
     destroy(): void;
     private resolve;
     private resolveSource;
+    private applyAnisotropyToCache;
     private settle;
 }
 export {};

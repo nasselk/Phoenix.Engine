@@ -2,7 +2,7 @@ import { type ColorRepresentation, NoToneMapping, Scene, type ShadowMapType, typ
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
-import type { AssetCache } from "../assets/AssetCache";
+import type { AssetManager } from "../assets/AssetManager";
 import { waitForUserGesture } from "../utils/gesture";
 import { Batcher } from "./lib/Batcher";
 import type { OrbitCamera } from "./lib/camera/Camera";
@@ -70,7 +70,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 * @param touch Fingers rather than a mouse: the camera then turns on a drag and zooms on a pinch,
 	 *   where a desktop one waits for a held button and a wheel. The engine passes what it detected.
 	 */
-	public constructor(cache: AssetCache, view?: HTMLCanvasElement, touch: boolean = false) {
+	public constructor(assets: AssetManager, view?: HTMLCanvasElement, touch: boolean = false) {
 		super();
 
 		this.view = view ?? this.createRenderingView();
@@ -79,7 +79,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.scene = new Scene();
 		this.camera = touch ? new TouchCamera() : new DesktopCamera();
-		this.textureBuilder = new TextureBuilder(cache);
+		this.textureBuilder = new TextureBuilder(assets);
 		this.batcher = new Batcher();
 
 		this.camera.connect(this.canvas);

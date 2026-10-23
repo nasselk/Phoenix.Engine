@@ -15,6 +15,8 @@ export declare class AssetCache {
     setDisposer<K extends AssetKind>(kind: K, dispose: (value: AssetKinds[K]) => void): this;
     get<K extends AssetKind>(kind: K, id: string): AssetKinds[K] | undefined;
     has(kind: AssetKind, id: string): boolean;
+    values<K extends AssetKind>(kind: K): IterableIterator<AssetKinds[K]>;
+    keys<K extends AssetKind>(kind: K): IterableIterator<string>;
     entries<K extends AssetKind>(kind: K): IterableIterator<[id: string, value: AssetKinds[K]]>;
     set<K extends AssetKind>(kind: K, id: string, value: AssetKinds[K]): AssetKinds[K];
     getOrCreate<K extends AssetKind>(kind: K, id: string, create: () => AssetKinds[K]): AssetKinds[K];

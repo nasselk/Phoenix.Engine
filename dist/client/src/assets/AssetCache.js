@@ -15,6 +15,12 @@ export class AssetCache {
     has(kind, id) {
         return this.kinds.get(kind)?.has(id) === true;
     }
+    values(kind) {
+        return (this.kinds.get(kind) ?? new Map()).values();
+    }
+    keys(kind) {
+        return (this.kinds.get(kind) ?? new Map()).keys();
+    }
     entries(kind) {
         return (this.kinds.get(kind) ?? new Map()).entries();
     }

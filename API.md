@@ -66,7 +66,7 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  │  └─ TouchCamera: pinchSpeed
 │  ├─ textureBuilder: TextureBuilder         textures drawn on an OffscreenCanvas
 │  │  ├─ draw(ctx => …, clear = true, width?, height?)   resets transform/alpha/styles, then calls you
-│  │  ├─ save(name?) → Promise<Texture>      with a name, stored in assets.cache as "texture"
+│  │  ├─ save(name?) → Promise<Texture>      with a name, stored in assets.cache as "texture"; takes assets.anisotropy
 │  │  ├─ download(name)                      saves a .png
 │  │  ├─ resize(size) / resize(w, h), clear(), width, height
 │  ├─ batcher: Batcher
@@ -94,6 +94,10 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  ├─ release(kind, id), clear(...kinds), destroy()
 │  ├─ register(kind, { load, unload? })      a new kind; type it by augmenting AssetKinds
 │  ├─ extendGLTF(plugin), init(renderer)     init is called by the engine
+│  ├─ anisotropy (get/set)                   anisotropic filtering on every cached texture, model and material, and on what
+│  │                                         loads or textureBuilder saves later; capped at maxAnisotropy (1 until init)
+│  ├─ maxAnisotropy                          the GPU's limit, for disabling higher options
+│  ├─ applyAnisotropy(texture | material | object)   for textures made outside the manager
 │  ├─ manager: three.LoadingManager
 │  ├─ on("progress" [loaded, total] | "complete" | "load" [kind, id] | "error" [kind, id, error])
 │  └─ cache: AssetCache                      everything shared, by kind and id

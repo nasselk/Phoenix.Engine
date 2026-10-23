@@ -1,8 +1,8 @@
 import { SRGBColorSpace, Texture } from "three";
 export class TextureBuilder {
-    constructor(cache, width = 1, height = width) {
+    constructor(assets, width = 1, height = width) {
         this.canvas = new OffscreenCanvas(width, height);
-        this.cache = cache;
+        this.assets = assets;
         const ctx = this.canvas.getContext("2d");
         if (!ctx) {
             throw new Error("Failed to get 2D context for texture builder");
@@ -31,10 +31,11 @@ export class TextureBuilder {
         const texture = new Texture(bitmap);
         texture.flipY = false;
         texture.colorSpace = SRGBColorSpace;
+        this.assets.applyAnisotropy(texture);
         texture.needsUpdate = true;
         if (name) {
             texture.name = name;
-            this.cache.set("texture", name, texture);
+            this.assets.cache.set("texture", name, texture);
         }
         texture.addEventListener("dispose", () => bitmap.close());
         return texture;

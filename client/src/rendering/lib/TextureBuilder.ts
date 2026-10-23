@@ -1,14 +1,14 @@
 import { SRGBColorSpace, Texture } from "three";
-import type { AssetCache } from "../../assets/AssetCache";
+import type { AssetManager } from "../../assets/AssetManager";
 
 export class TextureBuilder {
 	private readonly canvas: OffscreenCanvas;
 	private readonly context: OffscreenCanvasRenderingContext2D;
-	private readonly cache: AssetCache;
+	private readonly assets: AssetManager;
 
-	public constructor(cache: AssetCache, width: number = 1, height: number = width) {
+	public constructor(assets: AssetManager, width: number = 1, height: number = width) {
 		this.canvas = new OffscreenCanvas(width, height);
-		this.cache = cache;
+		this.assets = assets;
 
 		const ctx = this.canvas.getContext("2d");
 
@@ -47,12 +47,13 @@ export class TextureBuilder {
 
 		texture.flipY = false;
 		texture.colorSpace = SRGBColorSpace;
+		this.assets.applyAnisotropy(texture);
 		texture.needsUpdate = true;
 
 		if (name) {
 			texture.name = name;
 
-			this.cache.set("texture", name, texture);
+			this.assets.cache.set("texture", name, texture);
 		}
 
 		texture.addEventListener("dispose", () => bitmap.close());

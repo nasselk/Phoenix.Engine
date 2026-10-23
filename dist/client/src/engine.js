@@ -21,7 +21,7 @@ export class Engine extends EventEmitter {
         this.sound = options.audio ?? {};
         this.loop = new GameLoop(options.loop);
         this.assets = new AssetManager(options.assets);
-        this.renderer = new RenderSystem(this.assets.cache, undefined, this.isMobile);
+        this.renderer = new RenderSystem(this.assets, undefined, this.isMobile);
         this.network = new NetworkSystem(options.network);
         this.inputs = new InputSystem(options.inputs);
         this.audio = new AudioSystem(this.assets);

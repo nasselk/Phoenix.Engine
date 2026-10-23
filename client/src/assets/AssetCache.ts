@@ -48,6 +48,14 @@ export class AssetCache {
 		return this.kinds.get(kind)?.has(id) === true;
 	}
 
+	public values<K extends AssetKind>(kind: K): IterableIterator<AssetKinds[K]> {
+		return (this.kinds.get(kind) ?? new Map<string, unknown>()).values() as IterableIterator<AssetKinds[K]>;
+	}
+
+	public keys<K extends AssetKind>(kind: K): IterableIterator<string> {
+		return (this.kinds.get(kind) ?? new Map<string, unknown>()).keys();
+	}
+
 	/** Every asset of one kind, with its id. */
 	public entries<K extends AssetKind>(kind: K): IterableIterator<[id: string, value: AssetKinds[K]]> {
 		return (this.kinds.get(kind) ?? new Map<string, unknown>()).entries() as IterableIterator<[string, AssetKinds[K]]>;

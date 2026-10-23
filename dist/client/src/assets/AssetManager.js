@@ -1,4 +1,4 @@
-import { LoadingManager } from "three";
+import { LoadingManager, Material, Object3D, Texture } from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { AssetCache } from "./AssetCache";
@@ -12,6 +12,8 @@ export class AssetManager extends EventEmitter {
         this.pending = new Map();
         this.requested = 0;
         this.settled = 0;
+        this.requestedAnisotropy = 1;
+        this.supportedAnisotropy = 1;
         this.cache = cache;
         this.manager = new LoadingManager();
         this.base = options.path === undefined ? undefined : new URL(options.path, document.baseURI).href;
@@ -26,6 +28,38 @@ export class AssetManager extends EventEmitter {
     }
     init(renderer) {
         this.models.init(renderer);
+        this.supportedAnisotropy = Math.max(1, "capabilities" in renderer ? renderer.capabilities.getMaxAnisotropy() : renderer.getMaxAnisotropy());
+        this.applyAnisotropyToCache();
+    }
+    get maxAnisotropy() {
+        return this.supportedAnisotropy;
+    }
+    get anisotropy() {
+        return Math.min(this.requestedAnisotropy, this.supportedAnisotropy);
+    }
+    set anisotropy(value) {
+        this.requestedAnisotropy = Math.max(1, value);
+        this.applyAnisotropyToCache();
+    }
+    applyAnisotropy(asset) {
+        const anisotropy = this.anisotropy;
+        if (asset instanceof Texture) {
+            setAnisotropy(asset, anisotropy);
+        }
+        else if (asset instanceof Material) {
+            setMaterialAnisotropy(asset, anisotropy);
+        }
+        else {
+            asset.traverse((child) => {
+                if ("material" in child && child.material !== undefined) {
+                    for (const material of Array.isArray(child.material) ? child.material : [child.material]) {
+                        if (material instanceof Material) {
+                            setMaterialAnisotropy(material, anisotropy);
+                        }
+                    }
+                }
+            });
+        }
     }
     extendGLTF(plugin) {
         this.models.extend(plugin);
@@ -56,6 +90,9 @@ export class AssetManager extends EventEmitter {
             if (!this.pending.delete(key)) {
                 loader.unload?.(value);
                 return value;
+            }
+            if (value instanceof Texture || value instanceof Material || value instanceof Object3D) {
+                this.applyAnisotropy(value);
             }
             this.cache.set(kind, id, value);
             this.emit("load", kind, id);
@@ -129,6 +166,13 @@ export class AssetManager extends EventEmitter {
         }
         return source;
     }
+    applyAnisotropyToCache() {
+        for (const kind of ["texture", "material", "model"]) {
+            for (const asset of this.cache.values(kind)) {
+                this.applyAnisotropy(asset);
+            }
+        }
+    }
     settle() {
         this.settled++;
         this.emit("progress", this.settled, this.requested);
@@ -138,5 +182,19 @@ export class AssetManager extends EventEmitter {
             this.emit("complete");
         }
     }
+}
+function setMaterialAnisotropy(material, anisotropy) {
+    for (const property of Object.values(material)) {
+        if (property instanceof Texture) {
+            setAnisotropy(property, anisotropy);
+        }
+    }
+}
+function setAnisotropy(texture, anisotropy) {
+    if (texture.anisotropy === anisotropy || texture.isRenderTargetTexture) {
+        return;
+    }
+    texture.anisotropy = anisotropy;
+    texture.needsUpdate = true;
 }
 //# sourceMappingURL=AssetManager.js.map

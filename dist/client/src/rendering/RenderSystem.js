@@ -14,14 +14,14 @@ export var RenderSystemState;
     RenderSystemState[RenderSystemState["DESTROYED"] = 3] = "DESTROYED";
 })(RenderSystemState || (RenderSystemState = {}));
 export class RenderSystem extends EventEmitter {
-    constructor(cache, view, touch = false) {
+    constructor(assets, view, touch = false) {
         super();
         this.view = view ?? this.createRenderingView();
         this.initialized = RenderSystemState.NULL;
         this.resolution = 1;
         this.scene = new Scene();
         this.camera = touch ? new TouchCamera() : new DesktopCamera();
-        this.textureBuilder = new TextureBuilder(cache);
+        this.textureBuilder = new TextureBuilder(assets);
         this.batcher = new Batcher();
         this.camera.connect(this.canvas);
     }

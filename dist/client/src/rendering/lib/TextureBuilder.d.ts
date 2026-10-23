@@ -1,10 +1,10 @@
 import { Texture } from "three";
-import type { AssetCache } from "../../assets/AssetCache";
+import type { AssetManager } from "../../assets/AssetManager";
 export declare class TextureBuilder {
     private readonly canvas;
     private readonly context;
-    private readonly cache;
-    constructor(cache: AssetCache, width?: number, height?: number);
+    private readonly assets;
+    constructor(assets: AssetManager, width?: number, height?: number);
     draw(callback: (context: OffscreenCanvasRenderingContext2D) => void, clear?: boolean, width?: number, height?: number | undefined): OffscreenCanvasRenderingContext2D;
     save(name?: string): Promise<Texture>;
     download(name: string): Promise<void>;

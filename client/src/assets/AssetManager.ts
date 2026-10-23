@@ -1,4 +1,4 @@
-import { LoadingManager, type Object3D, type WebGLRenderer } from "three";
+import { LoadingManager, Material, Object3D, Texture, type WebGLRenderer } from "three";
 import type { GLTFLoaderPlugin, GLTFParser } from "three/addons/loaders/GLTFLoader.js";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import type { WebGPURenderer } from "three/webgpu";
@@ -82,6 +82,10 @@ export class AssetManager extends EventEmitter<AssetManagerEvents> {
 
 	private settled = 0;
 
+	private requestedAnisotropy = 1;
+
+	private supportedAnisotropy = 1;
+
 	public constructor(options: AssetManagerOptions = {}, cache: AssetCache = new AssetCache()) {
 		super();
 
@@ -106,6 +110,51 @@ export class AssetManager extends EventEmitter<AssetManagerEvents> {
 	 */
 	public init(renderer: WebGLRenderer | WebGPURenderer): void {
 		this.models.init(renderer);
+
+		this.supportedAnisotropy = Math.max(1, "capabilities" in renderer ? renderer.capabilities.getMaxAnisotropy() : renderer.getMaxAnisotropy());
+
+		this.applyAnisotropyToCache();
+	}
+
+	/** The most anisotropic filtering the GPU allows: 1 until `init`, and on a GPU without it. */
+	public get maxAnisotropy(): number {
+		return this.supportedAnisotropy;
+	}
+
+	/**
+	 * Anisotropic filtering on every texture: those cached, those in cached models and materials, and
+	 * those loaded or drawn by the texture builder from now on. Capped at `maxAnisotropy`; set before
+	 * `init`, it takes effect once the GPU's limit is known.
+	 */
+	public get anisotropy(): number {
+		return Math.min(this.requestedAnisotropy, this.supportedAnisotropy);
+	}
+
+	public set anisotropy(value: number) {
+		this.requestedAnisotropy = Math.max(1, value);
+
+		this.applyAnisotropyToCache();
+	}
+
+	/** Give a texture, or every texture of a material or model, the current `anisotropy`. For textures built outside the manager. */
+	public applyAnisotropy(asset: Texture | Material | Object3D): void {
+		const anisotropy = this.anisotropy;
+
+		if (asset instanceof Texture) {
+			setAnisotropy(asset, anisotropy);
+		} else if (asset instanceof Material) {
+			setMaterialAnisotropy(asset, anisotropy);
+		} else {
+			asset.traverse((child) => {
+				if ("material" in child && child.material !== undefined) {
+					for (const material of Array.isArray(child.material) ? child.material : [child.material]) {
+						if (material instanceof Material) {
+							setMaterialAnisotropy(material, anisotropy);
+						}
+					}
+				}
+			});
+		}
 	}
 
 	/** Add a glTF extension, for every model loaded from now on. */
@@ -154,6 +203,10 @@ export class AssetManager extends EventEmitter<AssetManagerEvents> {
 					loader.unload?.(value);
 
 					return value as AssetKinds[K];
+				}
+
+				if (value instanceof Texture || value instanceof Material || value instanceof Object3D) {
+					this.applyAnisotropy(value);
 				}
 
 				this.cache.set(kind, id, value as AssetKinds[K]);
@@ -267,6 +320,14 @@ export class AssetManager extends EventEmitter<AssetManagerEvents> {
 		return source;
 	}
 
+	private applyAnisotropyToCache(): void {
+		for (const kind of ["texture", "material", "model"] as const) {
+			for (const asset of this.cache.values(kind)) {
+				this.applyAnisotropy(asset);
+			}
+		}
+	}
+
 	private settle(): void {
 		this.settled++;
 
@@ -279,4 +340,21 @@ export class AssetManager extends EventEmitter<AssetManagerEvents> {
 			this.emit("complete");
 		}
 	}
+}
+
+function setMaterialAnisotropy(material: Material, anisotropy: number): void {
+	for (const property of Object.values(material)) {
+		if (property instanceof Texture) {
+			setAnisotropy(property, anisotropy);
+		}
+	}
+}
+
+function setAnisotropy(texture: Texture, anisotropy: number): void {
+	if (texture.anisotropy === anisotropy || texture.isRenderTargetTexture) {
+		return;
+	}
+
+	texture.anisotropy = anisotropy;
+	texture.needsUpdate = true;
 }
