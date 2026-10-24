@@ -4,6 +4,7 @@
 	import MousePointer2 from "@lucide/svelte/icons/mouse-pointer-2";
 	import Move3d from "@lucide/svelte/icons/move-3d";
 	import Trash2 from "@lucide/svelte/icons/trash-2";
+	import GridCell from "../GridCell/GridCell.svelte";
 	import Grid from "../GridLayout/GridLayout.svelte";
 	import type { EditorTool, EngineEditorProps } from "./EngineEditor.types";
 	import { editor } from "./state.svelte";
@@ -32,7 +33,7 @@
 </script>
 
 <Grid>
-	{#snippet middle_left()}
+	<GridCell at="middle_left">
 		<div class="toolbar" role="toolbar" aria-label="Editor tools" aria-orientation="vertical" style:--index={index}>
 			<span class="indicator" aria-hidden="true"></span>
 
@@ -42,7 +43,7 @@
 				</button>
 			{/each}
 		</div>
-	{/snippet}
+	</GridCell>
 </Grid>
 
 <style>

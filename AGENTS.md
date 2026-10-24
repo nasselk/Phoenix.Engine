@@ -16,8 +16,8 @@ A library, not an application: games install it from GitHub and run its built `d
 | `server/src/` | `phoenix.engine/server` | Bun: `Engine`, `World` (a room), writing entities, `NetworkSystem`, `GameLoop`, replication |
 | `client/src/` | `phoenix.engine/client` | browser: `Engine`, `World` (a mirror), reading entities, rendering, cameras, input, audio, assets, editor |
 | `client/src/text/` | `phoenix.engine/text` | browser: `Text` (SDF text in the scene) |
-| `client/UI/components/` | `phoenix.engine/ui/*.svelte` | browser: `Joystick`, `GridLayout` |
-| `client/UI/native.css` | `phoenix.engine/native.css` | browser: app-like page styles |
+| `client/src/UI/components/` | `phoenix.engine/ui/*.svelte` | browser: `Joystick`, `GridLayout`, `GridCell`, `EngineEditor` (Svelte, compiled by the game) |
+| `client/src/UI/native.css` | `phoenix.engine/native.css` | browser: app-like page styles |
 | `tests/` | — | Bun's test runner, against the source |
 
 Each side's entry point re-exports everything shared. Anything a game should use must be exported from the right `index.ts`, **and listed in [API.md](./API.md)** (`tests/api-map.test.ts` fails otherwise).

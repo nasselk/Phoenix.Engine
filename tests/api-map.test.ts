@@ -50,6 +50,6 @@ describe("API.md", () => {
 	}
 
 	test("lists every UI component", () => {
-		expect(missing(readdirSync(join(root, "client/UI/components")))).toEqual([]);
+		expect(missing(readdirSync(join(root, "client/src/UI/components")))).toEqual([]);
 	});
 });
