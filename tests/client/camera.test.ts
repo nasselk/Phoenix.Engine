@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { Vector3 } from "three";
 import { DesktopCamera } from "../../client/src/rendering/lib/camera/DesktopCamera";
+import { EditorCamera } from "../../client/src/rendering/lib/editor/EditorCamera";
 
 /** The horizontal field of view a camera shows, in degrees. */
 function horizontal(camera: DesktopCamera): number {
@@ -91,13 +92,28 @@ describe("Camera", () => {
 
 		expect(camera.pitch).toBe(0.1);
 	});
+});
 
-	test("detached, it flies where it looks at flySpeed, boost times faster while boosting", () => {
-		const camera = new DesktopCamera({ flySpeed: 10, boost: 3 });
+describe("EditorCamera", () => {
+	test("starts from what another camera shows: its place, facing and lens", () => {
+		const game = new DesktopCamera({ fov: 60 }).fit(2);
 
-		camera.target = { x: 0, y: 0, z: 0 };
-		camera.update();
-		camera.detached = true;
+		game.target = { x: 3, y: 0, z: -2 };
+		game.update();
+
+		const editor = new EditorCamera().setZoom(4).startFrom(game);
+
+		expect(editor.position.toArray()).toEqual(game.position.toArray());
+		expect(editor.quaternion.angleTo(game.quaternion)).toBeCloseTo(0, 5);
+		expect(editor.fov).toBe(60);
+		expect(editor.aspect).toBe(2);
+		expect(editor.zoom).toBe(1);
+	});
+
+	test("flies where it looks at flySpeed, boost times faster while boosting", () => {
+		const camera = new EditorCamera({ flySpeed: 10, boost: 3 });
+
+		camera.lookAt(1, -1, 2);
 
 		const start = camera.position.clone();
 		const forward = camera.getWorldDirection(new Vector3());
@@ -121,26 +137,17 @@ describe("Camera", () => {
 		expect(camera.position.distanceTo(before)).toBeCloseTo(1.5, 5);
 	});
 
-	test("detached, a pan slides it across its view at panSpeed per pixel without turning it, and attached a pan does nothing", () => {
-		const camera = new DesktopCamera({ panSpeed: 0.1 });
-		const pan = (x: number, y: number) => (camera as unknown as { pan(x: number, y: number): void }).pan(x, y);
+	test("a pan slides it across its view at panSpeed per pixel without turning it", () => {
+		const camera = new EditorCamera({ panSpeed: 0.1 });
 
-		camera.target = { x: 0, y: 0, z: 0 };
-		camera.update();
-
-		const attached = camera.position.clone();
-
-		pan(10, 10);
-		expect(camera.position.toArray()).toEqual(attached.toArray());
-
-		camera.detached = true;
+		camera.lookAt(1, -1, 2);
 
 		const start = camera.position.clone();
 		const facing = camera.quaternion.clone();
 		const right = new Vector3(1, 0, 0).applyQuaternion(facing);
 		const up = new Vector3(0, 1, 0).applyQuaternion(facing);
 
-		pan(20, -10);
+		(camera as unknown as { pan(x: number, y: number): void }).pan(20, -10);
 
 		const moved = camera.position.clone().sub(start);
 
@@ -149,24 +156,14 @@ describe("Camera", () => {
 		expect(camera.quaternion.angleTo(facing)).toBeCloseTo(0, 5);
 	});
 
-	test("a desktop camera turns on the left button while attached, and once detached turns on the right one and pans on the left", () => {
-		const camera = new DesktopCamera();
+	test("turns on the right mouse button and pans on the left", () => {
+		const camera = new EditorCamera();
 		const mouse = camera as unknown as Record<"onPointerDown" | "onPointerMove" | "onPointerUp", (event: object) => void>;
 		const drag = (button: number) => {
 			mouse.onPointerDown({ button, pointerId: 1 });
 			mouse.onPointerMove({ pointerId: 1, movementX: 40, movementY: 0 });
 			mouse.onPointerUp({ pointerId: 1 });
 		};
-
-		camera.target = { x: 0, y: 0, z: 0 };
-		camera.update();
-
-		const yaw = camera.yaw;
-
-		drag(0);
-		expect(camera.yaw).not.toBeCloseTo(yaw, 5);
-
-		camera.detached = true;
 
 		const position = camera.position.clone();
 		const facing = camera.quaternion.clone();
@@ -180,22 +177,5 @@ describe("Camera", () => {
 		drag(0);
 		expect(camera.position.distanceTo(position)).toBeGreaterThan(0.5);
 		expect(camera.quaternion.angleTo(turned)).toBeCloseTo(0, 5);
-	});
-
-	test("attached again, it orbits its target where it was before detaching", () => {
-		const camera = new DesktopCamera({ flySpeed: 10 });
-
-		camera.target = { x: 0, y: 0, z: 0 };
-		camera.update();
-
-		const orbit = camera.position.clone();
-
-		camera.detached = true;
-		camera.flyForward = 1;
-		camera.update(0.05);
-		camera.detached = false;
-		camera.update(0.05);
-
-		expect(camera.position.distanceTo(orbit)).toBeCloseTo(0, 5);
 	});
 });

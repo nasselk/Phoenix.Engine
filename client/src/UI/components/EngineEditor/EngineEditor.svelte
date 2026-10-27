@@ -7,6 +7,7 @@
 	import GridCell from "../GridCell/GridCell.svelte";
 	import Grid from "../GridLayout/GridLayout.svelte";
 	import type { EditorTool, EngineEditorProps } from "./EngineEditor.types";
+	import NavigationGizmo from "./NavigationGizmo.svelte";
 	import { editor } from "./state.svelte";
 
 	const { view }: EngineEditorProps = $props();
@@ -43,6 +44,10 @@
 				</button>
 			{/each}
 		</div>
+	</GridCell>
+
+	<GridCell at="bottom_right">
+		<NavigationGizmo {view} />
 	</GridCell>
 </Grid>
 

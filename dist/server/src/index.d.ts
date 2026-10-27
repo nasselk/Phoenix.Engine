@@ -8,5 +8,5 @@ export { setExitListeners } from "./utils/utils";
 export { Entity } from "./world/entities/entity";
 export { MovingEntity, type MovingEntityOptions } from "./world/entities/moving";
 export { POSITION_EPSILON, PositionEntity, type PositionEntityOptions, ROTATION_EPSILON } from "./world/entities/position";
-export { type ServerWorldOptions, World } from "./world/world";
+export { type RoomEvents, type ServerWorldOptions, World } from "./world/world";
 //# sourceMappingURL=index.d.ts.map

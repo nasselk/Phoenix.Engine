@@ -43,6 +43,7 @@ export class World extends BaseWorld {
         this.sockets.add(socket);
         socket.room = this;
         socket.subscribe(this.inviteCode);
+        this.emit("join", socket);
         return true;
     }
     leave(socket) {
@@ -52,6 +53,7 @@ export class World extends BaseWorld {
         socket.seen.clear();
         socket.room = undefined;
         socket.unsubscribe(this.inviteCode);
+        this.emit("leave", socket);
         return true;
     }
     spawn(kind, ...args) {

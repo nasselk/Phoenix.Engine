@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Vector3 } from "three";
+import { PerspectiveCamera } from "three";
 import { clamp } from "../../../../../shared/math/utils";
 
 export type OrbitTarget = { readonly x: number; readonly y: number; readonly z: number };
@@ -23,27 +23,17 @@ export type OrbitCameraOptions = Partial<{
 	readonly rotateSpeed: number;
 	readonly turnSpeed: number;
 	readonly tiltSpeed: number;
-	readonly flySpeed: number;
-	readonly boost: number;
-	readonly panSpeed: number;
 	readonly zoomSpeed: number;
 	readonly dragging: boolean;
 	readonly zooming: boolean;
-	readonly minZoom: number;
-	readonly maxZoom: number;
 }>;
 
-const WORLD_UP = new Vector3(0, 1, 0);
-const FORWARD = new Vector3();
-const RIGHT = new Vector3();
-const STEP = new Vector3();
-
-/** Longest step a single frame may fly, in seconds: a tab coming back from the background should not teleport. */
+/** Longest step a single frame may turn, in seconds: a tab coming back from the background should not swing round. */
 const MAX_FRAME = 0.1;
 
 /**
- * A camera that orbits a target, or flies free once detached. Everything here is what a mouse and a
- * finger mean the same way: where the camera is, how far it turns, how close it gets.
+ * A camera that orbits a target. Everything here is what a mouse and a finger mean the same way: where
+ * the camera is, how far it turns, how close it gets. The editor flies a camera of its own (`EditorCamera`).
  *
  * What differs is how a device says it, so the events belong to a subclass — `DesktopCamera` for a
  * mouse and a keyboard, `TouchCamera` for fingers. Both turn what they hear into `drag`, `pinchBy`
@@ -77,31 +67,14 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 	/** How fast `tilt` at 1 tilts, in radians per second. */
 	public tiltSpeed: number;
 
-	/** Flies a detached camera every frame along where it looks: 1 forward, -1 back. Set from the game's input. */
-	public flyForward = 0;
-	/** Flies a detached camera sideways every frame: 1 right, -1 left. */
-	public flyRight = 0;
-	/** Flies `boost` times faster while set. */
-	public flyBoost = false;
-	/** Units per second a detached camera flies at. */
-	public flySpeed: number;
-	public boost: number;
-	/** Units a detached camera slides per pixel dragged while panning. */
-	public panSpeed: number;
-
 	public dragging: boolean;
 	public zooming: boolean;
-
-	public minZoom: number;
-	public maxZoom: number;
 
 	/** What a subclass listens on, and what it lets go of when the camera is destroyed. */
 	protected element?: HTMLElement | Window;
 
 	/** Whether something is turning the camera right now, which a subclass sets as fingers or buttons go down. */
 	protected orbiting = false;
-
-	protected free = false;
 
 	private verticalFovDegrees: number;
 	private minHorizontalFovDegrees: number;
@@ -122,33 +95,9 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		this.rotateSpeed = options.rotateSpeed ?? 0.0025;
 		this.turnSpeed = options.turnSpeed ?? 2.5;
 		this.tiltSpeed = options.tiltSpeed ?? 1.5;
-		this.flySpeed = options.flySpeed ?? 20;
-		this.boost = options.boost ?? 4;
-		this.panSpeed = options.panSpeed ?? 0.03;
 		this.zoomSpeed = options.zoomSpeed ?? 0.001;
 		this.dragging = options.dragging ?? true;
 		this.zooming = options.zooming ?? true;
-		this.minZoom = options.minZoom ?? 0.5;
-		this.maxZoom = options.maxZoom ?? 10;
-	}
-
-	/**
-	 * Whether the camera flies free instead of orbiting its target. Set it to detach and fly on from
-	 * exactly where the camera is, or clear it to snap back to orbiting the target at the yaw, pitch
-	 * and distance it had before.
-	 */
-	public get detached(): boolean {
-		return this.free;
-	}
-
-	public set detached(detached: boolean) {
-		this.free = detached;
-
-		// The lens zoom belongs to free flight: attached, the camera zooms by its distance instead.
-		if (!detached && this.zoom !== 1) {
-			this.zoom = 1;
-			this.updateProjectionMatrix();
-		}
 	}
 
 	/**
@@ -186,14 +135,6 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		this.fit();
 	}
 
-	/** Lens zoom, clamped to minZoom..maxZoom. Takes effect immediately. */
-	public setZoom(zoom: number): this {
-		this.zoom = clamp(zoom, this.minZoom, this.maxZoom);
-		this.updateProjectionMatrix();
-
-		return this;
-	}
-
 	public get isOrbiting(): boolean {
 		return this.orbiting;
 	}
@@ -211,16 +152,13 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		return this;
 	}
 
-	/**
-	 * Zoom by how much wider or narrower two fingers got: 2 is twice as close, 0.5 twice as far. Free,
-	 * there is no target to close on, so the lens zooms instead, which is what the wheel does there too.
-	 */
+	/** Zoom by how much wider or narrower two fingers got: 2 is twice as close, 0.5 twice as far. */
 	public pinchBy(ratio: number): this {
 		if (!this.zooming || ratio <= 0) {
 			return this;
 		}
 
-		return this.free ? this.setZoom(this.zoom * ratio) : this.zoomBy(-Math.log(ratio));
+		return this.zoomBy(-Math.log(ratio));
 	}
 
 	public connect(element: HTMLElement | Window = window): this {
@@ -248,21 +186,9 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		return this;
 	}
 
-	/** @param deltaTime Seconds since the last frame, which is how far a detached camera flies. */
+	/** @param deltaTime Seconds since the last frame, which is how far `turn` and `tilt` turn it. */
 	public update(deltaTime: number = 0): this {
 		const seconds = Math.min(deltaTime, MAX_FRAME);
-
-		if (this.free) {
-			if (this.turn !== 0 || this.tilt !== 0) {
-				this.rotateOnWorldAxis(WORLD_UP, -this.turn * this.turnSpeed * seconds);
-				this.rotateX(this.tilt * this.tiltSpeed * seconds);
-			}
-
-			this.fly(seconds);
-
-			return this;
-		}
-
 		const target = this.target;
 
 		if (target === undefined) {
@@ -287,65 +213,13 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 
 	protected abstract unlisten(element: HTMLElement | Window): void;
 
-	/** Move along where the camera looks — forward includes pitch, so looking up and flying forward climbs. */
-	private fly(seconds: number): void {
-		const along = this.flyForward;
-		const across = this.flyRight;
-
-		if (along === 0 && across === 0) {
-			return;
-		}
-
-		// The camera's own axes in the world: it looks down its -Z, and its +X is its right.
-		this.getWorldDirection(FORWARD);
-		RIGHT.set(1, 0, 0).applyQuaternion(this.quaternion);
-		STEP.set(0, 0, 0).addScaledVector(FORWARD, along).addScaledVector(RIGHT, across);
-
-		if (STEP.lengthSq() > 1) {
-			STEP.normalize();
-		}
-
-		this.position.addScaledVector(STEP, this.flySpeed * (this.flyBoost ? this.boost : 1) * seconds);
-	}
-
-	/**
-	 * A drag of so many pixels, wherever it came from. Attached it swings around the target; free it
-	 * turns the camera itself, divided by the lens zoom so the picture moves with the finger either way.
-	 */
+	/** A drag of so many pixels, wherever it came from: it swings the camera around its target. */
 	protected drag(x: number, y: number): void {
 		if (!this.dragging) {
 			return;
 		}
 
-		if (this.free) {
-			// No clamp and no lock: yaw turns around the world's up, pitch around the camera's own
-			// sideways axis, both on the quaternion — so looking past straight up just carries on over.
-			const speed = this.rotateSpeed / this.zoom;
-
-			this.rotateOnWorldAxis(WORLD_UP, -x * speed);
-			this.rotateX(-y * speed);
-
-			return;
-		}
-
 		this.rotate(-x * this.rotateSpeed, y * this.rotateSpeed);
-	}
-
-	/**
-	 * A drag of so many pixels that slides a detached camera across what it looks at, the picture
-	 * following the pointer: along its own right and up, without turning. Attached it does nothing.
-	 */
-	protected pan(x: number, y: number): void {
-		if (!this.free) {
-			return;
-		}
-
-		const speed = this.panSpeed / this.zoom;
-
-		RIGHT.set(1, 0, 0).applyQuaternion(this.quaternion);
-		STEP.set(0, 1, 0).applyQuaternion(this.quaternion);
-
-		this.position.addScaledVector(RIGHT, -x * speed).addScaledVector(STEP, y * speed);
 	}
 
 	/** A wheel notch, or anything else that zooms by a distance rather than by a ratio. */
@@ -354,10 +228,6 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 			return;
 		}
 
-		if (this.free) {
-			this.setZoom(this.zoom * Math.exp(-delta * this.zoomSpeed));
-		} else {
-			this.zoomBy(delta * this.zoomSpeed);
-		}
+		this.zoomBy(delta * this.zoomSpeed);
 	}
 }

@@ -16,14 +16,28 @@ export var RenderSystemState;
 export class RenderSystem extends EventEmitter {
     constructor(assets, view, touch = false) {
         super();
+        this.aspect = 1;
         this.view = view ?? this.createRenderingView();
         this.initialized = RenderSystemState.NULL;
         this.resolution = 1;
         this.scene = new Scene();
         this.camera = touch ? new TouchCamera() : new DesktopCamera();
+        this.active = this.camera;
         this.textureBuilder = new TextureBuilder(assets);
         this.batcher = new Batcher();
         this.camera.connect(this.canvas);
+    }
+    get activeCamera() {
+        return this.active;
+    }
+    set activeCamera(camera) {
+        if (camera === this.active) {
+            return;
+        }
+        this.active.destroy();
+        this.active = camera;
+        camera.connect(this.canvas);
+        camera.fit(this.aspect);
     }
     async init(settings = {}) {
         if (this.initialized !== RenderSystemState.NULL) {
@@ -54,7 +68,10 @@ export class RenderSystem extends EventEmitter {
         }
         this.emit("render", deltaTime, now);
         this.camera.update(deltaTime);
-        this.internals.render(this.scene, this.camera);
+        if (this.active !== this.camera) {
+            this.active.update(deltaTime);
+        }
+        this.internals.render(this.scene, this.active);
     }
     async setFullscreen(fullScreen = !this.isFullscreen) {
         if (fullScreen === this.isFullscreen) {
@@ -80,7 +97,6 @@ export class RenderSystem extends EventEmitter {
         canvas.style.left = "0";
         canvas.style.width = width;
         canvas.style.height = height;
-        canvas.style.zIndex;
         return canvas;
     }
     get backend() {
@@ -119,7 +135,11 @@ export class RenderSystem extends EventEmitter {
         height ?? (height = bounds.height * devicePixelRatio);
         this.emit("resize", width, height);
         this.internals.setSize(width * this.resolution, height * this.resolution, false);
-        this.camera.fit(width / height);
+        this.aspect = width / height;
+        this.camera.fit(this.aspect);
+        if (this.active !== this.camera) {
+            this.active.fit(this.aspect);
+        }
         return this;
     }
     destroy(view = false) {
@@ -130,6 +150,7 @@ export class RenderSystem extends EventEmitter {
             throw new Error("Renderer is already destroyed");
         }
         this.observer?.disconnect();
+        this.active.destroy();
         this.camera.destroy();
         this.batcher.destroy();
         if (view) {
@@ -148,8 +169,8 @@ export class RenderSystem extends EventEmitter {
             this.canvas = value;
             this.observer?.disconnect();
             this.observer?.observe(value);
-            if (this.camera !== undefined) {
-                this.camera.connect(value);
+            if (this.active !== undefined) {
+                this.active.connect(value);
             }
         }
     }

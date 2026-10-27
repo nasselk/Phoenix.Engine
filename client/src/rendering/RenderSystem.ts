@@ -1,4 +1,4 @@
-import { type ColorRepresentation, NoToneMapping, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
+import { type ColorRepresentation, NoToneMapping, type PerspectiveCamera, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
@@ -33,6 +33,14 @@ export type RenderSystemOptions = {
 	readonly three?: Omit<WebGLRendererParameters, "canvas">;
 };
 
+/** A camera the renderer can draw with: it hands it the canvas's input, fits it on resize and updates it every frame. */
+export type RenderCamera = PerspectiveCamera & {
+	connect(element: HTMLElement | Window): unknown;
+	destroy(): unknown;
+	update(deltaTime: number): unknown;
+	fit(aspect: number): unknown;
+};
+
 export enum RenderSystemState {
 	NULL,
 	INITIALIZING,
@@ -40,7 +48,7 @@ export enum RenderSystemState {
 	DESTROYED,
 }
 
-/** The three.js renderer: the canvas, the WebGL or WebGPU context, the scene and the camera. */
+/** The three.js renderer: the canvas, the WebGL or WebGPU context, the scene and the cameras. */
 export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	protected canvas!: HTMLCanvasElement;
 
@@ -49,7 +57,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	/** The 3D scene */
 	public readonly scene: Scene;
 
-	/** The 3D camera */
+	/** The game's camera. It keeps updating every frame, drawn or not. */
 	public camera: OrbitCamera;
 
 	/** The texture builder for creating textures in the 3D scene */
@@ -66,6 +74,11 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 	private observer?: ResizeObserver;
 
+	private active: RenderCamera;
+
+	/** The canvas's shape at the last resize, which a camera made active is fitted to. */
+	private aspect = 1;
+
 	/**
 	 * @param touch Fingers rather than a mouse: the camera then turns on a drag and zooms on a pinch,
 	 *   where a desktop one waits for a held button and a wheel. The engine passes what it detected.
@@ -79,10 +92,32 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.scene = new Scene();
 		this.camera = touch ? new TouchCamera() : new DesktopCamera();
+		this.active = this.camera;
 		this.textureBuilder = new TextureBuilder(assets);
 		this.batcher = new Batcher();
 
 		this.camera.connect(this.canvas);
+	}
+
+	/**
+	 * The camera the scene is drawn from, and the only one that hears the canvas's mouse and touch:
+	 * `camera` until something else is set, such as the editor's flying camera. Set `camera` back to
+	 * return to the game's view.
+	 */
+	public get activeCamera(): RenderCamera {
+		return this.active;
+	}
+
+	public set activeCamera(camera: RenderCamera) {
+		if (camera === this.active) {
+			return;
+		}
+
+		this.active.destroy();
+		this.active = camera;
+
+		camera.connect(this.canvas);
+		camera.fit(this.aspect);
 	}
 
 	/**
@@ -143,7 +178,11 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.camera.update(deltaTime);
 
-		this.internals.render(this.scene, this.camera);
+		if (this.active !== this.camera) {
+			this.active.update(deltaTime);
+		}
+
+		this.internals.render(this.scene, this.active);
 	}
 
 	/**
@@ -190,7 +229,6 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 		canvas.style.left = "0";
 		canvas.style.width = width;
 		canvas.style.height = height;
-		canvas.style.zIndex;
 
 		return canvas;
 	}
@@ -251,7 +289,13 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.internals.setSize(width * this.resolution, height * this.resolution, false);
 
-		this.camera.fit(width / height);
+		this.aspect = width / height;
+
+		this.camera.fit(this.aspect);
+
+		if (this.active !== this.camera) {
+			this.active.fit(this.aspect);
+		}
 
 		return this;
 	}
@@ -267,6 +311,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 		this.observer?.disconnect();
 
+		this.active.destroy();
 		this.camera.destroy();
 		this.batcher.destroy();
 
@@ -297,9 +342,9 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 			this.observer?.disconnect();
 			this.observer?.observe(value);
 
-			// The constructor sets the first view before the camera exists; any later one takes the camera with it.
-			if (this.camera !== undefined) {
-				this.camera.connect(value);
+			// The constructor sets the first view before the camera exists; any later one takes the active camera with it.
+			if (this.active !== undefined) {
+				this.active.connect(value);
 			}
 		}
 	}

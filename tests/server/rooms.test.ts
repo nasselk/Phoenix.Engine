@@ -121,3 +121,34 @@ describe("Engine rooms", () => {
 		expect(room.physics.colliders.len()).toBe(1);
 	});
 });
+
+describe("World join and leave", () => {
+	test("emit join and leave once per socket that came in or went out: by leaving, by joining another room, or when the room is destroyed", () => {
+		const engine = createEngine();
+		const first = engine.createRoom({ maxPlayers: 4 });
+		const second = engine.createRoom({ maxPlayers: 4 });
+		const events: string[] = [];
+
+		for (const [name, room] of [
+			["first", first],
+			["second", second],
+		] as const) {
+			room.on("join", () => events.push(`${name} join`));
+			room.on("leave", () => events.push(`${name} leave`));
+		}
+
+		const socket = createSocket() as never;
+		const other = createSocket() as never;
+
+		first.join(socket);
+		first.join(socket);
+		second.join(socket);
+		second.leave(socket);
+		second.leave(socket);
+		first.join(socket);
+		first.join(other);
+		engine.destroyRoom(first.inviteCode);
+
+		expect(events).toEqual(["first join", "first leave", "second join", "second leave", "first join", "first join", "first leave", "first leave"]);
+	});
+});

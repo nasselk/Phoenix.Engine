@@ -20,7 +20,7 @@ export type WorldOptions<D extends EntityDefinitions, C> = {
 	readonly seed?: number;
 };
 
-export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> = Entity<C>> extends EventEmitter<WorldEvents> {
+export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> = Entity<C>, X extends Record<string, any[]> = {}> extends EventEmitter<WorldEvents & X> {
 	public readonly entities = new Map<number, E>();
 	public readonly capacity: number;
 	public readonly registry: EntityRegistry<D>;
@@ -66,7 +66,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 
 		entity.onSpawn();
 
-		this.emit("spawn", entity);
+		this.emit("spawn", ...([entity] as never));
 
 		return entity;
 	}
@@ -78,7 +78,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 		// Ids whose reuse delay has run out go back in the pool, before anything this tick spawns.
 		this.ids.processTimeouts();
 
-		this.emit("beforeUpdate", deltaTime);
+		this.emit("beforeUpdate", ...([deltaTime] as never));
 
 		for (const entity of this.entities.values()) {
 			if (entity.alive) {
@@ -88,7 +88,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 
 		this.simulate(deltaTime);
 
-		this.emit("update", deltaTime);
+		this.emit("update", ...([deltaTime] as never));
 	}
 
 	/**
@@ -110,7 +110,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 
 		entity.onDestroy();
 
-		this.emit("destroy", entity);
+		this.emit("destroy", ...([entity] as never));
 
 		this.ids.freeWithTimeout(id, 5000);
 	}

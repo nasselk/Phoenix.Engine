@@ -1,4 +1,4 @@
-import { BufferGeometry, type ColorRepresentation, LineSegments, ShaderMaterial } from "three";
+import { BufferGeometry, Color, type ColorRepresentation, LineSegments, ShaderMaterial } from "three";
 export interface AxisLinesOptions {
     readonly xColor?: ColorRepresentation;
     readonly yColor?: ColorRepresentation;
@@ -8,6 +8,7 @@ export interface AxisLinesOptions {
     readonly fadeStrength?: number;
 }
 export declare class AxisLines extends LineSegments<BufferGeometry, ShaderMaterial> {
+    readonly colors: Readonly<Record<"x" | "y" | "z", Color>>;
     constructor({ xColor, yColor, zColor, showY, fadeDistance, fadeStrength }?: AxisLinesOptions);
     get uniforms(): {
         [uniform: string]: import("three").IUniform<any>;

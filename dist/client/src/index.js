@@ -10,6 +10,7 @@ export { NetworkState, NetworkSystem } from "./networking/NetworkSystem";
 export { OrbitCamera } from "./rendering/lib/camera/Camera";
 export { DesktopCamera } from "./rendering/lib/camera/DesktopCamera";
 export { TouchCamera } from "./rendering/lib/camera/TouchCamera";
+export { EditorCamera } from "./rendering/lib/editor/EditorCamera";
 export { EditorView } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, RenderSystemState } from "./rendering/RenderSystem";
 export { isMobileDevice } from "./utils/mobile";

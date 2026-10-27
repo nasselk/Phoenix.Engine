@@ -1,12 +1,12 @@
 import { BufferGeometry, Color, Float32BufferAttribute, LineSegments, ShaderMaterial } from "three";
 export class AxisLines extends LineSegments {
-    constructor({ xColor = 0xff3352, yColor = 0x2890ff, zColor = 0x8bdc00, showY = true, fadeDistance = 200, fadeStrength = 2 } = {}) {
+    constructor({ xColor = 0xff3352, yColor = 0x8bdc00, zColor = 0x2890ff, showY = true, fadeDistance = 200, fadeStrength = 2 } = {}) {
         const positions = [-1, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 1];
         const x = new Color(xColor);
+        const y = new Color(yColor);
         const z = new Color(zColor);
         const colors = [x.r, x.g, x.b, x.r, x.g, x.b, z.r, z.g, z.b, z.r, z.g, z.b];
         if (showY) {
-            const y = new Color(yColor);
             positions.push(0, -1, 0, 0, 1, 0);
             colors.push(y.r, y.g, y.b, y.r, y.g, y.b);
         }
@@ -45,6 +45,7 @@ export class AxisLines extends LineSegments {
 				}`,
         });
         super(geometry, material);
+        this.colors = { x, y, z };
         this.frustumCulled = false;
         this.renderOrder = 1;
     }

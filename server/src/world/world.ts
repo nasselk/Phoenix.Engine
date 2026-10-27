@@ -18,13 +18,21 @@ export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contrac
 	readonly network: NetworkSystem<any, any, any, any, N>;
 };
 
+/** A room's events: every world's, and a socket coming in or going out. */
+export type RoomEvents<N extends Contract = Contract> = {
+	/** A socket joined, before its first frame. */
+	join: [socket: Socket<N>];
+	/** A socket left: by `leave`, by joining another room, by disconnecting, or because the room was destroyed. */
+	leave: [socket: Socket<N>];
+};
+
 export const MAX_SERVER_WORLD_SIZE = 2 ** 16 - 1; // 16 bits
 
 /**
  * A room: a world with an invite code, and the sockets that joined it. `N` is the network's
  * contract, which is what types `broadcast`.
  */
-export class World<D extends EntityDefinitions, C, N extends Contract = Contract> extends BaseWorld<D, C, Entity<C>> {
+export class World<D extends EntityDefinitions, C, N extends Contract = Contract> extends BaseWorld<D, C, Entity<C>, RoomEvents<N>> {
 	/** What identifies this room: the code players join it by, and the topic its broadcasts go out on. */
 	public readonly inviteCode: string;
 
@@ -115,6 +123,8 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 
 		socket.subscribe(this.inviteCode);
 
+		this.emit("join", socket);
+
 		return true;
 	}
 
@@ -129,6 +139,8 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		(socket as { room?: World<any, any, N> }).room = undefined;
 
 		socket.unsubscribe(this.inviteCode);
+
+		this.emit("leave", socket);
 
 		return true;
 	}

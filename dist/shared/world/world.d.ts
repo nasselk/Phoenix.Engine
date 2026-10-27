@@ -15,7 +15,7 @@ export type WorldOptions<D extends EntityDefinitions, C> = {
     readonly context?: C;
     readonly seed?: number;
 };
-export declare abstract class World<D extends EntityDefinitions, C, E extends Entity<C> = Entity<C>> extends EventEmitter<WorldEvents> {
+export declare abstract class World<D extends EntityDefinitions, C, E extends Entity<C> = Entity<C>, X extends Record<string, any[]> = {}> extends EventEmitter<WorldEvents & X> {
     readonly entities: Map<number, E>;
     readonly capacity: number;
     readonly registry: EntityRegistry<D>;

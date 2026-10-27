@@ -6,7 +6,10 @@
 		"rootDir": "../",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"experimentalDecorators": true,
-		"types": ["@types/howler"]
+		"types": ["@types/howler"],
+		"paths": {
+			"phoenix.engine/client": ["./src/index.ts"]
+		}
 	},
 	"include": ["src/**/*", "types/**/*", "../shared/**/*"]
 }

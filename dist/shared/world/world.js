@@ -28,20 +28,20 @@ export class World extends EventEmitter {
         this.entities.set(entity.id, entity);
         this.living++;
         entity.onSpawn();
-        this.emit("spawn", entity);
+        this.emit("spawn", ...[entity]);
         return entity;
     }
     update(deltaTime) {
         this.time += deltaTime;
         this.ids.processTimeouts();
-        this.emit("beforeUpdate", deltaTime);
+        this.emit("beforeUpdate", ...[deltaTime]);
         for (const entity of this.entities.values()) {
             if (entity.alive) {
                 entity.update(deltaTime);
             }
         }
         this.simulate(deltaTime);
-        this.emit("update", deltaTime);
+        this.emit("update", ...[deltaTime]);
     }
     simulate(_deltaTime) { }
     onEntityDestroy(entity) {
@@ -53,7 +53,7 @@ export class World extends EventEmitter {
             }
         });
         entity.onDestroy();
-        this.emit("destroy", entity);
+        this.emit("destroy", ...[entity]);
         this.ids.freeWithTimeout(id, 5000);
     }
     get(id, kind) {

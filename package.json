@@ -61,7 +61,7 @@
 		"prepare": "husky || true"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^1.61.0",
+		"@lucide/svelte": "^1.62.0",
 		"@nasselk/binarypack": "github:nasselk/BinaryPack",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
@@ -82,7 +82,7 @@
 		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"three": "^0.186.1",
-		"svelte": "^5.57.2"
+		"svelte": "^5.57.3"
 	},
 	"peerDependenciesMeta": {
 		"three": {

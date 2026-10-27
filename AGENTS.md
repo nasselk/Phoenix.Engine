@@ -27,7 +27,7 @@ Each side's entry point re-exports everything shared. Anything a game should use
 ```sh
 bun run build         # compile client and server into dist/
 bun run test          # engine tests (tests/)
-bun run types:check   # typecheck client, server and tests
+bun run types:check   # typecheck client and server
 bun run format        # Biome
 ```
 
@@ -45,7 +45,7 @@ bun run format        # Biome
 
 `dist/` is committed, because nothing builds the engine when a game installs it.
 
-1. `rm -rf dist && bun run build`, so moved or deleted files leave no stale copies.
+1. `bun run build` (it empties `dist/` first, so moved or deleted files leave no stale copies).
 2. Test, typecheck, commit and push.
 3. In the game: `bun update phoenix.engine`, then **restart its dev servers** (they do not reload `node_modules`), then its own `types:check` and tests.
 
@@ -75,9 +75,10 @@ Every runtime dependency of `dist/` goes in the **root** `package.json` (the wor
 
 ## Code style
 
-- TypeScript, strict. Tabs, double quotes, Biome (320 columns). Explicit `public`/`private`/`protected`, `readonly` wherever a field is not reassigned, `override` on overrides.
+- TypeScript, strict. Tabs, double quotes, Biome (320 columns; it skips `.svelte` files). Explicit `public`/`private`/`protected`, `readonly` wherever a field is not reassigned, `override` on overrides.
 - **No prose comments** explaining what code does. A short doc comment on a public member is fine when its name cannot say it. Keep existing comments.
 - **Reuse before writing**: check [API.md](./API.md), then search `shared/`, before adding a helper.
+- Svelte components and their `.d.ts` import engine types from `phoenix.engine/client` (mapped to the source in `client/tsconfig.json`), never by relative path to a `.ts` file: games would then type-check the engine's source.
 - **Type logic belongs at its own level.** Ask whether a file should know about a type before optimising how it is written.
-- TypeScript 7 (`tsgo`) runs `types:check`; editors often run TypeScript 5.x. They can disagree on deep generic instantiation (TS2589); public types must pass both.
+- `types:check` runs `bun check` and the build runs TypeScript 7 (`tsgo`); editors often run TypeScript 5.x. They can disagree on deep generic instantiation (TS2589); public types must pass both.
 - Measure before stating a number (a precision, a speed, a limit) in code, docs or tests.

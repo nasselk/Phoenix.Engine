@@ -1,4 +1,4 @@
-import { type ColorRepresentation, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
+import { type ColorRepresentation, type PerspectiveCamera, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import type { AssetManager } from "../assets/AssetManager";
@@ -21,6 +21,12 @@ export type RenderSystemOptions = {
     readonly exposure?: number;
     readonly three?: Omit<WebGLRendererParameters, "canvas">;
 };
+export type RenderCamera = PerspectiveCamera & {
+    connect(element: HTMLElement | Window): unknown;
+    destroy(): unknown;
+    update(deltaTime: number): unknown;
+    fit(aspect: number): unknown;
+};
 export declare enum RenderSystemState {
     NULL = 0,
     INITIALIZING = 1,
@@ -37,7 +43,11 @@ export declare class RenderSystem extends EventEmitter<RenderSystemEvents> {
     initialized: RenderSystemState;
     resolution: number;
     private observer?;
+    private active;
+    private aspect;
     constructor(assets: AssetManager, view?: HTMLCanvasElement, touch?: boolean);
+    get activeCamera(): RenderCamera;
+    set activeCamera(camera: RenderCamera);
     init(settings?: RenderSystemOptions): Promise<WebGLRenderer | WebGPURenderer>;
     render(deltaTime: number, now?: number): void;
     setFullscreen(fullScreen?: boolean): Promise<this>;

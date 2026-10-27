@@ -14,8 +14,9 @@ export { type NetworkChannelStats, NetworkState, type NetworkStats, NetworkSyste
 export { OrbitCamera, type OrbitCameraOptions, type OrbitTarget } from "./rendering/lib/camera/Camera";
 export { DesktopCamera, type DesktopCameraOptions } from "./rendering/lib/camera/DesktopCamera";
 export { TouchCamera, type TouchCameraOptions } from "./rendering/lib/camera/TouchCamera";
-export { EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
-export { RenderSystem, type RenderSystemOptions as RendererSettings, RenderSystemState } from "./rendering/RenderSystem";
+export { EditorCamera, type EditorCameraOptions } from "./rendering/lib/editor/EditorCamera";
+export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
+export { type RenderCamera, RenderSystem, type RenderSystemOptions as RendererSettings, RenderSystemState } from "./rendering/RenderSystem";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";
 export { setStorage, storage } from "./utils/storage";
 // The client's own object model, exported over the shared one: an entity that can read itself and

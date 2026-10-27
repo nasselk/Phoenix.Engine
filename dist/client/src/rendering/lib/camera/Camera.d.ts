@@ -19,14 +19,9 @@ export type OrbitCameraOptions = Partial<{
     readonly rotateSpeed: number;
     readonly turnSpeed: number;
     readonly tiltSpeed: number;
-    readonly flySpeed: number;
-    readonly boost: number;
-    readonly panSpeed: number;
     readonly zoomSpeed: number;
     readonly dragging: boolean;
     readonly zooming: boolean;
-    readonly minZoom: number;
-    readonly maxZoom: number;
 }>;
 export declare abstract class OrbitCamera extends PerspectiveCamera {
     target?: OrbitTarget;
@@ -43,30 +38,18 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     turnSpeed: number;
     tilt: number;
     tiltSpeed: number;
-    flyForward: number;
-    flyRight: number;
-    flyBoost: boolean;
-    flySpeed: number;
-    boost: number;
-    panSpeed: number;
     dragging: boolean;
     zooming: boolean;
-    minZoom: number;
-    maxZoom: number;
     protected element?: HTMLElement | Window;
     protected orbiting: boolean;
-    protected free: boolean;
     private verticalFovDegrees;
     private minHorizontalFovDegrees;
     constructor(options?: OrbitCameraOptions);
-    get detached(): boolean;
-    set detached(detached: boolean);
     fit(aspect?: number): this;
     get verticalFov(): number;
     set verticalFov(degrees: number);
     get minHorizontalFov(): number;
     set minHorizontalFov(degrees: number);
-    setZoom(zoom: number): this;
     get isOrbiting(): boolean;
     rotate(yaw: number, pitch: number): this;
     zoomBy(amount: number): this;
@@ -76,9 +59,7 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     update(deltaTime?: number): this;
     protected abstract listen(element: HTMLElement | Window): void;
     protected abstract unlisten(element: HTMLElement | Window): void;
-    private fly;
     protected drag(x: number, y: number): void;
-    protected pan(x: number, y: number): void;
     protected zoomByDelta(delta: number): void;
 }
 //# sourceMappingURL=Camera.d.ts.map

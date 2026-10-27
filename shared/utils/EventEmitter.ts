@@ -1,5 +1,5 @@
 export class EventEmitter<Events extends Record<string, any[]>> {
-	private readonly listeners = new Map<keyof Events, Set<(...args: any[]) => void>>();
+	private readonly listeners = new Map<PropertyKey, Set<(...args: any[]) => void>>();
 
 	/**
 	 * Subscribe to an event.

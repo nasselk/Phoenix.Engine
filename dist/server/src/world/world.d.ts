@@ -13,8 +13,12 @@ export type ServerWorldOptions<D extends EntityDefinitions, C, N extends Contrac
     readonly public?: boolean;
     readonly network: NetworkSystem<any, any, any, any, N>;
 };
+export type RoomEvents<N extends Contract = Contract> = {
+    join: [socket: Socket<N>];
+    leave: [socket: Socket<N>];
+};
 export declare const MAX_SERVER_WORLD_SIZE: number;
-export declare class World<D extends EntityDefinitions, C, N extends Contract = Contract> extends BaseWorld<D, C, Entity<C>> {
+export declare class World<D extends EntityDefinitions, C, N extends Contract = Contract> extends BaseWorld<D, C, Entity<C>, RoomEvents<N>> {
     readonly inviteCode: string;
     readonly sockets: Set<Socket<N>>;
     readonly maxPlayers: number;

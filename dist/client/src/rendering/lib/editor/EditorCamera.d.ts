@@ -1,0 +1,54 @@
+import { PerspectiveCamera } from "three";
+export type EditorCameraOptions = Partial<{
+    readonly fov: number;
+    readonly near: number;
+    readonly far: number;
+    readonly rotateSpeed: number;
+    readonly turnSpeed: number;
+    readonly tiltSpeed: number;
+    readonly flySpeed: number;
+    readonly boost: number;
+    readonly panSpeed: number;
+    readonly zoomSpeed: number;
+    readonly minZoom: number;
+    readonly maxZoom: number;
+    readonly distance: number;
+    readonly turnButton: number;
+    readonly panButton: number;
+}>;
+export declare class EditorCamera extends PerspectiveCamera {
+    turn: number;
+    tilt: number;
+    flyForward: number;
+    flyRight: number;
+    flyBoost: boolean;
+    rotateSpeed: number;
+    turnSpeed: number;
+    tiltSpeed: number;
+    flySpeed: number;
+    boost: number;
+    panSpeed: number;
+    zoomSpeed: number;
+    minZoom: number;
+    maxZoom: number;
+    distance: number;
+    turnButton: number;
+    panButton: number;
+    private element?;
+    private turnPointer;
+    private panPointer;
+    private readonly onPointerDown;
+    private readonly onPointerMove;
+    private readonly onPointerUp;
+    private readonly onWheel;
+    constructor(options?: EditorCameraOptions);
+    startFrom(camera: PerspectiveCamera): this;
+    fit(aspect?: number): this;
+    setZoom(zoom: number): this;
+    connect(element?: HTMLElement | Window): this;
+    destroy(): this;
+    update(deltaTime?: number): this;
+    private drag;
+    private pan;
+}
+//# sourceMappingURL=EditorCamera.d.ts.map
