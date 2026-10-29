@@ -46,7 +46,7 @@ bun run format        # Biome
 - **Commit on your own**, locally, as soon as a change is done and checked: one commit per change (a fix, a feature, a refactor), never unrelated work mixed in one. **Push only when the user asks.**
 - Before each commit: `bun run types:check`, `bun run test` and `bun run build`; the rebuilt `dist/` goes in the same commit as the change it comes from.
 - The message says what changed, in a short first line ("Rooms unregister themselves on destroy"), and why in the body when it is not obvious.
-- A big or risky change (a renderer swap, a new library, a refactor across many files) goes on its own branch (`feature/msdf-text`), merged into `main` once the user has tried it. Small changes go straight on the current branch.
+- A big or risky change (a renderer swap, a new library, a refactor across many files) goes on its own branch (`feature/<name>`), merged into `main` once the user has tried it. Small changes go straight on the current branch.
 - Leave work you did not do out of your commits: stage files or hunks by name, never `git add .` over someone else's changes.
 - The engine and the template are separate repositories: commit each on its own, the engine first when the template needs the change.
 

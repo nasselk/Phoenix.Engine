@@ -51,10 +51,10 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  ├─ scene: three.Scene                     add your objects here (entities add their own group)
 │  ├─ camera: OrbitCamera                    the game's: DesktopCamera or TouchCamera; updates every frame, drawn or not
 │  │                                         a ControlledCamera: turn, tilt, speeds, lens, fit, connect, update, orbit, lookFrom
-│  │  ├─ target?: {x,y,z}                    what it orbits; assign an entity's position to follow it
+│  │  ├─ target?: {x,y,z}                    what it orbits; assign an entity's position to follow it. Unset, it stays where it was put
 │  │  ├─ yaw, pitch, distance                min/maxPitch, min/maxDistance
 │  │  ├─ turn (-1…1), turnSpeed; tilt (-1…1), tiltSpeed   turn and tilt every frame, from the game's actions or a stick
-│  │                                      the camera reads no keys: the game sets these from its actions
+│  │  │                                      the camera reads no keys: the game sets these from its actions
 │  │  ├─ rotateSpeed, zoomSpeed, dragging, zooming
 │  │  ├─ verticalFov, minHorizontalFov       fov widens on narrow screens to keep minHorizontalFov
 │  │  ├─ rotate(yaw, pitch), zoomBy(amount), pinchBy(ratio)
@@ -69,7 +69,7 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  │  ├─ draw(ctx => …, clear = true, width?, height?)   resets transform/alpha/styles, then calls you
 │  │  ├─ save(name?) → Promise<Texture>      with a name, stored in assets.cache as "texture"; takes assets.anisotropy
 │  │  ├─ download(name)                      saves a .png
-│  │  ├─ resize(size) / resize(w, h), clear(), width, height
+│  │  └─ resize(size) / resize(w, h), clear(), width, height
 │  ├─ batcher: Batcher
 │  │  └─ batch(root) → BatchedMesh[]         static meshes under root → one BatchedMesh per material, in place
 │  │                                         skips sprites, Text, invisible, userData.batch = false
@@ -120,7 +120,7 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │     ├─ noise(duration, from = 1800, to = 200, volume = 0.3, start = 0)       low-passed noise
 │     ├─ layer(end, (context, output) => …)                       any Web Audio nodes
 │     ├─ save(name?) → Promise<Howl>          with a name, stored as "sound": engine.audio.play(name)
-│     ├─ render() → AudioBuffer, download(name) (.wav), clear(), duration
+│     └─ render() → AudioBuffer, download(name) (.wav), clear(), duration
 │
 ├─ inputs: InputSystem<Action>               actions are the keys of the binds option
 │  ├─ onActionStart(action, cb), onActionStop(action, cb) → unsubscribe
@@ -184,8 +184,9 @@ EditorView extends three.Group               new EditorView(engine, { plane?, gr
 │                                            TPS: server frames received per second, 0 while the room is still
 ├─ fly(enabled = !isFlying)                  fly camera (the EngineEditor camera tool): makes `camera` the renderer's
 │                                            activeCamera, starting where the game's is; the game's keeps following its target
+│                                            WASD flies, Shift faster, arrows turn; right drag turns, left drag slides, wheel zooms
 ├─ camera: EditorCamera                      the camera it flies
-├─ frustum: LineSegments                    the game camera's outline (edges and far rectangle), shown while flying
+├─ frustum: LineSegments                     the game camera's outline (edges and far rectangle), shown while flying
 ├─ isFlying, activeCamera                    whether its camera is the renderer's activeCamera; the drawn one
 ├─ viewFrom(axis: EditorAxis)                activeCamera.lookFrom that side, "x" | "y" | "z" | "-x" | "-y" | "-z", over 0.25 s
 ├─ orbit(x, y)                               activeCamera.orbit by a drag of so many pixels on the gizmo
@@ -193,8 +194,8 @@ EditorView extends three.Group               new EditorView(engine, { plane?, gr
 ├─ toggleShadows(on?)                        off: lights casting shadows stop; on: those same lights cast again
 │                                            with the EngineEditor, bindEditor drives these from its state
 ├─ plane, grid, stats, destroy()
-├─ axes: AxisLines                          colors { x, y, z } (red, green, blue; set with `axes: { xColor… }`), shared with the gizmo
-EditorCamera extends ControlledCamera       new EditorCamera(options?); flies free, made the renderer's activeCamera
+└─ axes: AxisLines                           colors { x, y, z } (red, green, blue; set with `axes: { xColor… }`), shared with the gizmo
+EditorCamera extends ControlledCamera        new EditorCamera(options?); flies free, made the renderer's activeCamera
 ├─ turn, tilt, flyForward, flyRight (-1…1), flyBoost   every frame, set from keys (EditorView does it)
 ├─ rotateSpeed, turnSpeed, tiltSpeed, flySpeed, boost, panSpeed, zoomSpeed, minZoom, maxZoom, distance
 ├─ turnButton = 2 (right drag turns it), panButton = 0 (left drag slides it); the wheel zooms its lens
@@ -255,7 +256,7 @@ Socket
 ├─ disconnect(reason?, code?)                with a close frame; terminate() cuts it at once
 ├─ readyState: SocketState
 ├─ lastMessage, messages, rates, seen, resetRates(), disconnection(code, reason)
-└─ on("disconnection" [code, reason, manual] | "message" [event, data])
+└─ on("disconnection" [code, reason, manual])   every message: network.onMessage, or network.on("message")
 ```
 
 Server entities:
@@ -348,18 +349,21 @@ wave(min, max, speed?, now?), syncedWave, pointsSyncedWave, fadeInHoldAndFadeOut
 GRAVITY (-9.81), EPSILON
 
 BufferWriter                                 writeUint8/16/32/64, writeInt8…64, writeFloat16/32/64, writeBits,
-                                             writeBoolean, writeString, writeBuffer, bytes, reset
-├─ static toPrecision(value, max, bits, signed?, min?)   a value in a range → an integer of `bits` bits
-BufferReader                                 readUint8…, readInt8…, readFloat16/32/64, readBits, readBoolean, readString, readBuffer, remainingBytes
-├─ static fromPrecision(int, max, bits, signed?, min?)   and back
-Buffers                                      import buffers from phoenix.engine, never from @nasselk/binarypack: games do not install it
+                                             writeBoolean, writeString, writeBytes(source, start?, end?) (no size prefix), bytes, reset
+└─ static toPrecision(value, max, bits, signed?, min?)   a value in a range → an integer of `bits` bits
+BufferReader                                 readUint8…, readInt8…, readFloat16/32/64, readBits, readBoolean, readString,
+                                             readBytes(size? | true for a uint16 prefix), remainingBytes
+└─ static fromPrecision(int, max, bits, signed?, min?)   and back
+Buffers                                      what a reader or a raw send takes: an ArrayBuffer, a view, a BufferWriter or BufferReader
+                                             import all three from phoenix.engine, never from @nasselk/binarypack: games do not install it
 Event schemas: defineSchemas and the field builders (field.uint8(), field.string({ maxLength })…) from @nasselk/binaryschema, a peer dependency the game installs; a limit without byteLength takes the schema's minByteLength/maxByteLength
 
 Protocol, ProtocolChannel, MAX_EVENTS (256 per direction), Contract, ContractOf, Side, SchemasFor, InboundEvent, OutboundEvent,
 InboundSchemas, OutboundSchemas, MessagePayload, SendPayload
 INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, RoomOccupancy
 
-EventEmitter<{ event: [args] }>              on(e, cb) → unsubscribe, off, removeAllListeners, protected emit
+EventEmitter<{ event: [args] }>              on(e, cb) → unsubscribe, off, removeAllListeners, protected emit,
+                                             protected emitUnchecked(e, a?, b?) (untyped name, up to two arguments, no allocation)
 Timeout(cb, delay), Interval(cb, delay)      Timer: pause, resume, reschedule, schedule, clear, elapsedTime, remainingTime, active;
                                              static Timer.runAll(now?, timeScale?), setCustomLoop(b), clear()
                                              paused time never counts; resume picks up with what remained
@@ -419,8 +423,8 @@ EngineEditor.svelte  development editor: a vertical toolbar on the left (EditorT
                      wireframe, grid and axes, shadows, stats, gizmo, game interface. props: view (the EditorView).
                      Everything lives in `editor` (EditorState: tool, gizmo, wireframe, grid, stats, shadows, ui), a
                      store the bars read and write; bindEditor(view) → stop makes the view follow it
-                     ("camera" flies its camera, the toggles show as set) from the
-                     moment it is called, on screen or not: call it once where the view is made.
+                     ("camera" flies its camera, the toggles show as set; the other tools do nothing yet)
+                     from the moment it is called, on screen or not: call it once where the view is made.
                      `ui` is the game's to read: hide the game's own interface while it is false.
                      Bottom right, a navigation gizmo like Blender's: click an axis to view from it
                      (view.viewFrom), drag it to orbit (view.orbit).
