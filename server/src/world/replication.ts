@@ -201,24 +201,8 @@ export class Replication {
 		return slot;
 	}
 
-	/**
-	 * A record into the frame. Records are tens of bytes, where a `writeBuffer` spends more on the view
-	 * it builds to copy them than on the copy itself, and leaves it behind for the collector.
-	 */
+	/** A record into the frame. The writer grows by doubling, so a frame of thousands of spawns costs a handful of copies. */
 	private copy(start: number, end: number): void {
-		const writer = this.writer;
-		const length = end - start;
-
-		if (writer.offset + length > writer.byteLength) {
-			writer.expand(writer.offset + length - writer.byteLength);
-		}
-
-		const source = this.records.buffer;
-		const target = writer.buffer;
-		const at = writer.advanceBytes(length);
-
-		for (let i = 0; i < length; i++) {
-			target[at + i] = source[start + i]!;
-		}
+		this.writer.writeBytes(this.records.buffer, start, end);
 	}
 }

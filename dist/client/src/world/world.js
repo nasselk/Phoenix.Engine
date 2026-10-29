@@ -13,6 +13,9 @@ export class World extends BaseWorld {
     spawn(kind, ...args) {
         const Kind = this.registry.class(kind);
         const options = (args[0] ?? {});
+        if (options.id !== undefined && !this.ids.reserve(options.id)) {
+            throw new Error(`Entity id ${options.id} is taken`);
+        }
         const entity = new Kind(this, this.context, options);
         return this.insert(kind, entity, options.id);
     }

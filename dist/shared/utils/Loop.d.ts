@@ -39,6 +39,5 @@ export declare abstract class Loop<Step extends string, Stats> extends EventEmit
     private readonly run;
     private step;
     private report;
-    private fire;
 }
 //# sourceMappingURL=Loop.d.ts.map

@@ -8,6 +8,7 @@ export { Engine } from "./engine";
 export { GameLoop } from "./GameLoop";
 export { NetworkState, NetworkSystem } from "./networking/NetworkSystem";
 export { OrbitCamera } from "./rendering/lib/camera/Camera";
+export { ControlledCamera } from "./rendering/lib/camera/ControlledCamera";
 export { DesktopCamera } from "./rendering/lib/camera/DesktopCamera";
 export { TouchCamera } from "./rendering/lib/camera/TouchCamera";
 export { EditorCamera } from "./rendering/lib/editor/EditorCamera";

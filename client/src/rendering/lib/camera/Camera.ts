@@ -1,35 +1,22 @@
-import { PerspectiveCamera } from "three";
+import type { Vector3Like } from "three";
+import { normalizeAnglePI } from "../../../../../shared/math/angle";
 import { clamp } from "../../../../../shared/math/utils";
+import { ControlledCamera, type ControlledCameraOptions, ease } from "./ControlledCamera";
 
 export type OrbitTarget = { readonly x: number; readonly y: number; readonly z: number };
 
-export type OrbitCameraOptions = Partial<{
-	/** The vertical field of view the game is designed for, in degrees. */
-	readonly fov: number;
-	/**
-	 * The narrowest the horizontal field of view may get, in degrees: on a screen narrower than that
-	 * allows, as a phone held upright, the view widens rather than cutting the sides off. 0 turns it off.
-	 */
-	readonly minHorizontalFov: number;
-	readonly near: number;
-	readonly far: number;
-	readonly yaw: number;
-	readonly pitch: number;
-	readonly distance: number;
-	readonly minPitch: number;
-	readonly maxPitch: number;
-	readonly minDistance: number;
-	readonly maxDistance: number;
-	readonly rotateSpeed: number;
-	readonly turnSpeed: number;
-	readonly tiltSpeed: number;
-	readonly zoomSpeed: number;
-	readonly dragging: boolean;
-	readonly zooming: boolean;
-}>;
-
-/** Longest step a single frame may turn, in seconds: a tab coming back from the background should not swing round. */
-const MAX_FRAME = 0.1;
+export type OrbitCameraOptions = ControlledCameraOptions &
+	Partial<{
+		readonly yaw: number;
+		readonly pitch: number;
+		readonly distance: number;
+		readonly minPitch: number;
+		readonly maxPitch: number;
+		readonly minDistance: number;
+		readonly maxDistance: number;
+		readonly dragging: boolean;
+		readonly zooming: boolean;
+	}>;
 
 /**
  * A camera that orbits a target. Everything here is what a mouse and a finger mean the same way: where
@@ -39,7 +26,7 @@ const MAX_FRAME = 0.1;
  * mouse and a keyboard, `TouchCamera` for fingers. Both turn what they hear into `drag`, `pinchBy`
  * and `zoomBy`, which is all of this class they need.
  */
-export abstract class OrbitCamera extends PerspectiveCamera {
+export abstract class OrbitCamera extends ControlledCamera {
 	public target?: OrbitTarget;
 
 	public yaw: number;
@@ -51,39 +38,17 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 	public minDistance: number;
 	public maxDistance: number;
 
-	public rotateSpeed: number;
-	public zoomSpeed: number;
-
-	/**
-	 * Turns the camera around its target every frame, like a mouse dragged sideways: -1 to the left, 1 to
-	 * the right, 0 still. Set from held keys, a gamepad stick, anything; the camera does not read input itself.
-	 */
-	public turn = 0;
-	/** How fast `turn` at 1 goes round, in radians per second. */
-	public turnSpeed: number;
-
-	/** Tilts the camera every frame, like a mouse dragged up or down: 1 looks up, -1 looks down, 0 still. */
-	public tilt = 0;
-	/** How fast `tilt` at 1 tilts, in radians per second. */
-	public tiltSpeed: number;
-
 	public dragging: boolean;
 	public zooming: boolean;
-
-	/** What a subclass listens on, and what it lets go of when the camera is destroyed. */
-	protected element?: HTMLElement | Window;
 
 	/** Whether something is turning the camera right now, which a subclass sets as fingers or buttons go down. */
 	protected orbiting = false;
 
-	private verticalFovDegrees: number;
-	private minHorizontalFovDegrees: number;
+	/** A `lookFrom` swing in progress: from which yaw and pitch to which, over how long, and how far along. */
+	private readonly swing = { duration: 0, elapsed: 0, fromYaw: 0, toYaw: 0, fromPitch: 0, toPitch: 0 };
 
 	public constructor(options: OrbitCameraOptions = {}) {
-		super(options.fov ?? 75, 1, options.near ?? 0.1, options.far ?? 1000);
-
-		this.verticalFovDegrees = this.fov;
-		this.minHorizontalFovDegrees = options.minHorizontalFov ?? 60;
+		super(options);
 
 		this.yaw = options.yaw ?? 0;
 		this.pitch = options.pitch ?? 0.6;
@@ -92,47 +57,8 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		this.maxPitch = options.maxPitch ?? 1.45;
 		this.minDistance = options.minDistance ?? 4;
 		this.maxDistance = options.maxDistance ?? 40;
-		this.rotateSpeed = options.rotateSpeed ?? 0.0025;
-		this.turnSpeed = options.turnSpeed ?? 2.5;
-		this.tiltSpeed = options.tiltSpeed ?? 1.5;
-		this.zoomSpeed = options.zoomSpeed ?? 0.001;
 		this.dragging = options.dragging ?? true;
 		this.zooming = options.zooming ?? true;
-	}
-
-	/**
-	 * Match a canvas of that shape: the vertical field of view the game asked for, widened when the
-	 * screen is too narrow to show `minHorizontalFov` across. What the renderer calls on every resize.
-	 */
-	public fit(aspect: number = this.aspect): this {
-		const narrowest = this.minHorizontalFovDegrees;
-		const needed = narrowest > 0 ? 2 * Math.atan(Math.tan((narrowest * Math.PI) / 360) / aspect) * (180 / Math.PI) : 0;
-
-		this.aspect = aspect;
-		this.fov = Math.max(this.verticalFovDegrees, needed);
-		this.updateProjectionMatrix();
-
-		return this;
-	}
-
-	/** The vertical field of view the game is designed for, in degrees; the one shown unless the screen is too narrow. */
-	public get verticalFov(): number {
-		return this.verticalFovDegrees;
-	}
-
-	public set verticalFov(degrees: number) {
-		this.verticalFovDegrees = degrees;
-		this.fit();
-	}
-
-	/** The narrowest the horizontal field of view may get, in degrees. 0 turns it off. */
-	public get minHorizontalFov(): number {
-		return this.minHorizontalFovDegrees;
-	}
-
-	public set minHorizontalFov(degrees: number) {
-		this.minHorizontalFovDegrees = degrees;
-		this.fit();
 	}
 
 	public get isOrbiting(): boolean {
@@ -142,6 +68,31 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 	public rotate(yaw: number, pitch: number): this {
 		this.yaw += yaw;
 		this.pitch = clamp(this.pitch + pitch, this.minPitch, this.maxPitch);
+
+		return this;
+	}
+
+	public override orbit(yaw: number, pitch: number): this {
+		this.swing.duration = 0;
+
+		return this.rotate(yaw, pitch);
+	}
+
+	/** Swing round its target to look from that side, the shortest way round, within its pitch limits. */
+	public override lookFrom(direction: Vector3Like, seconds: number = 0): this {
+		const { swing } = this;
+
+		swing.fromYaw = this.yaw;
+		swing.fromPitch = this.pitch;
+		swing.toYaw = direction.x === 0 && direction.z === 0 ? this.yaw : this.yaw + normalizeAnglePI(Math.atan2(direction.x, direction.z) - this.yaw);
+		swing.toPitch = clamp(Math.atan2(direction.y, Math.hypot(direction.x, direction.z)), this.minPitch, this.maxPitch);
+		swing.elapsed = 0;
+		swing.duration = seconds;
+
+		if (seconds <= 0) {
+			this.yaw = swing.toYaw;
+			this.pitch = swing.toPitch;
+		}
 
 		return this;
 	}
@@ -161,38 +112,36 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 		return this.zoomBy(-Math.log(ratio));
 	}
 
-	public connect(element: HTMLElement | Window = window): this {
-		this.destroy();
+	public override destroy(): this {
+		super.destroy();
 
-		this.element = element;
-
-		this.listen(element);
-
-		return this;
-	}
-
-	public destroy(): this {
-		const element = this.element;
-
-		if (element === undefined) {
-			return this;
-		}
-
-		this.unlisten(element);
-
-		this.element = undefined;
 		this.orbiting = false;
 
 		return this;
 	}
 
-	/** @param deltaTime Seconds since the last frame, which is how far `turn` and `tilt` turn it. */
-	public update(deltaTime: number = 0): this {
-		const seconds = Math.min(deltaTime, MAX_FRAME);
+	protected override step(seconds: number): void {
+		const { swing } = this;
+
+		if (swing.duration > 0) {
+			swing.elapsed = Math.min(swing.elapsed + seconds, swing.duration);
+
+			if (swing.elapsed === swing.duration) {
+				this.yaw = swing.toYaw;
+				this.pitch = swing.toPitch;
+				swing.duration = 0;
+			} else {
+				const eased = ease(swing.elapsed / swing.duration);
+
+				this.yaw = swing.fromYaw + (swing.toYaw - swing.fromYaw) * eased;
+				this.pitch = swing.fromPitch + (swing.toPitch - swing.fromPitch) * eased;
+			}
+		}
+
 		const target = this.target;
 
 		if (target === undefined) {
-			return this;
+			return;
 		}
 
 		if (this.turn !== 0 || this.tilt !== 0) {
@@ -204,14 +153,7 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 
 		this.position.set(x + Math.sin(this.yaw) * flat, y + Math.sin(this.pitch) * this.distance, z + Math.cos(this.yaw) * flat);
 		this.lookAt(x, y, z);
-
-		return this;
 	}
-
-	/** Start hearing this device's events. */
-	protected abstract listen(element: HTMLElement | Window): void;
-
-	protected abstract unlisten(element: HTMLElement | Window): void;
 
 	/** A drag of so many pixels, wherever it came from: it swings the camera around its target. */
 	protected drag(x: number, y: number): void {
@@ -219,7 +161,7 @@ export abstract class OrbitCamera extends PerspectiveCamera {
 			return;
 		}
 
-		this.rotate(-x * this.rotateSpeed, y * this.rotateSpeed);
+		this.orbit(-x * this.rotateSpeed, y * this.rotateSpeed);
 	}
 
 	/** A wheel notch, or anything else that zooms by a distance rather than by a ratio. */

@@ -9,6 +9,7 @@ export declare class IDAllocator {
     constructor();
     allocate(): number;
     allocateNegative(): number;
+    reserve(id: number): boolean;
     free(...ids: number[]): this;
     freeWithTimeout(id: number, delay?: number, now?: number): this;
     processTimeouts(now?: number): this;

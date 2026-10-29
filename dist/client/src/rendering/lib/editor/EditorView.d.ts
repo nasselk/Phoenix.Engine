@@ -1,6 +1,7 @@
 import Stats from "stats.js";
-import { BufferGeometry, Group, LineBasicMaterial, LineSegments, type PerspectiveCamera } from "three";
+import { BufferGeometry, Group, LineBasicMaterial, LineSegments } from "three";
 import type { Engine } from "../../../engine";
+import type { ControlledCamera } from "../camera/ControlledCamera";
 import { AxisLines, type AxisLinesOptions } from "./AxisLines";
 import { EditorCamera } from "./EditorCamera";
 import { InfiniteGrid, type InfiniteGridOptions } from "./InfiniteGrid";
@@ -21,10 +22,11 @@ export declare class EditorView extends Group {
     private readonly unsubscribers;
     private readonly wired;
     private wireframe;
-    private flying;
+    private statsShown;
+    private shadows;
+    private readonly shadowless;
     private lastFrames;
     private lastSample;
-    private readonly snap;
     readonly stats: {
         frames: Stats;
         memory: Stats;
@@ -36,17 +38,18 @@ export declare class EditorView extends Group {
     };
     constructor(engine: Engine<any, any, any, any, any, any, any>, { plane, grid, axes }?: EditorViewOptions);
     init(stats: string): Promise<void>;
-    toggleCamera(attach?: boolean): void;
+    fly(enabled?: boolean): void;
     get isFlying(): boolean;
-    get activeCamera(): PerspectiveCamera;
+    get activeCamera(): ControlledCamera;
     private steer;
     private key;
     private static createFrustum;
     private outline;
     viewFrom(axis: EditorAxis): void;
     orbit(x: number, y: number): void;
-    private swing;
-    private around;
+    toggleShadows(enabled?: boolean): void;
+    toggleGrid(enabled?: boolean): void;
+    toggleStats(enabled?: boolean): void;
     toggleWireframe(enabled?: boolean): void;
     private wireScene;
     destroy(): void;

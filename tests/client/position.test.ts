@@ -36,8 +36,8 @@ describe("PositionEntity", () => {
 	test("by default it is shown where the server last said, from the next frame", () => {
 		const { room, client, socket, box, copy } = setup(ClientBox);
 
-		box.body!.setTranslation({ x: 2, y: 4, z: 0 }, false);
-		box.body!.setRotation(new Quaternion().setFromEuler(0, 1, 0), false);
+		box.position.set(2, 4, 0);
+		box.rotation.set(new Quaternion().setFromEuler(0, 1, 0));
 		room.update(1 / 60);
 		replicate(room, client, socket);
 		client.update(1 / 60);
@@ -50,8 +50,8 @@ describe("PositionEntity", () => {
 	test("updatePosition and updateRotation decide what is shown, and the group follows it", () => {
 		const { room, client, socket, box, copy } = setup(HalfwayBox);
 
-		box.body!.setTranslation({ x: 2, y: 4, z: 0 }, false);
-		box.body!.setRotation(new Quaternion().setFromEuler(0, 1, 0), false);
+		box.position.set(2, 4, 0);
+		box.rotation.set(new Quaternion().setFromEuler(0, 1, 0));
 		room.update(1 / 60);
 		replicate(room, client, socket);
 		client.update(1 / 60);

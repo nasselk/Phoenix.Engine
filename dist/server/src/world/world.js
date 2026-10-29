@@ -59,8 +59,15 @@ export class World extends BaseWorld {
     spawn(kind, ...args) {
         const Kind = this.registry.class(kind);
         const options = (args[0] ?? {});
+        const id = options.id;
         if (this.size >= this.capacity) {
             throw new Error(`World is full (capacity ${this.capacity})`);
+        }
+        if (id !== undefined && (!Number.isInteger(id) || id < 1 || id > MAX_SERVER_WORLD_SIZE)) {
+            throw new RangeError(`Entity id must be an integer from 1 to ${MAX_SERVER_WORLD_SIZE}, got ${id}`);
+        }
+        if (id !== undefined && !this.ids.reserve(id)) {
+            throw new Error(`Entity id ${id} is taken`);
         }
         const entity = new Kind(this, this.context, options);
         try {

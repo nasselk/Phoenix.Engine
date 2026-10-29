@@ -46,11 +46,21 @@ describe("replication", () => {
 		expect([copy!.position.x, copy!.position.y, copy!.position.z]).toEqual([1, 2, 3]);
 	});
 
+	test("a first frame bigger than the replication buffer arrives whole", () => {
+		const { room, client, socket } = setup();
+		const boxes = Array.from({ length: 1500 }, (_, i) => room.spawn("box", { x: i, y: 2, z: -i, fixed: true }));
+
+		replicate(room, client, socket);
+
+		expect(client.entities.size).toBe(boxes.length);
+		expect(boxes.every((box) => client.get(box.id, ClientBox)?.position.x === box.position.x)).toBe(true);
+	});
+
 	test("a spawn arrives turned the way it is", () => {
 		const { room, client, socket } = setup();
 		const box = room.spawn("box", { fixed: true });
 
-		box.body!.setRotation(new Quaternion().setFromEuler(1.2, -2.5, 0.3), false);
+		box.rotation.set(new Quaternion().setFromEuler(1.2, -2.5, 0.3));
 		room.update(1 / 60);
 		replicate(room, client, socket);
 
@@ -92,7 +102,7 @@ describe("replication", () => {
 
 		const turned = new Quaternion().setFromEuler(0.4, 1.1, -0.7);
 
-		box.body!.setRotation(turned, false);
+		box.rotation.set(turned);
 		room.update(1 / 60);
 		replicate(room, client, socket);
 
@@ -108,8 +118,8 @@ describe("replication", () => {
 		const turned = new Quaternion();
 
 		for (let tick = 1; tick <= 300; tick++) {
-			box.body!.setTranslation({ x: tick * 0.01, y: 0, z: 0 }, false);
-			box.body!.setRotation(turned.setFromYaw(tick * 0.005), false);
+			box.position.set(tick * 0.01, 0, 0);
+			box.rotation.set(turned.setFromYaw(tick * 0.005));
 			room.update(1 / 60);
 			replicate(room, client, socket);
 		}

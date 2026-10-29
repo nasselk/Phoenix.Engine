@@ -135,6 +135,28 @@ describe("PositionEntity bodies", () => {
 		expect(box.settled).toBe(false);
 		expect(2 * Math.atan2(rotation.y, rotation.w)).toBeCloseTo(1, 5);
 	});
+
+	test("a fixed body is moved and turned by code, and never read back", () => {
+		const room = createFloor();
+		const wall = room.spawn("box", { x: 2, fixed: true });
+
+		room.update(1 / 60);
+
+		const reads = spyOn(wall.body!, "translation");
+
+		wall.yaw = 1;
+		wall.position.x = 5;
+		room.update(1 / 60);
+		room.update(1 / 60);
+
+		const rotation = wall.body!.rotation();
+
+		expect(reads).toHaveBeenCalledTimes(0);
+		expect(wall.yaw).toBeCloseTo(1, 5);
+		expect(wall.position.x).toBe(5);
+		expect(wall.body!.translation().x).toBe(5);
+		expect(2 * Math.atan2(rotation.y, rotation.w)).toBeCloseTo(1, 5);
+	});
 });
 
 describe("MovingEntity", () => {

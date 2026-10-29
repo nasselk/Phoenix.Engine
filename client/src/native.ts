@@ -3,6 +3,9 @@ import { isTextField } from "./utils/textField";
 /** Zoom shortcuts, on every layout: ctrl/⌘ with plus, minus or zero. */
 const ZOOM_KEYS = new Set(["+", "-", "=", "_", "0"]);
 
+/** What a click presses without needing focus afterwards. */
+const PRESSABLE = "button, [role='button'], a";
+
 const VIEWPORT = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
 
 export type NativeOptions = {
@@ -16,7 +19,10 @@ export type NativeOptions = {
 	readonly drag?: boolean;
 	/** Write the viewport meta tag phones need, which is what stops pinch zoom there. */
 	readonly viewport?: boolean;
-	/** Drop Tab moving focus from one control to the next. */
+	/**
+	 * Drop Tab moving focus from one control to the next, and clicking a button or link taking focus, so
+	 * the game's keys (Space, Enter) never press the last one clicked again. Text fields still focus.
+	 */
 	readonly focus?: boolean;
 };
 
@@ -78,6 +84,14 @@ export function native(options: NativeOptions = {}): () => void {
 	if (options.focus !== false) {
 		on("keydown", (event: KeyboardEvent) => {
 			if (event.key === "Tab") {
+				event.preventDefault();
+			}
+		});
+
+		on("mousedown", (event: MouseEvent) => {
+			const element = event.target;
+
+			if (element instanceof Element && element.closest(PRESSABLE) !== null && !isTextField(element)) {
 				event.preventDefault();
 			}
 		});

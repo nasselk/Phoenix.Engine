@@ -158,8 +158,18 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 		const Kind = this.registry.class(kind);
 		const options = (args[0] ?? {}) as OptionsOf<D[K], 2> & EntityOptions;
 
+		const id = options.id;
+
 		if (this.size >= this.capacity) {
 			throw new Error(`World is full (capacity ${this.capacity})`);
+		}
+
+		if (id !== undefined && (!Number.isInteger(id) || id < 1 || id > MAX_SERVER_WORLD_SIZE)) {
+			throw new RangeError(`Entity id must be an integer from 1 to ${MAX_SERVER_WORLD_SIZE}, got ${id}`);
+		}
+
+		if (id !== undefined && !this.ids.reserve(id)) {
+			throw new Error(`Entity id ${id} is taken`);
 		}
 
 		const entity = new Kind(this, this.context, options) as InstanceType<D[K]>;

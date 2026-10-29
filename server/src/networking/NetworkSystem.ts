@@ -1,4 +1,5 @@
 import { BufferReader, type Buffers } from "@nasselk/binarypack";
+import type { Schema } from "@nasselk/binaryschema";
 import type { BunRequest, Server } from "bun";
 import { MessageHandlers } from "../../../shared/networking/handlers";
 import { type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, Protocol, type SchemasFor, type SendPayload, SOCKET_ROUTE } from "../../../shared/networking/protocol";
@@ -26,7 +27,8 @@ export type EventLimit = {
 	 * Payload size in bytes, event code excluded. A frame outside it is malformed by definition.
 	 *
 	 * A number is an exact size — `0` for an event that carries nothing — and `[min, max]` is a
-	 * range, both ends included.
+	 * range, both ends included. Left out, an event with a schema takes the schema's
+	 * `minByteLength` and `maxByteLength`, and one without is not checked.
 	 */
 	readonly byteLength?: number | readonly [min: number, max: number];
 };
@@ -158,7 +160,7 @@ export class NetworkSystem<
 			maxRequestRate: this.settings.http.maxRequestRate,
 			address: (request) => this.server?.requestIP(request as unknown as Request)?.address,
 		});
-		this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, (options?.limits as Record<string, EventLimit> | undefined)?.[event]));
+		this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, (options?.limits as Record<string, EventLimit> | undefined)?.[event], this.protocol.in.schema(event)));
 	}
 
 	public init(): void {
@@ -387,12 +389,12 @@ export class NetworkSystem<
 	 * Turn a declared limit into the two bounds the hot path compares against, rejecting a size that
 	 * could never match a frame — better a crash at startup than a server that drops every message.
 	 */
-	private static resolveLimit(event: string, limit: EventLimit | undefined): ResolvedLimit | undefined {
+	private static resolveLimit(event: string, limit: EventLimit | undefined, schema: Schema | undefined): ResolvedLimit | undefined {
 		if (limit === undefined) {
 			return undefined;
 		}
 
-		const { byteLength } = limit;
+		const byteLength = limit.byteLength ?? (schema === undefined ? undefined : ([schema.minByteLength, schema.maxByteLength] as const));
 		const [minBytes, maxBytes] = byteLength === undefined ? [0, Infinity] : typeof byteLength === "number" ? [byteLength, byteLength] : byteLength;
 
 		if (!Number.isInteger(minBytes) || minBytes < 0 || !(Number.isInteger(maxBytes) || maxBytes === Infinity) || minBytes > maxBytes) {

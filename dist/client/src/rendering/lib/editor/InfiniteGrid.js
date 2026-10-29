@@ -1,4 +1,5 @@
 import { Color, DoubleSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
+import { FADE, FOLLOW_VERTEX, fadeUniforms } from "./shaders";
 export class InfiniteGrid extends Mesh {
     constructor({ minorSize = 2, majorSize = 10, color = 0x9a9a9a, minorOpacity = 0.5, fadeDistance = 200, fadeStrength = 2 } = {}) {
         const material = new ShaderMaterial({
@@ -10,24 +11,12 @@ export class InfiniteGrid extends Mesh {
                 uMajorSize: { value: majorSize },
                 uColor: { value: new Color(color) },
                 uMinorOpacity: { value: minorOpacity },
-                uFadeDistance: { value: fadeDistance },
-                uFadeStrength: { value: fadeStrength },
+                ...fadeUniforms(fadeDistance, fadeStrength),
             },
-            vertexShader: `
-				uniform float uFadeDistance;
-				varying vec3 vWorld;
-				void main() {
-					// Big enough to reach the fade distance. The plane lies in local XY; after the
-					// -90deg X rotation, local Y maps to world -Z.
-					vec3 p = position * uFadeDistance * 2.0;
-					p.x += cameraPosition.x;
-					p.y -= cameraPosition.z;
-					vec4 world = modelMatrix * vec4(p, 1.0);
-					vWorld = world.xyz;
-					gl_Position = projectionMatrix * viewMatrix * world;
-				}`,
+            vertexShader: FOLLOW_VERTEX,
             fragmentShader: `
-				uniform float uMinorSize, uMajorSize, uMinorOpacity, uFadeDistance, uFadeStrength;
+				${FADE}
+				uniform float uMinorSize, uMajorSize, uMinorOpacity;
 				uniform vec3 uColor;
 				varying vec3 vWorld;
 
@@ -39,9 +28,8 @@ export class InfiniteGrid extends Mesh {
 				}
 
 				void main() {
-					float fade = 1.0 - min(distance(cameraPosition.xz, vWorld.xz) / uFadeDistance, 1.0);
 					float g = max(gridLines(vWorld.xz, uMinorSize) * uMinorOpacity, gridLines(vWorld.xz, uMajorSize));
-					float a = g * pow(fade, uFadeStrength);
+					float a = g * fade(distance(cameraPosition.xz, vWorld.xz));
 					if (a <= 0.0) discard;
 					gl_FragColor = vec4(uColor, a);
 				}`,

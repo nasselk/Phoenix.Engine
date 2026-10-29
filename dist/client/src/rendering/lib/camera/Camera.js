@@ -1,14 +1,11 @@
-import { PerspectiveCamera } from "three";
+import { normalizeAnglePI } from "../../../../../shared/math/angle";
 import { clamp } from "../../../../../shared/math/utils";
-const MAX_FRAME = 0.1;
-export class OrbitCamera extends PerspectiveCamera {
+import { ControlledCamera, ease } from "./ControlledCamera";
+export class OrbitCamera extends ControlledCamera {
     constructor(options = {}) {
-        super(options.fov ?? 75, 1, options.near ?? 0.1, options.far ?? 1000);
-        this.turn = 0;
-        this.tilt = 0;
+        super(options);
         this.orbiting = false;
-        this.verticalFovDegrees = this.fov;
-        this.minHorizontalFovDegrees = options.minHorizontalFov ?? 60;
+        this.swing = { duration: 0, elapsed: 0, fromYaw: 0, toYaw: 0, fromPitch: 0, toPitch: 0 };
         this.yaw = options.yaw ?? 0;
         this.pitch = options.pitch ?? 0.6;
         this.distance = options.distance ?? 14;
@@ -16,34 +13,8 @@ export class OrbitCamera extends PerspectiveCamera {
         this.maxPitch = options.maxPitch ?? 1.45;
         this.minDistance = options.minDistance ?? 4;
         this.maxDistance = options.maxDistance ?? 40;
-        this.rotateSpeed = options.rotateSpeed ?? 0.0025;
-        this.turnSpeed = options.turnSpeed ?? 2.5;
-        this.tiltSpeed = options.tiltSpeed ?? 1.5;
-        this.zoomSpeed = options.zoomSpeed ?? 0.001;
         this.dragging = options.dragging ?? true;
         this.zooming = options.zooming ?? true;
-    }
-    fit(aspect = this.aspect) {
-        const narrowest = this.minHorizontalFovDegrees;
-        const needed = narrowest > 0 ? 2 * Math.atan(Math.tan((narrowest * Math.PI) / 360) / aspect) * (180 / Math.PI) : 0;
-        this.aspect = aspect;
-        this.fov = Math.max(this.verticalFovDegrees, needed);
-        this.updateProjectionMatrix();
-        return this;
-    }
-    get verticalFov() {
-        return this.verticalFovDegrees;
-    }
-    set verticalFov(degrees) {
-        this.verticalFovDegrees = degrees;
-        this.fit();
-    }
-    get minHorizontalFov() {
-        return this.minHorizontalFovDegrees;
-    }
-    set minHorizontalFov(degrees) {
-        this.minHorizontalFovDegrees = degrees;
-        this.fit();
     }
     get isOrbiting() {
         return this.orbiting;
@@ -51,6 +22,24 @@ export class OrbitCamera extends PerspectiveCamera {
     rotate(yaw, pitch) {
         this.yaw += yaw;
         this.pitch = clamp(this.pitch + pitch, this.minPitch, this.maxPitch);
+        return this;
+    }
+    orbit(yaw, pitch) {
+        this.swing.duration = 0;
+        return this.rotate(yaw, pitch);
+    }
+    lookFrom(direction, seconds = 0) {
+        const { swing } = this;
+        swing.fromYaw = this.yaw;
+        swing.fromPitch = this.pitch;
+        swing.toYaw = direction.x === 0 && direction.z === 0 ? this.yaw : this.yaw + normalizeAnglePI(Math.atan2(direction.x, direction.z) - this.yaw);
+        swing.toPitch = clamp(Math.atan2(direction.y, Math.hypot(direction.x, direction.z)), this.minPitch, this.maxPitch);
+        swing.elapsed = 0;
+        swing.duration = seconds;
+        if (seconds <= 0) {
+            this.yaw = swing.toYaw;
+            this.pitch = swing.toPitch;
+        }
         return this;
     }
     zoomBy(amount) {
@@ -63,27 +52,29 @@ export class OrbitCamera extends PerspectiveCamera {
         }
         return this.zoomBy(-Math.log(ratio));
     }
-    connect(element = window) {
-        this.destroy();
-        this.element = element;
-        this.listen(element);
-        return this;
-    }
     destroy() {
-        const element = this.element;
-        if (element === undefined) {
-            return this;
-        }
-        this.unlisten(element);
-        this.element = undefined;
+        super.destroy();
         this.orbiting = false;
         return this;
     }
-    update(deltaTime = 0) {
-        const seconds = Math.min(deltaTime, MAX_FRAME);
+    step(seconds) {
+        const { swing } = this;
+        if (swing.duration > 0) {
+            swing.elapsed = Math.min(swing.elapsed + seconds, swing.duration);
+            if (swing.elapsed === swing.duration) {
+                this.yaw = swing.toYaw;
+                this.pitch = swing.toPitch;
+                swing.duration = 0;
+            }
+            else {
+                const eased = ease(swing.elapsed / swing.duration);
+                this.yaw = swing.fromYaw + (swing.toYaw - swing.fromYaw) * eased;
+                this.pitch = swing.fromPitch + (swing.toPitch - swing.fromPitch) * eased;
+            }
+        }
         const target = this.target;
         if (target === undefined) {
-            return this;
+            return;
         }
         if (this.turn !== 0 || this.tilt !== 0) {
             this.rotate(-this.turn * this.turnSpeed * seconds, -this.tilt * this.tiltSpeed * seconds);
@@ -92,13 +83,12 @@ export class OrbitCamera extends PerspectiveCamera {
         const { x, y, z } = target;
         this.position.set(x + Math.sin(this.yaw) * flat, y + Math.sin(this.pitch) * this.distance, z + Math.cos(this.yaw) * flat);
         this.lookAt(x, y, z);
-        return this;
     }
     drag(x, y) {
         if (!this.dragging) {
             return;
         }
-        this.rotate(-x * this.rotateSpeed, y * this.rotateSpeed);
+        this.orbit(-x * this.rotateSpeed, y * this.rotateSpeed);
     }
     zoomByDelta(delta) {
         if (!this.zooming) {

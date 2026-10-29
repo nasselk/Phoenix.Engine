@@ -191,15 +191,11 @@ export class Protocol<C extends Contract = Contract> {
 
 			return writer.bytes as Uint8Array<ArrayBuffer>;
 		} else if (data instanceof BufferReader || ArrayBuffer.isView(data) || data instanceof ArrayBuffer) {
-			// `ArrayBuffer.isView` narrows to the DOM's ArrayBufferView, which is not the one
-			// binarypack's `Buffers` is written against; this branch has already established it is one.
-			const writer = new BufferWriter(data as Buffers);
+			const bytes = data instanceof BufferReader ? data.buffer : data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
 
-			writer.writeUint8(code, 0);
+			bytes[0] = code;
 
-			writer.fillOffset();
-
-			return writer.bytes as Uint8Array<ArrayBuffer>;
+			return bytes as Uint8Array<ArrayBuffer>;
 		}
 
 		const schema = channel.schema(event);

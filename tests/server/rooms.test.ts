@@ -152,3 +152,24 @@ describe("World join and leave", () => {
 		expect(events).toEqual(["first join", "first leave", "second join", "second leave", "first join", "first join", "first leave", "first leave"]);
 	});
 });
+
+describe("World spawn", () => {
+	test("an entity spawns under a chosen id, which is then never allocated", () => {
+		const room = createEngine().createRoom();
+		const chosen = room.spawn("box", { id: 2 });
+		const others = [room.spawn("box"), room.spawn("box")];
+
+		expect(chosen.id).toBe(2);
+		expect(others.map((box) => box.id)).not.toContain(2);
+	});
+
+	test("a chosen id that is taken, or does not fit on the wire, is refused", () => {
+		const room = createEngine().createRoom();
+		const box = room.spawn("box");
+
+		expect(() => room.spawn("box", { id: box.id })).toThrow();
+		expect(() => room.spawn("box", { id: 0 })).toThrow();
+		expect(() => room.spawn("box", { id: 70000 })).toThrow();
+		expect(room.get(box.id)).toBe(box);
+	});
+});

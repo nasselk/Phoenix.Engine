@@ -1,4 +1,5 @@
 import { BufferGeometry, Color, Float32BufferAttribute, LineSegments, ShaderMaterial } from "three";
+import { FADE, fadeUniforms } from "./shaders";
 export class AxisLines extends LineSegments {
     constructor({ xColor = 0xff3352, yColor = 0x8bdc00, zColor = 0x2890ff, showY = true, fadeDistance = 200, fadeStrength = 2 } = {}) {
         const positions = [-1, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 1];
@@ -16,10 +17,7 @@ export class AxisLines extends LineSegments {
         const material = new ShaderMaterial({
             transparent: true,
             depthWrite: false,
-            uniforms: {
-                uFadeDistance: { value: fadeDistance },
-                uFadeStrength: { value: fadeStrength },
-            },
+            uniforms: fadeUniforms(fadeDistance, fadeStrength),
             vertexShader: `
 				uniform float uFadeDistance;
 				attribute vec3 color;
@@ -34,12 +32,11 @@ export class AxisLines extends LineSegments {
 					gl_Position = projectionMatrix * viewMatrix * world;
 				}`,
             fragmentShader: `
-				uniform float uFadeDistance, uFadeStrength;
+				${FADE}
 				varying vec3 vColor;
 				varying vec3 vWorld;
 				void main() {
-					float fade = 1.0 - min(distance(cameraPosition, vWorld) / uFadeDistance, 1.0);
-					float a = pow(fade, uFadeStrength);
+					float a = fade(distance(cameraPosition, vWorld));
 					if (a <= 0.0) discard;
 					gl_FragColor = vec4(vColor, a);
 				}`,

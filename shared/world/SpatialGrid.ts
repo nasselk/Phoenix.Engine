@@ -10,7 +10,7 @@ export type Positioned = { readonly position: Vector3Structure };
  *
  *   const grid = new SpatialGrid<PositionEntity<any>>(32);
  *   room.on("spawn", (entity) => entity instanceof PositionEntity && grid.insert(entity));
- *   room.on("destroy", (entity) => grid.remove(entity as PositionEntity<any>));
+ *   room.on("despawn", (entity) => grid.remove(entity as PositionEntity<any>));
  *   // each tick, before the frames: grid.update(entity) for what moved, then
  *   room.frame(socket, grid.query(player.position, 60, visible));
  *

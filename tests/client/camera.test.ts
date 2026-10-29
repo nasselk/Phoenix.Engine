@@ -92,6 +92,34 @@ describe("Camera", () => {
 
 		expect(camera.pitch).toBe(0.1);
 	});
+
+	test("lookFrom swings round its target over so many seconds, within its pitch limits, and a drag stops it", () => {
+		const camera = new DesktopCamera({ yaw: 0, pitch: 0.6, maxPitch: 1.4 });
+
+		camera.target = { x: 0, y: 0, z: 0 };
+		camera.lookFrom({ x: 1, y: 0, z: 0 }, 0.25);
+		camera.update(0.1);
+
+		expect(camera.yaw).toBeGreaterThan(0);
+		expect(camera.yaw).toBeLessThan(Math.PI / 2);
+
+		camera.update(0.1);
+		camera.update(0.1);
+
+		expect(camera.yaw).toBeCloseTo(Math.PI / 2, 5);
+		expect(camera.pitch).toBe(camera.minPitch);
+
+		camera.lookFrom({ x: 0, y: 1, z: 0 }, 0.25);
+		camera.update(0.05);
+		(camera as unknown as { drag(x: number, y: number): void }).drag(0, 0);
+
+		const stopped = camera.pitch;
+
+		camera.update(0.2);
+
+		expect(camera.pitch).toBe(stopped);
+		expect(stopped).toBeLessThan(1.4);
+	});
 });
 
 describe("EditorCamera", () => {
@@ -154,6 +182,38 @@ describe("EditorCamera", () => {
 		expect(moved.dot(right)).toBeCloseTo(-2, 5);
 		expect(moved.dot(up)).toBeCloseTo(-1, 5);
 		expect(camera.quaternion.angleTo(facing)).toBeCloseTo(0, 5);
+	});
+
+	test("keeps minHorizontalFov on a narrow screen, and starts from the game camera's own vertical field of view", () => {
+		const game = new DesktopCamera({ fov: 60 }).fit(9 / 16);
+		const editor = new EditorCamera().startFrom(game);
+
+		expect(editor.verticalFov).toBe(60);
+		expect(editor.fov).toBeCloseTo(game.fov, 10);
+
+		editor.fit(16 / 9);
+
+		expect(editor.fov).toBe(60);
+	});
+
+	test("orbit and lookFrom turn it around the point distance ahead, which stays put", () => {
+		const camera = new EditorCamera({ distance: 10 });
+
+		camera.position.set(0, 2, 10);
+		camera.lookAt(0, 2, 0);
+		camera.orbit(0.7, 0.3);
+
+		const pivot = camera.getWorldDirection(new Vector3()).multiplyScalar(10).add(camera.position);
+
+		expect(pivot.distanceTo(new Vector3(0, 2, 0))).toBeCloseTo(0, 5);
+
+		camera.lookFrom({ x: 0, y: 1, z: 0 }, 0.25);
+		camera.update(0.1);
+		camera.update(0.1);
+		camera.update(0.1);
+
+		expect(camera.position.distanceTo(new Vector3(0, 12, 0))).toBeCloseTo(0, 4);
+		expect(camera.getWorldDirection(new Vector3()).y).toBeCloseTo(-1, 5);
 	});
 
 	test("turns on the right mouse button and pans on the left", () => {

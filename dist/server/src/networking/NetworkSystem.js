@@ -41,7 +41,7 @@ export class NetworkSystem extends EventEmitter {
             maxRequestRate: this.settings.http.maxRequestRate,
             address: (request) => this.server?.requestIP(request)?.address,
         });
-        this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, options?.limits?.[event]));
+        this.limits = this.protocol.in.events.map((event) => NetworkSystem.resolveLimit(event, options?.limits?.[event], this.protocol.in.schema(event)));
     }
     init() {
         this.setTimedProtections();
@@ -199,11 +199,11 @@ export class NetworkSystem extends EventEmitter {
         }
         return true;
     }
-    static resolveLimit(event, limit) {
+    static resolveLimit(event, limit, schema) {
         if (limit === undefined) {
             return undefined;
         }
-        const { byteLength } = limit;
+        const byteLength = limit.byteLength ?? (schema === undefined ? undefined : [schema.minByteLength, schema.maxByteLength]);
         const [minBytes, maxBytes] = byteLength === undefined ? [0, Infinity] : typeof byteLength === "number" ? [byteLength, byteLength] : byteLength;
         if (!Number.isInteger(minBytes) || minBytes < 0 || !(Number.isInteger(maxBytes) || maxBytes === Infinity) || minBytes > maxBytes) {
             throw new RangeError(`Invalid byteLength for "${event}": expected a non-negative integer or [min, max] with min <= max, got ${JSON.stringify(byteLength)}`);

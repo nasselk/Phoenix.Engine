@@ -136,10 +136,10 @@
   style:right
   style:bottom
   style:--joystick-size={size}
-  onpointerdown={start}
-  onpointermove={move}
-  onpointerup={stop}
-  onpointercancel={stop}
+  onpointerdown={stickyZone ? undefined : start}
+  onpointermove={stickyZone ? undefined : move}
+  onpointerup={stickyZone ? undefined : stop}
+  onpointercancel={stickyZone ? undefined : stop}
   aria-hidden="true"
 >
   <div class="stick" bind:this={stick}></div>

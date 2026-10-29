@@ -5,7 +5,7 @@ import type { Entity, EntityClass } from "./entity";
 import type { EntityDefinitions, EntityRegistry, KindInstance, KindName, KindQuery } from "./registry";
 export type WorldEvents = {
     spawn: [entity: Entity<any>];
-    destroy: [entity: Entity<any>];
+    despawn: [entity: Entity<any>];
     beforeUpdate: [deltaTime: number];
     update: [deltaTime: number];
 };
@@ -24,12 +24,15 @@ export declare abstract class World<D extends EntityDefinitions, C, E extends En
     readonly RNG: RNG;
     private living;
     time: number;
+    private readonly removed;
+    private updating;
     protected abstract allocateID(): number;
     constructor(options: WorldOptions<D, C>);
-    protected insert<T extends Entity<any>>(kind: string, entity: T, id: number | undefined): T;
+    protected insert<T extends Entity<any>>(kind: string, entity: T, id?: number): T;
     update(deltaTime: number): void;
     protected simulate(_deltaTime: number): void;
     onEntityDestroy(entity: Entity<any>): void;
+    private remove;
     get(id: number): E | undefined;
     get<K extends KindName<D>>(id: number, kind: K): KindInstance<D, K> | undefined;
     get<T extends Entity<any>>(id: number, Kind: EntityClass<T>): T | undefined;

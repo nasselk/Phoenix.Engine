@@ -22,6 +22,8 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     body?: RigidBody;
     private turns;
     private readonly pushed;
+    private fixed;
+    private readonly pushedPosition;
     private asleep;
     private readonly touching;
     constructor(world: World<any, any>, context: C, options?: PositionEntityOptions);

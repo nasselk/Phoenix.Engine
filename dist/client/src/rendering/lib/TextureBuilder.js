@@ -15,8 +15,6 @@ export class TextureBuilder {
         }
         if (clear) {
             this.context.resetTransform();
-            this.context.scale(1, 1);
-            this.context.rotate(0);
             this.context.globalAlpha = 1;
             this.context.fillStyle = "white";
             this.context.strokeStyle = "black";

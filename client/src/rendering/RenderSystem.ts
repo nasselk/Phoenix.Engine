@@ -1,4 +1,4 @@
-import { type ColorRepresentation, NoToneMapping, type PerspectiveCamera, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
+import { type ColorRepresentation, NoToneMapping, Scene, type ShadowMapType, type ToneMapping, WebGLRenderer, type WebGLRendererParameters } from "three";
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
@@ -6,6 +6,7 @@ import type { AssetManager } from "../assets/AssetManager";
 import { waitForUserGesture } from "../utils/gesture";
 import { Batcher } from "./lib/Batcher";
 import type { OrbitCamera } from "./lib/camera/Camera";
+import type { ControlledCamera } from "./lib/camera/ControlledCamera";
 import { DesktopCamera } from "./lib/camera/DesktopCamera";
 import { TouchCamera } from "./lib/camera/TouchCamera";
 import { TextureBuilder } from "./lib/TextureBuilder";
@@ -31,14 +32,6 @@ export type RenderSystemOptions = {
 	readonly exposure?: number;
 	/** Passed to the WebGL renderer; the WebGPU one takes `antialias`, `alpha`, `depth`, `stencil` and `logarithmicDepthBuffer` from it. */
 	readonly three?: Omit<WebGLRendererParameters, "canvas">;
-};
-
-/** A camera the renderer can draw with: it hands it the canvas's input, fits it on resize and updates it every frame. */
-export type RenderCamera = PerspectiveCamera & {
-	connect(element: HTMLElement | Window): unknown;
-	destroy(): unknown;
-	update(deltaTime: number): unknown;
-	fit(aspect: number): unknown;
 };
 
 export enum RenderSystemState {
@@ -74,7 +67,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 	private observer?: ResizeObserver;
 
-	private active: RenderCamera;
+	private active: ControlledCamera;
 
 	/** The canvas's shape at the last resize, which a camera made active is fitted to. */
 	private aspect = 1;
@@ -104,11 +97,11 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 * `camera` until something else is set, such as the editor's flying camera. Set `camera` back to
 	 * return to the game's view.
 	 */
-	public get activeCamera(): RenderCamera {
+	public get activeCamera(): ControlledCamera {
 		return this.active;
 	}
 
-	public set activeCamera(camera: RenderCamera) {
+	public set activeCamera(camera: ControlledCamera) {
 		if (camera === this.active) {
 			return;
 		}

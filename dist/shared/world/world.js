@@ -8,6 +8,8 @@ export class World extends EventEmitter {
         this.ids = new IDAllocator();
         this.living = 0;
         this.time = 0;
+        this.removed = [];
+        this.updating = false;
         const capacity = options.capacity ?? Infinity;
         if (capacity < 1) {
             throw new Error(`World capacity must be at least 1, got ${capacity}`);
@@ -28,33 +30,49 @@ export class World extends EventEmitter {
         this.entities.set(entity.id, entity);
         this.living++;
         entity.onSpawn();
-        this.emit("spawn", ...[entity]);
+        this.emitUnchecked("spawn", entity);
         return entity;
     }
     update(deltaTime) {
         this.time += deltaTime;
         this.ids.processTimeouts();
-        this.emit("beforeUpdate", ...[deltaTime]);
-        for (const entity of this.entities.values()) {
-            if (entity.alive) {
-                entity.update(deltaTime);
+        this.updating = true;
+        try {
+            this.emitUnchecked("beforeUpdate", deltaTime);
+            for (const entity of this.entities.values()) {
+                if (entity.alive) {
+                    entity.update(deltaTime);
+                }
             }
+            this.simulate(deltaTime);
+            this.emitUnchecked("update", deltaTime);
         }
-        this.simulate(deltaTime);
-        this.emit("update", ...[deltaTime]);
+        finally {
+            this.updating = false;
+            for (const entity of this.removed) {
+                this.remove(entity);
+            }
+            this.removed.length = 0;
+        }
     }
     simulate(_deltaTime) { }
     onEntityDestroy(entity) {
         const id = entity.id;
         this.living--;
-        queueMicrotask(() => {
-            if (this.entities.get(id) === entity) {
-                this.entities.delete(id);
-            }
-        });
+        if (this.updating) {
+            this.removed.push(entity);
+        }
+        else {
+            this.remove(entity);
+        }
         entity.onDestroy();
-        this.emit("destroy", ...[entity]);
+        this.emitUnchecked("despawn", entity);
         this.ids.freeWithTimeout(id, 5000);
+    }
+    remove(entity) {
+        if (this.entities.get(entity.id) === entity) {
+            this.entities.delete(entity.id);
+        }
     }
     get(id, kind) {
         const entity = this.entities.get(id);
@@ -107,7 +125,7 @@ export class World extends EventEmitter {
         return this.living;
     }
     get hasAvailableEntitySlots() {
-        return this.entities.size < this.capacity;
+        return this.living < this.capacity;
     }
 }
 //# sourceMappingURL=world.js.map

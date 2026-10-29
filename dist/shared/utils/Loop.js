@@ -49,7 +49,7 @@ export class Loop extends EventEmitter {
             this.schedule(this.run);
             this.statsTimer.resume();
             log(this.label, "The loop has started");
-            this.fire("resume");
+            this.emitUnchecked("resume");
         }
         return this;
     }
@@ -59,14 +59,14 @@ export class Loop extends EventEmitter {
             this.cancel();
             this.statsTimer.pause();
             log(this.label, "The loop has stopped");
-            this.fire("pause");
+            this.emitUnchecked("pause");
         }
         return this;
     }
     destroy() {
         this.statsTimer.clear();
         this.pause();
-        this.fire("destroy");
+        this.emitUnchecked("destroy");
         this.removeAllListeners();
     }
     get paused() {
@@ -76,21 +76,18 @@ export class Loop extends EventEmitter {
         const interval = now - this.last;
         this.last = now;
         this.id = this.id === Loop.MAX_ID ? 0 : this.id + 1;
-        this.fire(this.events.start, now);
+        this.emitUnchecked(this.events.start, now);
         Timer.runAll(now, this.speed);
-        this.fire(this.events.step, deltaTime / 1000, now);
+        this.emitUnchecked(this.events.step, deltaTime / 1000, now);
         const end = performance.now();
-        this.fire(this.events.end, end - now, end);
+        this.emitUnchecked(this.events.end, end - now, end);
         this.samples.push(interval, end - now);
     }
     report() {
         const now = performance.now();
         this.measure(now);
         this.samples.reset(now);
-        this.fire("stats", this.stats);
-    }
-    fire(event, a, b) {
-        this.emit.call(this, event, a, b);
+        this.emitUnchecked("stats", this.stats);
     }
 }
 Loop.MAX_ID = 2 ** 32 - 1;

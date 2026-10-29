@@ -1,0 +1,1 @@
+{"version":3,"file":"shaders.d.ts","sourceRoot":"","sources":["../../../../../../client/src/rendering/lib/editor/shaders.ts"],"names":[],"mappings":"AACA,wBAAgB,YAAY,CAAC,QAAQ,EAAE,MAAM,EAAE,QAAQ,EAAE,MAAM;IACrD,aAAa;QAAI,KAAK;;IAAc,aAAa;QAAI,KAAK;;EACnE;AAGD,eAAO,MAAM,IAAI,+JAMhB,CAAC;AAMF,eAAO,MAAM,aAAa,mXAazB,CAAC"}

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { extractRGBA } from "../../shared/utils/color";
+import { IDAllocator } from "../../shared/utils/IDAllocator";
 import { Interval, Timeout, Timer } from "../../shared/utils/timers/timer";
 
 describe("Timer", () => {
@@ -100,5 +101,30 @@ describe("colours", () => {
 		expect(extractRGBA("#ff8000")).toEqual({ r: 255, g: 128, b: 0, a: 1 });
 		expect(extractRGBA("#f80")).toEqual({ r: 255, g: 136, b: 0, a: 1 });
 		expect(extractRGBA("rgba(1, 2, 3, 0.5)")).toEqual({ r: 1, g: 2, b: 3, a: 0.5 });
+	});
+});
+
+describe("IDAllocator", () => {
+	test("a reserved id is never allocated while held, and the ids it skipped still are", () => {
+		const ids = new IDAllocator();
+
+		expect(ids.reserve(3)).toBe(true);
+		expect(ids.reserve(3)).toBe(false);
+		expect([ids.allocate(), ids.allocate(), ids.allocate()].sort((a, b) => a - b)).toEqual([1, 2, 4]);
+
+		expect(ids.reserve(-2)).toBe(true);
+		expect([ids.allocateNegative(), ids.allocateNegative()].sort((a, b) => a - b)).toEqual([-3, -1]);
+	});
+
+	test("an id in use, or not an id, cannot be reserved", () => {
+		const ids = new IDAllocator();
+		const taken = ids.allocate();
+
+		expect(ids.reserve(taken)).toBe(false);
+		expect(ids.reserve(0)).toBe(false);
+		expect(ids.reserve(1.5)).toBe(false);
+
+		ids.free(taken);
+		expect(ids.reserve(taken)).toBe(true);
 	});
 });

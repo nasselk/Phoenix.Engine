@@ -1,5 +1,5 @@
 import { ObservableQuaternion, Quaternion } from "../../../../shared/math/quaternion";
-import { ObservableVector3 } from "../../../../shared/math/vector3";
+import { ObservableVector3, Vector3 } from "../../../../shared/math/vector3";
 import { RAPIER } from "../../../../shared/physics/rapier";
 import { Entity } from "./entity";
 export const POSITION_EPSILON = 0.000001;
@@ -9,6 +9,8 @@ export class PositionEntity extends Entity {
         super(world, context, options);
         this.turns = true;
         this.pushed = new Quaternion();
+        this.fixed = false;
+        this.pushedPosition = new Vector3();
         this.asleep = false;
         this.touching = new Map();
         this.position = new ObservableVector3(options.x ?? 0, options.y ?? 0, options.z ?? 0);
@@ -24,9 +26,11 @@ export class PositionEntity extends Entity {
         body.setTranslation(position.x, position.y, position.z);
         body.setRotation(rotation.clone());
         this.pushed.set(rotation);
+        this.pushedPosition.set(position.x, position.y, position.z);
         this.asleep = false;
         body.userData = this;
-        this.turns = body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ;
+        this.fixed = body.status === RAPIER.RigidBodyType.Fixed;
+        this.turns = !this.fixed && (body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ);
         this.untouchAll();
         this.body = physics.createRigidBody(body);
         const listens = this.onTouch !== PositionEntity.prototype.onTouch || this.onTouchEnd !== PositionEntity.prototype.onTouchEnd;
@@ -65,16 +69,29 @@ export class PositionEntity extends Entity {
         this.touching.clear();
     }
     beforePhysics() {
-        if (this.turns || this.body === undefined) {
+        const { body } = this;
+        if (body === undefined) {
             return;
         }
-        const { rotation, pushed } = this;
-        if (rotation.x !== pushed.x || rotation.y !== pushed.y || rotation.z !== pushed.z || rotation.w !== pushed.w) {
-            this.body.setRotation(rotation, true);
-            pushed.set(rotation);
+        if (!this.turns) {
+            const { rotation, pushed } = this;
+            if (rotation.x !== pushed.x || rotation.y !== pushed.y || rotation.z !== pushed.z || rotation.w !== pushed.w) {
+                body.setRotation(rotation, !this.fixed);
+                pushed.set(rotation);
+            }
+        }
+        if (this.fixed) {
+            const { position, pushedPosition } = this;
+            if (position.x !== pushedPosition.x || position.y !== pushedPosition.y || position.z !== pushedPosition.z) {
+                body.setTranslation(position, false);
+                pushedPosition.set(position.x, position.y, position.z);
+            }
         }
     }
     afterPhysics() {
+        if (this.fixed) {
+            return;
+        }
         const body = this.body;
         const asleep = body.isSleeping();
         if (asleep && this.asleep) {

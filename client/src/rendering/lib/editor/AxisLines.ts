@@ -1,4 +1,5 @@
 import { BufferGeometry, Color, type ColorRepresentation, Float32BufferAttribute, LineSegments, ShaderMaterial } from "three";
+import { FADE, fadeUniforms } from "./shaders";
 
 export interface AxisLinesOptions {
 	readonly xColor?: ColorRepresentation;
@@ -31,10 +32,7 @@ export class AxisLines extends LineSegments<BufferGeometry, ShaderMaterial> {
 		const material = new ShaderMaterial({
 			transparent: true,
 			depthWrite: false,
-			uniforms: {
-				uFadeDistance: { value: fadeDistance },
-				uFadeStrength: { value: fadeStrength },
-			},
+			uniforms: fadeUniforms(fadeDistance, fadeStrength),
 
 			vertexShader: /* glsl */ `
 				uniform float uFadeDistance;
@@ -51,12 +49,11 @@ export class AxisLines extends LineSegments<BufferGeometry, ShaderMaterial> {
 				}`,
 
 			fragmentShader: /* glsl */ `
-				uniform float uFadeDistance, uFadeStrength;
+				${FADE}
 				varying vec3 vColor;
 				varying vec3 vWorld;
 				void main() {
-					float fade = 1.0 - min(distance(cameraPosition, vWorld) / uFadeDistance, 1.0);
-					float a = pow(fade, uFadeStrength);
+					float a = fade(distance(cameraPosition, vWorld));
 					if (a <= 0.0) discard;
 					gl_FragColor = vec4(vColor, a);
 				}`,

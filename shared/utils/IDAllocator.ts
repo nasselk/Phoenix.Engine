@@ -36,6 +36,40 @@ export class IDAllocator {
 		}
 	}
 
+	public reserve(id: number): boolean {
+		if (!Number.isInteger(id) || id === 0) {
+			return false;
+		}
+
+		const positive = id > 0;
+		const pool = positive ? this.positiveIDsPool : this.negativeIDsPool;
+		const next = positive ? this.nextPositiveID : this.nextNegativeID;
+
+		if (positive ? id >= next : id <= next) {
+			for (let skipped = next; skipped !== id; skipped += positive ? 1 : -1) {
+				pool.push(skipped);
+			}
+
+			if (positive) {
+				this.nextPositiveID = id + 1;
+			} else {
+				this.nextNegativeID = id - 1;
+			}
+
+			return true;
+		}
+
+		const index = pool.indexOf(id);
+
+		if (index === -1) {
+			return false;
+		}
+
+		pool.splice(index, 1);
+
+		return true;
+	}
+
 	public free(...ids: number[]): this {
 		for (const id of ids) {
 			if (id > 0) {

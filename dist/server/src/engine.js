@@ -26,9 +26,9 @@ export class Engine extends EventEmitter {
         await initPhysics();
         this.network.init();
         this.loop.on("tick", (deltaTime) => {
-            for (const [code, room] of this.rooms) {
+            for (const room of this.rooms.values()) {
                 if (room.destroyed) {
-                    this.rooms.delete(code);
+                    this.rooms.delete(room.inviteCode);
                 }
                 else {
                     room.update(deltaTime);

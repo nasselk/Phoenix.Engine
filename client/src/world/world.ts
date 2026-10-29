@@ -28,6 +28,10 @@ export class World<D extends EntityDefinitions, C> extends BaseWorld<D, C, Entit
 		const Kind = this.registry.class(kind);
 		const options = (args[0] ?? {}) as OptionsOf<D[K], 2> & EntityOptions;
 
+		if (options.id !== undefined && !this.ids.reserve(options.id)) {
+			throw new Error(`Entity id ${options.id} is taken`);
+		}
+
 		const entity = new Kind(this, this.context, options) as InstanceType<D[K]>;
 
 		return this.insert(kind, entity, options.id);

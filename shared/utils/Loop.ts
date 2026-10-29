@@ -85,7 +85,7 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 
 			log(this.label, "The loop has started");
 
-			this.fire("resume");
+			this.emitUnchecked("resume");
 		}
 
 		return this;
@@ -100,7 +100,7 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 
 			log(this.label, "The loop has stopped");
 
-			this.fire("pause");
+			this.emitUnchecked("pause");
 		}
 
 		return this;
@@ -109,7 +109,7 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 	public destroy(): void {
 		this.statsTimer.clear();
 		this.pause();
-		this.fire("destroy");
+		this.emitUnchecked("destroy");
 		this.removeAllListeners();
 	}
 
@@ -152,15 +152,15 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 		this.last = now;
 		this.id = this.id === Loop.MAX_ID ? 0 : this.id + 1;
 
-		this.fire(this.events.start, now);
+		this.emitUnchecked(this.events.start, now);
 
 		Timer.runAll(now, this.speed);
 
-		this.fire(this.events.step, deltaTime / 1000, now);
+		this.emitUnchecked(this.events.step, deltaTime / 1000, now);
 
 		const end = performance.now();
 
-		this.fire(this.events.end, end - now, end);
+		this.emitUnchecked(this.events.end, end - now, end);
 		this.samples.push(interval, end - now);
 	}
 
@@ -169,11 +169,6 @@ export abstract class Loop<Step extends string, Stats> extends EventEmitter<Loop
 
 		this.measure(now);
 		this.samples.reset(now);
-		this.fire("stats", this.stats);
-	}
-
-	/** The event names are built from the step's name at runtime, which the emitter's types cannot follow. */
-	private fire(event: string, a?: unknown, b?: unknown): void {
-		(this.emit as (event: string, a?: unknown, b?: unknown) => void).call(this, event, a, b);
+		this.emitUnchecked("stats", this.stats);
 	}
 }

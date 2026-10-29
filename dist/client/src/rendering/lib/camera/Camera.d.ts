@@ -1,14 +1,11 @@
-import { PerspectiveCamera } from "three";
+import type { Vector3Like } from "three";
+import { ControlledCamera, type ControlledCameraOptions } from "./ControlledCamera";
 export type OrbitTarget = {
     readonly x: number;
     readonly y: number;
     readonly z: number;
 };
-export type OrbitCameraOptions = Partial<{
-    readonly fov: number;
-    readonly minHorizontalFov: number;
-    readonly near: number;
-    readonly far: number;
+export type OrbitCameraOptions = ControlledCameraOptions & Partial<{
     readonly yaw: number;
     readonly pitch: number;
     readonly distance: number;
@@ -16,14 +13,10 @@ export type OrbitCameraOptions = Partial<{
     readonly maxPitch: number;
     readonly minDistance: number;
     readonly maxDistance: number;
-    readonly rotateSpeed: number;
-    readonly turnSpeed: number;
-    readonly tiltSpeed: number;
-    readonly zoomSpeed: number;
     readonly dragging: boolean;
     readonly zooming: boolean;
 }>;
-export declare abstract class OrbitCamera extends PerspectiveCamera {
+export declare abstract class OrbitCamera extends ControlledCamera {
     target?: OrbitTarget;
     yaw: number;
     pitch: number;
@@ -32,33 +25,19 @@ export declare abstract class OrbitCamera extends PerspectiveCamera {
     maxPitch: number;
     minDistance: number;
     maxDistance: number;
-    rotateSpeed: number;
-    zoomSpeed: number;
-    turn: number;
-    turnSpeed: number;
-    tilt: number;
-    tiltSpeed: number;
     dragging: boolean;
     zooming: boolean;
-    protected element?: HTMLElement | Window;
     protected orbiting: boolean;
-    private verticalFovDegrees;
-    private minHorizontalFovDegrees;
+    private readonly swing;
     constructor(options?: OrbitCameraOptions);
-    fit(aspect?: number): this;
-    get verticalFov(): number;
-    set verticalFov(degrees: number);
-    get minHorizontalFov(): number;
-    set minHorizontalFov(degrees: number);
     get isOrbiting(): boolean;
     rotate(yaw: number, pitch: number): this;
+    orbit(yaw: number, pitch: number): this;
+    lookFrom(direction: Vector3Like, seconds?: number): this;
     zoomBy(amount: number): this;
     pinchBy(ratio: number): this;
-    connect(element?: HTMLElement | Window): this;
     destroy(): this;
-    update(deltaTime?: number): this;
-    protected abstract listen(element: HTMLElement | Window): void;
-    protected abstract unlisten(element: HTMLElement | Window): void;
+    protected step(seconds: number): void;
     protected drag(x: number, y: number): void;
     protected zoomByDelta(delta: number): void;
 }

@@ -1,8 +1,7 @@
 import Stats from "stats.js";
-import { BufferAttribute, BufferGeometry, Group, LineBasicMaterial, LineSegments, type Material, Matrix4, type Mesh, type PerspectiveCamera, Quaternion, Vector3 } from "three";
-import { normalizeAnglePI } from "../../../../../shared/math/angle";
-import { clamp } from "../../../../../shared/math/utils";
+import { BufferAttribute, BufferGeometry, Group, type Light, LineBasicMaterial, LineSegments, type Material, type Mesh, Vector3 } from "three";
 import type { Engine } from "../../../engine";
+import type { ControlledCamera } from "../camera/ControlledCamera";
 import { AxisLines, type AxisLinesOptions } from "./AxisLines";
 import { EditorCamera } from "./EditorCamera";
 import { InfiniteGrid, type InfiniteGridOptions } from "./InfiniteGrid";
@@ -26,23 +25,27 @@ const SNAP_DURATION = 0.25;
 /** How far the game camera's outline reaches while the editor flies its own, in units: its real far plane is too far to see the shape. */
 const FRUSTUM_LENGTH = 6;
 
-/** The outline's far corners, clockwise from the top left, as signs of half its width and height. */
-const FRUSTUM_CORNERS = [
-	[-1, 1],
-	[1, 1],
-	[1, -1],
-	[-1, -1],
-] as const;
+/**
+ * The outline at unit size, in the camera's own space: an edge from the camera to each corner of a
+ * rectangle one unit ahead, then the rectangle, clockwise from the top left. 8 segments, 16 points.
+ * Stretched to the game camera's field of view and FRUSTUM_LENGTH through its matrix.
+ */
+// biome-ignore format: one segment per line
+const FRUSTUM_POINTS = new Float32Array([
+	0, 0, 0, -1, 1, -1,
+	0, 0, 0, 1, 1, -1,
+	0, 0, 0, 1, -1, -1,
+	0, 0, 0, -1, -1, -1,
+	-1, 1, -1, 1, 1, -1,
+	1, 1, -1, 1, -1, -1,
+	1, -1, -1, -1, -1, -1,
+	-1, -1, -1, -1, 1, -1,
+]);
 
 /** Radians the camera orbits per pixel dragged on the gizmo, which is small, so faster than a drag in the scene. */
 const GIZMO_ORBIT_SPEED = 0.012;
 
-const WORLD_UP = new Vector3(0, 1, 0);
-const UNIT_SCALE = new Vector3(1, 1, 1);
-const LOOK = new Matrix4();
-const PIVOT = new Vector3();
-const BACK = new Vector3();
-const TURN = new Quaternion();
+const SCALE = new Vector3();
 
 export interface EditorViewOptions {
 	readonly plane?: InfinitePlaneOptions;
@@ -62,23 +65,12 @@ export class EditorView extends Group {
 	private readonly unsubscribers: (() => void)[] = [];
 	private readonly wired = new Set<Material & { wireframe: boolean }>();
 	private wireframe = false;
-	private flying = false;
+	private statsShown = true;
+	private shadows = true;
+	/** The lights `toggleShadows` stopped casting, which are exactly the ones it gives their shadows back to. */
+	private readonly shadowless = new Set<Light>();
 	private lastFrames = 0;
 	private lastSample = 0;
-
-	/** A swing to a side in progress: from where to where, the point a free camera turns around, and when it started. */
-	private readonly snap = {
-		active: false,
-		start: 0,
-		free: false,
-		fromYaw: 0,
-		toYaw: 0,
-		fromPitch: 0,
-		toPitch: 0,
-		from: new Quaternion(),
-		to: new Quaternion(),
-		pivot: new Vector3(),
-	};
 
 	public readonly stats: {
 		frames: Stats;
@@ -134,6 +126,7 @@ export class EditorView extends Group {
 				style.opacity = "0.9";
 				style.zIndex = "1";
 				style.pointerEvents = "none";
+				style.display = this.statsShown ? "" : "none";
 			}
 		}
 
@@ -157,13 +150,13 @@ export class EditorView extends Group {
 					this.wireScene();
 				}
 
-				if (this.flying) {
+				const flying = this.isFlying;
+
+				this.frustum.visible = flying;
+
+				if (flying) {
 					this.steer();
 					this.outline();
-				}
-
-				if (this.snap.active) {
-					this.swing();
 				}
 			}),
 
@@ -185,15 +178,6 @@ export class EditorView extends Group {
 				this.lastFrames = frames;
 				this.lastSample = now;
 			}),
-
-			this.context.inputs.onPressInput((event) => {
-				switch (event.code) {
-					case "KeyV":
-						this.toggleWireframe();
-
-						break;
-				}
-			}),
 		);
 	}
 
@@ -201,30 +185,33 @@ export class EditorView extends Group {
 	 * Fly the editor's camera with WASD, Shift and the arrows, from where the game's camera is, or go back
 	 * to the game's camera. The game's camera keeps following its target meanwhile, outlined by `frustum`.
 	 */
-	public toggleCamera(attach: boolean = this.flying): void {
+	public fly(enabled: boolean = !this.isFlying): void {
 		const { renderer } = this.context;
 		const { camera } = this;
 
-		this.flying = !attach;
-		this.frustum.visible = !attach;
+		if (enabled === this.isFlying) {
+			return;
+		}
 
-		if (attach) {
+		this.frustum.visible = enabled;
+
+		if (enabled) {
+			renderer.activeCamera = camera.startFrom(renderer.camera);
+			this.outline();
+		} else {
 			camera.flyForward = camera.flyRight = camera.turn = camera.tilt = 0;
 			camera.flyBoost = false;
 			renderer.activeCamera = renderer.camera;
-		} else {
-			renderer.activeCamera = camera.startFrom(renderer.camera);
-			this.outline();
 		}
 	}
 
 	/** Whether the editor's camera is the one drawn. */
 	public get isFlying(): boolean {
-		return this.flying;
+		return this.context.renderer.activeCamera === this.camera;
 	}
 
-	/** The camera drawn right now: the editor's while it flies, the game's otherwise. What the navigation gizmo shows. */
-	public get activeCamera(): PerspectiveCamera {
+	/** The camera drawn right now: the editor's while it flies, the game's otherwise. What the navigation gizmo shows and turns. */
+	public get activeCamera(): ControlledCamera {
 		return this.context.renderer.activeCamera;
 	}
 
@@ -242,9 +229,9 @@ export class EditorView extends Group {
 		return this.context.inputs.isInputPressed(code) ? 1 : 0;
 	}
 
-	/** Four edges from the camera to a rectangle `FRUSTUM_LENGTH` ahead, in the camera's own space: 8 segments, 16 points. */
+	/** The game camera's outline, built once at unit size: `outline` only places and stretches it. */
 	private static createFrustum(): LineSegments<BufferGeometry, LineBasicMaterial> {
-		const geometry = new BufferGeometry().setAttribute("position", new BufferAttribute(new Float32Array(16 * 3), 3));
+		const geometry = new BufferGeometry().setAttribute("position", new BufferAttribute(FRUSTUM_POINTS, 3));
 		const frustum = new LineSegments(geometry, new LineBasicMaterial({ color: 0xffaa00 }));
 
 		frustum.visible = false;
@@ -259,116 +246,60 @@ export class EditorView extends Group {
 	/** Match the outline to where the game's camera is and what it shows. */
 	private outline(): void {
 		const game = this.context.renderer.camera;
-		const { frustum } = this;
-		const position = frustum.geometry.getAttribute("position") as BufferAttribute;
 		const height = Math.tan((game.fov * Math.PI) / 360) * FRUSTUM_LENGTH;
-		const width = height * game.aspect;
 
-		for (let corner = 0; corner < 4; corner++) {
-			const [x, y] = FRUSTUM_CORNERS[corner]!;
-			const [nextX, nextY] = FRUSTUM_CORNERS[(corner + 1) % 4]!;
-
-			position.setXYZ(corner * 4, 0, 0, 0);
-			position.setXYZ(corner * 4 + 1, x * width, y * height, -FRUSTUM_LENGTH);
-			position.setXYZ(corner * 4 + 2, x * width, y * height, -FRUSTUM_LENGTH);
-			position.setXYZ(corner * 4 + 3, nextX * width, nextY * height, -FRUSTUM_LENGTH);
-		}
-
-		position.needsUpdate = true;
-
-		frustum.matrixWorld.compose(game.position, game.quaternion, UNIT_SCALE);
+		this.frustum.matrixWorld.compose(game.position, game.quaternion, SCALE.set(height * game.aspect, height, FRUSTUM_LENGTH));
 	}
 
-	/**
-	 * Swing the drawn camera round to look at the scene from that side, like a click on a ball of
-	 * Blender's gizmo. The game's camera orbits its target, within its pitch limits; the editor's turns
-	 * around the point `distance` ahead of it.
-	 */
+	/** Swing the drawn camera round to look at the scene from that side, like a click on a ball of Blender's gizmo. */
 	public viewFrom(axis: EditorAxis): void {
-		const { snap } = this;
-		const side = EDITOR_AXES[axis];
+		this.activeCamera.lookFrom(EDITOR_AXES[axis], SNAP_DURATION);
+	}
 
-		snap.active = true;
-		snap.start = performance.now();
-		snap.free = this.flying;
-
-		if (snap.free) {
-			const { camera } = this;
-
-			snap.pivot.copy(camera.getWorldDirection(PIVOT)).multiplyScalar(camera.distance).add(camera.position);
-			snap.from.copy(camera.quaternion);
-
-			// Straight down or up, "up" on screen is a horizontal axis, or the view would have no up at all.
-			BACK.set(0, 0, side.y > 0 ? -1 : 1);
-			snap.to.setFromRotationMatrix(LOOK.lookAt(side, PIVOT.set(0, 0, 0), side.y === 0 ? WORLD_UP : BACK));
-
-			return;
-		}
-
-		const { camera } = this.context.renderer;
-
-		snap.fromYaw = camera.yaw;
-		snap.fromPitch = camera.pitch;
-		snap.toYaw = side.y === 0 ? camera.yaw + normalizeAnglePI(Math.atan2(side.x, side.z) - camera.yaw) : camera.yaw;
-		snap.toPitch = clamp(side.y > 0 ? camera.maxPitch : side.y < 0 ? camera.minPitch : 0, camera.minPitch, camera.maxPitch);
+	/** Orbit the drawn camera by a drag of so many pixels on the gizmo. Stops a swing in progress. */
+	public orbit(x: number, y: number): void {
+		this.activeCamera.orbit(-x * GIZMO_ORBIT_SPEED, y * GIZMO_ORBIT_SPEED);
 	}
 
 	/**
-	 * Orbit the drawn camera by a drag of so many pixels on the gizmo: the game's around its target, the
-	 * editor's around the point `distance` ahead of it. Stops a swing in progress.
+	 * Turn every shadow in the scene off, or back on. Off, each light casting one stops and is remembered;
+	 * on, those lights cast again, and only those, so a light the game keeps dark stays dark.
 	 */
-	public orbit(x: number, y: number): void {
-		this.snap.active = false;
-
-		if (!this.flying) {
-			this.context.renderer.camera.rotate(-x * GIZMO_ORBIT_SPEED, y * GIZMO_ORBIT_SPEED);
-
+	public toggleShadows(enabled: boolean = !this.shadows): void {
+		if (enabled === this.shadows) {
 			return;
 		}
 
-		const { camera } = this;
+		this.shadows = enabled;
 
-		PIVOT.copy(camera.getWorldDirection(PIVOT)).multiplyScalar(camera.distance).add(camera.position);
+		if (enabled) {
+			for (const light of this.shadowless) {
+				light.castShadow = true;
+			}
 
-		camera.quaternion.premultiply(TURN.setFromAxisAngle(WORLD_UP, -x * GIZMO_ORBIT_SPEED));
-		camera.rotateX(-y * GIZMO_ORBIT_SPEED);
-
-		this.around(PIVOT);
-	}
-
-	private swing(): void {
-		const { snap } = this;
-		const progress = Math.min((performance.now() - snap.start) / (SNAP_DURATION * 1000), 1);
-		const eased = progress * progress * (3 - 2 * progress);
-
-		if (progress === 1) {
-			snap.active = false;
-		}
-
-		// Swapping cameras mid-swing ends it where the camera is.
-		if (snap.free !== this.flying) {
-			snap.active = false;
-
-			return;
-		}
-
-		if (snap.free) {
-			this.camera.quaternion.slerpQuaternions(snap.from, snap.to, eased);
-
-			this.around(snap.pivot);
+			this.shadowless.clear();
 		} else {
-			const { camera } = this.context.renderer;
-
-			camera.yaw = snap.fromYaw + (snap.toYaw - snap.fromYaw) * eased;
-			camera.pitch = snap.fromPitch + (snap.toPitch - snap.fromPitch) * eased;
+			this.context.renderer.scene.traverse((object) => {
+				if ((object as Light).isLight && object.castShadow) {
+					object.castShadow = false;
+					this.shadowless.add(object as Light);
+				}
+			});
 		}
 	}
 
-	/** Put the editor's camera `distance` behind that point, along the way it now faces. */
-	private around(pivot: Vector3): void {
-		const { camera } = this;
+	/** Show or hide the floor, its grid and the axes. */
+	public toggleGrid(enabled: boolean = !this.grid.visible): void {
+		this.plane.visible = this.grid.visible = this.axes.visible = enabled;
+	}
 
-		camera.position.copy(pivot).addScaledVector(BACK.set(0, 0, 1).applyQuaternion(camera.quaternion), camera.distance);
+	/** Show or hide the FPS, ping, bandwidth and TPS panels. */
+	public toggleStats(enabled: boolean = !this.statsShown): void {
+		this.statsShown = enabled;
+
+		for (const panel of Object.values(this.stats)) {
+			panel.dom.style.display = enabled ? "" : "none";
+		}
 	}
 
 	/** Draws every mesh in the scene as its triangles, except the editor's own and text. */
@@ -414,10 +345,9 @@ export class EditorView extends Group {
 
 	public destroy(): void {
 		this.toggleWireframe(false);
+		this.toggleShadows(true);
 
-		if (this.flying) {
-			this.toggleCamera(true);
-		}
+		this.fly(false);
 
 		this.camera.destroy();
 		this.frustum.geometry.dispose();

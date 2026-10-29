@@ -117,17 +117,7 @@ export class Replication {
         return slot;
     }
     copy(start, end) {
-        const writer = this.writer;
-        const length = end - start;
-        if (writer.offset + length > writer.byteLength) {
-            writer.expand(writer.offset + length - writer.byteLength);
-        }
-        const source = this.records.buffer;
-        const target = writer.buffer;
-        const at = writer.advanceBytes(length);
-        for (let i = 0; i < length; i++) {
-            target[at + i] = source[start + i];
-        }
+        this.writer.writeBytes(this.records.buffer, start, end);
     }
 }
 //# sourceMappingURL=replication.js.map

@@ -6,7 +6,8 @@ import type { EntityDefinitions, EntityRegistry, KindInstance, KindName, KindQue
 
 export type WorldEvents = {
 	spawn: [entity: Entity<any>];
-	destroy: [entity: Entity<any>];
+	/** An entity was destroyed. */
+	despawn: [entity: Entity<any>];
 	/** Before any entity updates: what entities should see this tick, like input or a simulation of the game's own. */
 	beforeUpdate: [deltaTime: number];
 	update: [deltaTime: number];
@@ -30,6 +31,10 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 	private living = 0;
 	public time = 0;
 
+	/** Entities destroyed during `update`, taken out of `entities` once it ends, so no loop over it is cut short. */
+	private readonly removed: Entity<any>[] = [];
+	private updating = false;
+
 	protected abstract allocateID(): number;
 
 	public constructor(options: WorldOptions<D, C>) {
@@ -51,7 +56,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 	 * The shared half of each side's `spawn`: the entity is already built, with this world and context,
 	 * and this gives it an id, a kind and a place in the map.
 	 */
-	protected insert<T extends Entity<any>>(kind: string, entity: T, id: number | undefined): T {
+	protected insert<T extends Entity<any>>(kind: string, entity: T, id?: number): T {
 		if (this.living >= this.capacity) {
 			throw new Error(`World is full (capacity ${this.capacity})`);
 		}
@@ -66,7 +71,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 
 		entity.onSpawn();
 
-		this.emit("spawn", ...([entity] as never));
+		this.emitUnchecked("spawn", entity);
 
 		return entity;
 	}
@@ -78,17 +83,29 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 		// Ids whose reuse delay has run out go back in the pool, before anything this tick spawns.
 		this.ids.processTimeouts();
 
-		this.emit("beforeUpdate", ...([deltaTime] as never));
+		this.updating = true;
 
-		for (const entity of this.entities.values()) {
-			if (entity.alive) {
-				entity.update(deltaTime);
+		try {
+			this.emitUnchecked("beforeUpdate", deltaTime);
+
+			for (const entity of this.entities.values()) {
+				if (entity.alive) {
+					entity.update(deltaTime);
+				}
 			}
+
+			this.simulate(deltaTime);
+
+			this.emitUnchecked("update", deltaTime);
+		} finally {
+			this.updating = false;
+
+			for (const entity of this.removed) {
+				this.remove(entity);
+			}
+
+			this.removed.length = 0;
 		}
-
-		this.simulate(deltaTime);
-
-		this.emit("update", ...([deltaTime] as never));
 	}
 
 	/**
@@ -102,17 +119,24 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 
 		this.living--;
 
-		queueMicrotask(() => {
-			if (this.entities.get(id) === entity) {
-				this.entities.delete(id);
-			}
-		});
+		if (this.updating) {
+			this.removed.push(entity);
+		} else {
+			this.remove(entity);
+		}
 
 		entity.onDestroy();
 
-		this.emit("destroy", ...([entity] as never));
+		this.emitUnchecked("despawn", entity);
 
 		this.ids.freeWithTimeout(id, 5000);
+	}
+
+	/** Takes a destroyed entity out of the map, unless another already took its id. */
+	private remove(entity: Entity<any>): void {
+		if (this.entities.get(entity.id) === entity) {
+			this.entities.delete(entity.id);
+		}
 	}
 
 	public get(id: number): E | undefined;
@@ -121,7 +145,7 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 	public get(id: number, kind?: KindQuery): Entity<any> | undefined {
 		const entity = this.entities.get(id);
 
-		// A destroyed entity waits in the map until the tick ends; it is gone as far as anyone asking is concerned.
+		// An entity destroyed during `update` waits in the map until it ends; it is gone as far as anyone asking is concerned.
 		if (entity === undefined || !entity.alive || (kind !== undefined && !this.registry.matches(entity, kind as EntityClass<Entity<any>>))) {
 			return undefined;
 		}
@@ -224,6 +248,6 @@ export abstract class World<D extends EntityDefinitions, C, E extends Entity<C> 
 
 	/** Whether the world has available slots for new entities. */
 	public get hasAvailableEntitySlots(): boolean {
-		return this.entities.size < this.capacity;
+		return this.living < this.capacity;
 	}
 }

@@ -44,8 +44,26 @@ export class EventEmitter<Events extends Record<string, any[]>> {
 	 * @param args The arguments to pass to the subscribed callbacks.
 	 */
 	protected emit<K extends keyof Events>(event: K, ...args: Events[K]): void {
-		for (const callback of this.listeners.get(event) ?? []) {
-			callback(...args);
+		const callbacks = this.listeners.get(event);
+
+		if (callbacks !== undefined) {
+			for (const callback of callbacks) {
+				callback(...args);
+			}
+		}
+	}
+
+	/**
+	 * Emit an event the types cannot check: a base class emitting its own events while subclasses widen
+	 * the event map, or an event whose name is built at runtime. Up to two arguments, so nothing is allocated.
+	 */
+	protected emitUnchecked(event: PropertyKey, a?: unknown, b?: unknown): void {
+		const callbacks = this.listeners.get(event);
+
+		if (callbacks !== undefined) {
+			for (const callback of callbacks) {
+				callback(a, b);
+			}
 		}
 	}
 }

@@ -1,5 +1,6 @@
 import { isTextField } from "./utils/textField";
 const ZOOM_KEYS = new Set(["+", "-", "=", "_", "0"]);
+const PRESSABLE = "button, [role='button'], a";
 const VIEWPORT = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
 export function native(options = {}) {
     const target = options.target ?? document;
@@ -40,6 +41,12 @@ export function native(options = {}) {
     if (options.focus !== false) {
         on("keydown", (event) => {
             if (event.key === "Tab") {
+                event.preventDefault();
+            }
+        });
+        on("mousedown", (event) => {
+            const element = event.target;
+            if (element instanceof Element && element.closest(PRESSABLE) !== null && !isTextField(element)) {
                 event.preventDefault();
             }
         });

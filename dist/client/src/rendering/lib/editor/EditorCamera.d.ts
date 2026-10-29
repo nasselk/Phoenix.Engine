@@ -1,53 +1,44 @@
-import { PerspectiveCamera } from "three";
-export type EditorCameraOptions = Partial<{
-    readonly fov: number;
-    readonly near: number;
-    readonly far: number;
-    readonly rotateSpeed: number;
-    readonly turnSpeed: number;
-    readonly tiltSpeed: number;
+import { type PerspectiveCamera, type Vector3Like } from "three";
+import { ControlledCamera, type ControlledCameraOptions } from "../camera/ControlledCamera";
+export type EditorCameraOptions = ControlledCameraOptions & Partial<{
     readonly flySpeed: number;
     readonly boost: number;
     readonly panSpeed: number;
-    readonly zoomSpeed: number;
     readonly minZoom: number;
     readonly maxZoom: number;
     readonly distance: number;
     readonly turnButton: number;
     readonly panButton: number;
 }>;
-export declare class EditorCamera extends PerspectiveCamera {
-    turn: number;
-    tilt: number;
+export declare class EditorCamera extends ControlledCamera {
     flyForward: number;
     flyRight: number;
     flyBoost: boolean;
-    rotateSpeed: number;
-    turnSpeed: number;
-    tiltSpeed: number;
     flySpeed: number;
     boost: number;
     panSpeed: number;
-    zoomSpeed: number;
     minZoom: number;
     maxZoom: number;
     distance: number;
     turnButton: number;
     panButton: number;
-    private element?;
     private turnPointer;
     private panPointer;
+    private readonly swing;
     private readonly onPointerDown;
     private readonly onPointerMove;
     private readonly onPointerUp;
     private readonly onWheel;
     constructor(options?: EditorCameraOptions);
     startFrom(camera: PerspectiveCamera): this;
-    fit(aspect?: number): this;
     setZoom(zoom: number): this;
-    connect(element?: HTMLElement | Window): this;
-    destroy(): this;
-    update(deltaTime?: number): this;
+    orbit(yaw: number, pitch: number): this;
+    lookFrom(direction: Vector3Like, seconds?: number): this;
+    protected step(seconds: number): void;
+    protected listen(element: HTMLElement | Window): void;
+    protected unlisten(element: HTMLElement | Window): void;
+    private ahead;
+    private around;
     private drag;
     private pan;
 }

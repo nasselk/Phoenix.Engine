@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { World as ClientWorld } from "../../client/src/world/world";
 import { defineEntities } from "../../shared/world/registry";
 import { ClientBox, createMirror } from "../fixtures";
 
@@ -23,5 +24,37 @@ describe("World", () => {
 		world.update(1 / 60);
 
 		expect(LoggedBox.log).toEqual(["beforeUpdate", "entity", "update"]);
+	});
+});
+
+describe("World destroy", () => {
+	test("an entity destroyed during update stays in the map until the update ends, and leaves it at once otherwise", () => {
+		const world = new ClientWorld({ entities: defineEntities({ box: ClientBox }), context: undefined, capacity: 2 });
+		const during = world.spawn("box");
+		const outside = world.spawn("box");
+
+		world.on("update", () => {
+			during.destroy();
+
+			expect(world.entities.has(during.id)).toBe(true);
+			expect(world.hasAvailableEntitySlots).toBe(true);
+		});
+		world.update(1 / 60);
+
+		expect(world.entities.has(during.id)).toBe(false);
+
+		outside.destroy();
+
+		expect(world.entities.has(outside.id)).toBe(false);
+	});
+});
+
+describe("World spawn", () => {
+	test("a client entity spawns under a chosen id, and a taken one is refused", () => {
+		const world = createMirror(defineEntities({ box: ClientBox }));
+		const chosen = world.spawn("box", { id: -5 });
+
+		expect(chosen.id).toBe(-5);
+		expect(() => world.spawn("box", { id: -5 })).toThrow();
 	});
 });

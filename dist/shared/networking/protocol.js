@@ -63,10 +63,9 @@ export class Protocol {
             return writer.bytes;
         }
         else if (data instanceof BufferReader || ArrayBuffer.isView(data) || data instanceof ArrayBuffer) {
-            const writer = new BufferWriter(data);
-            writer.writeUint8(code, 0);
-            writer.fillOffset();
-            return writer.bytes;
+            const bytes = data instanceof BufferReader ? data.buffer : data instanceof ArrayBuffer ? new Uint8Array(data) : new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+            bytes[0] = code;
+            return bytes;
         }
         const schema = channel.schema(event);
         if (!schema) {

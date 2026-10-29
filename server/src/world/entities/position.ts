@@ -2,7 +2,7 @@ import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-
 import type { BufferWriter } from "@nasselk/binarypack";
 import type { Vector3Like } from "three";
 import { ObservableQuaternion, Quaternion } from "../../../../shared/math/quaternion";
-import { ObservableVector3 } from "../../../../shared/math/vector3";
+import { ObservableVector3, Vector3 } from "../../../../shared/math/vector3";
 import { RAPIER } from "../../../../shared/physics/rapier";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import type { World } from "../world";
@@ -41,6 +41,12 @@ export abstract class PositionEntity<C> extends Entity<C> {
 	/** The rotation last given to the body, for a body code turns: it is only touched again when this differs. */
 	private readonly pushed = new Quaternion();
 
+	/** Whether its body is fixed: only code moves it, so changes go to the body and nothing is read back. */
+	private fixed = false;
+
+	/** The position last given to a fixed body: it is only touched again when this differs. */
+	private readonly pushedPosition = new Vector3();
+
 	/** Whether the body was asleep after the last step: one asleep before and after a step cannot have moved. */
 	private asleep = false;
 
@@ -72,10 +78,12 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		body.setTranslation(position.x, position.y, position.z);
 		body.setRotation(rotation.clone());
 		this.pushed.set(rotation);
+		this.pushedPosition.set(position.x, position.y, position.z);
 		this.asleep = false;
 		body.userData = this;
 
-		this.turns = body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ;
+		this.fixed = body.status === RAPIER.RigidBodyType.Fixed;
+		this.turns = !this.fixed && (body.rotationsEnabledX || body.rotationsEnabledY || body.rotationsEnabledZ);
 		this.untouchAll();
 		this.body = physics.createRigidBody(body);
 
@@ -138,20 +146,37 @@ export abstract class PositionEntity<C> extends Entity<C> {
 
 	/** Before the step: what code decided about this body since the last one. */
 	public beforePhysics(): void {
-		if (this.turns || this.body === undefined) {
+		const { body } = this;
+
+		if (body === undefined) {
 			return;
 		}
 
-		const { rotation, pushed } = this;
+		if (!this.turns) {
+			const { rotation, pushed } = this;
 
-		if (rotation.x !== pushed.x || rotation.y !== pushed.y || rotation.z !== pushed.z || rotation.w !== pushed.w) {
-			this.body.setRotation(rotation, true);
-			pushed.set(rotation);
+			if (rotation.x !== pushed.x || rotation.y !== pushed.y || rotation.z !== pushed.z || rotation.w !== pushed.w) {
+				body.setRotation(rotation, !this.fixed);
+				pushed.set(rotation);
+			}
+		}
+
+		if (this.fixed) {
+			const { position, pushedPosition } = this;
+
+			if (position.x !== pushedPosition.x || position.y !== pushedPosition.y || position.z !== pushedPosition.z) {
+				body.setTranslation(position, false);
+				pushedPosition.set(position.x, position.y, position.z);
+			}
 		}
 	}
 
 	/** After the step: where the physics put it. */
 	public afterPhysics(): void {
+		if (this.fixed) {
+			return;
+		}
+
 		const body = this.body!;
 		const asleep = body.isSleeping();
 

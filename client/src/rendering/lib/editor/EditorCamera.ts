@@ -1,51 +1,40 @@
-import { PerspectiveCamera, Vector3 } from "three";
+import { Matrix4, type PerspectiveCamera, Quaternion, Vector3, type Vector3Like } from "three";
 import { clamp } from "../../../../../shared/math/utils";
+import { ControlledCamera, type ControlledCameraOptions, ease } from "../camera/ControlledCamera";
 
-export type EditorCameraOptions = Partial<{
-	readonly fov: number;
-	readonly near: number;
-	readonly far: number;
-	/** Radians turned per pixel dragged. */
-	readonly rotateSpeed: number;
-	/** How fast `turn` at 1 goes round, in radians per second. */
-	readonly turnSpeed: number;
-	/** How fast `tilt` at 1 tilts, in radians per second. */
-	readonly tiltSpeed: number;
-	/** Units per second it flies at. */
-	readonly flySpeed: number;
-	/** How many times faster it flies while `flyBoost` is set. */
-	readonly boost: number;
-	/** Units it slides per pixel dragged while panning. */
-	readonly panSpeed: number;
-	readonly zoomSpeed: number;
-	readonly minZoom: number;
-	readonly maxZoom: number;
-	/** How far ahead of it is the point the navigation gizmo turns it around. */
-	readonly distance: number;
-	/** Mouse button that turns it while held. 2 is the right one. */
-	readonly turnButton: number;
-	/** Mouse button that slides it across what it looks at while held. */
-	readonly panButton: number;
-}>;
+export type EditorCameraOptions = ControlledCameraOptions &
+	Partial<{
+		/** Units per second it flies at. */
+		readonly flySpeed: number;
+		/** How many times faster it flies while `flyBoost` is set. */
+		readonly boost: number;
+		/** Units it slides per pixel dragged while panning. */
+		readonly panSpeed: number;
+		readonly minZoom: number;
+		readonly maxZoom: number;
+		/** How far ahead of it is the point `orbit` and `lookFrom` turn it around. */
+		readonly distance: number;
+		/** Mouse button that turns it while held. 2 is the right one. */
+		readonly turnButton: number;
+		/** Mouse button that slides it across what it looks at while held. */
+		readonly panButton: number;
+	}>;
 
 const WORLD_UP = new Vector3(0, 1, 0);
+const ORIGIN = new Vector3();
 const FORWARD = new Vector3();
 const RIGHT = new Vector3();
 const STEP = new Vector3();
-
-/** Longest step a single frame may fly, in seconds: a tab coming back from the background should not teleport. */
-const MAX_FRAME = 0.1;
+const SIDE = new Vector3();
+const LOOK = new Matrix4();
+const TURN = new Quaternion();
 
 /**
  * The editor's own camera, which flies free while the game's camera stays where it is: keys fly and
  * turn it (`flyForward`, `flyRight`, `turn`, `tilt`), one held mouse button turns it, another slides it,
  * and the wheel zooms its lens. Drawn once it is the renderer's `activeCamera`.
  */
-export class EditorCamera extends PerspectiveCamera {
-	/** Turns it every frame: -1 to the left, 1 to the right, 0 still. */
-	public turn = 0;
-	/** Tilts it every frame: 1 looks up, -1 looks down, 0 still. */
-	public tilt = 0;
+export class EditorCamera extends ControlledCamera {
 	/** Flies it every frame along where it looks: 1 forward, -1 back. */
 	public flyForward = 0;
 	/** Flies it every frame sideways: 1 right, -1 left. */
@@ -53,22 +42,20 @@ export class EditorCamera extends PerspectiveCamera {
 	/** Flies `boost` times faster while set. */
 	public flyBoost = false;
 
-	public rotateSpeed: number;
-	public turnSpeed: number;
-	public tiltSpeed: number;
 	public flySpeed: number;
 	public boost: number;
 	public panSpeed: number;
-	public zoomSpeed: number;
 	public minZoom: number;
 	public maxZoom: number;
 	public distance: number;
 	public turnButton: number;
 	public panButton: number;
 
-	private element?: HTMLElement | Window;
 	private turnPointer = -1;
 	private panPointer = -1;
+
+	/** A `lookFrom` swing in progress: the point it turns around, from which facing to which, over how long, and how far along. */
+	private readonly swing = { duration: 0, elapsed: 0, pivot: new Vector3(), from: new Quaternion(), to: new Quaternion() };
 
 	private readonly onPointerDown = (event: PointerEvent): void => {
 		if (event.button === this.turnButton) {
@@ -103,15 +90,11 @@ export class EditorCamera extends PerspectiveCamera {
 	};
 
 	public constructor(options: EditorCameraOptions = {}) {
-		super(options.fov ?? 75, 1, options.near ?? 0.1, options.far ?? 1000);
+		super(options);
 
-		this.rotateSpeed = options.rotateSpeed ?? 0.0025;
-		this.turnSpeed = options.turnSpeed ?? 2.5;
-		this.tiltSpeed = options.tiltSpeed ?? 1.5;
 		this.flySpeed = options.flySpeed ?? 20;
 		this.boost = options.boost ?? 4;
 		this.panSpeed = options.panSpeed ?? 0.03;
-		this.zoomSpeed = options.zoomSpeed ?? 0.001;
 		this.minZoom = options.minZoom ?? 0.5;
 		this.maxZoom = options.maxZoom ?? 10;
 		this.distance = options.distance ?? 14;
@@ -119,26 +102,23 @@ export class EditorCamera extends PerspectiveCamera {
 		this.panButton = options.panButton ?? 0;
 	}
 
-	/** Start from what that camera shows: its place, its facing and its lens, with no zoom. */
+	/** Start from what that camera shows: its place, its facing and its lens, with no zoom and no swing. */
 	public startFrom(camera: PerspectiveCamera): this {
 		this.position.copy(camera.position);
 		this.quaternion.copy(camera.quaternion);
-		this.fov = camera.fov;
 		this.near = camera.near;
 		this.far = camera.far;
-		this.aspect = camera.aspect;
 		this.zoom = 1;
-		this.updateProjectionMatrix();
+		this.swing.duration = 0;
 
-		return this;
-	}
+		if (camera instanceof ControlledCamera) {
+			this.minHorizontalFov = camera.minHorizontalFov;
+			this.verticalFov = camera.verticalFov;
+		} else {
+			this.verticalFov = camera.fov;
+		}
 
-	/** Match a canvas of that shape. What the renderer calls on every resize. */
-	public fit(aspect: number = this.aspect): this {
-		this.aspect = aspect;
-		this.updateProjectionMatrix();
-
-		return this;
+		return this.fit(camera.aspect);
 	}
 
 	/** Lens zoom, clamped to minZoom..maxZoom. Takes effect immediately. */
@@ -149,42 +129,54 @@ export class EditorCamera extends PerspectiveCamera {
 		return this;
 	}
 
-	public connect(element: HTMLElement | Window = window): this {
-		this.destroy();
+	/** Orbit around the point `distance` ahead of it. */
+	public override orbit(yaw: number, pitch: number): this {
+		this.swing.duration = 0;
 
-		this.element = element;
-
-		element.addEventListener("pointerdown", this.onPointerDown as EventListener);
-		element.addEventListener("wheel", this.onWheel as EventListener, { passive: true });
-		window.addEventListener("pointermove", this.onPointerMove);
-		window.addEventListener("pointerup", this.onPointerUp);
-		window.addEventListener("pointercancel", this.onPointerUp);
+		this.ahead(SIDE);
+		this.quaternion.premultiply(TURN.setFromAxisAngle(WORLD_UP, yaw));
+		this.rotateX(-pitch);
+		this.around(SIDE);
 
 		return this;
 	}
 
-	public destroy(): this {
-		const element = this.element;
+	/** Swing around the point `distance` ahead of it to look from that side. */
+	public override lookFrom(direction: Vector3Like, seconds: number = 0): this {
+		const { swing } = this;
+		const side = SIDE.copy(direction).normalize();
 
-		if (element === undefined) {
-			return this;
+		this.ahead(swing.pivot);
+		swing.from.copy(this.quaternion);
+
+		// Straight down or up, "up" on screen is a horizontal axis, or the view would have no up at all.
+		const vertical = side.x === 0 && side.z === 0;
+
+		swing.to.setFromRotationMatrix(LOOK.lookAt(side, ORIGIN, vertical ? STEP.set(0, 0, side.y > 0 ? -1 : 1) : WORLD_UP));
+		swing.elapsed = 0;
+		swing.duration = seconds;
+
+		if (seconds <= 0) {
+			this.quaternion.copy(swing.to);
+			this.around(swing.pivot);
 		}
 
-		element.removeEventListener("pointerdown", this.onPointerDown as EventListener);
-		element.removeEventListener("wheel", this.onWheel as EventListener);
-		window.removeEventListener("pointermove", this.onPointerMove);
-		window.removeEventListener("pointerup", this.onPointerUp);
-		window.removeEventListener("pointercancel", this.onPointerUp);
-
-		this.element = undefined;
-		this.turnPointer = this.panPointer = -1;
-
 		return this;
 	}
 
-	/** @param deltaTime Seconds since the last frame, which is how far it flies and turns. */
-	public update(deltaTime: number = 0): this {
-		const seconds = Math.min(deltaTime, MAX_FRAME);
+	protected override step(seconds: number): void {
+		const { swing } = this;
+
+		if (swing.duration > 0) {
+			swing.elapsed = Math.min(swing.elapsed + seconds, swing.duration);
+
+			this.quaternion.slerpQuaternions(swing.from, swing.to, ease(swing.elapsed / swing.duration));
+			this.around(swing.pivot);
+
+			if (swing.elapsed === swing.duration) {
+				swing.duration = 0;
+			}
+		}
 
 		if (this.turn !== 0 || this.tilt !== 0) {
 			this.rotateOnWorldAxis(WORLD_UP, -this.turn * this.turnSpeed * seconds);
@@ -195,7 +187,7 @@ export class EditorCamera extends PerspectiveCamera {
 		const across = this.flyRight;
 
 		if (along === 0 && across === 0) {
-			return this;
+			return;
 		}
 
 		// Forward includes pitch, so looking up and flying forward climbs.
@@ -208,8 +200,34 @@ export class EditorCamera extends PerspectiveCamera {
 		}
 
 		this.position.addScaledVector(STEP, this.flySpeed * (this.flyBoost ? this.boost : 1) * seconds);
+	}
 
-		return this;
+	protected override listen(element: HTMLElement | Window): void {
+		element.addEventListener("pointerdown", this.onPointerDown as EventListener);
+		element.addEventListener("wheel", this.onWheel as EventListener, { passive: true });
+		window.addEventListener("pointermove", this.onPointerMove);
+		window.addEventListener("pointerup", this.onPointerUp);
+		window.addEventListener("pointercancel", this.onPointerUp);
+	}
+
+	protected override unlisten(element: HTMLElement | Window): void {
+		element.removeEventListener("pointerdown", this.onPointerDown as EventListener);
+		element.removeEventListener("wheel", this.onWheel as EventListener);
+		window.removeEventListener("pointermove", this.onPointerMove);
+		window.removeEventListener("pointerup", this.onPointerUp);
+		window.removeEventListener("pointercancel", this.onPointerUp);
+
+		this.turnPointer = this.panPointer = -1;
+	}
+
+	/** The point `distance` ahead of it, written into `target`. */
+	private ahead(target: Vector3): Vector3 {
+		return this.getWorldDirection(target).multiplyScalar(this.distance).add(this.position);
+	}
+
+	/** Put it `distance` behind that point, along the way it now faces. */
+	private around(pivot: Vector3): void {
+		this.position.copy(pivot).addScaledVector(STEP.set(0, 0, 1).applyQuaternion(this.quaternion), this.distance);
 	}
 
 	/**
@@ -219,6 +237,7 @@ export class EditorCamera extends PerspectiveCamera {
 	private drag(x: number, y: number): void {
 		const speed = this.rotateSpeed / this.zoom;
 
+		this.swing.duration = 0;
 		this.rotateOnWorldAxis(WORLD_UP, -x * speed);
 		this.rotateX(-y * speed);
 	}
@@ -227,6 +246,7 @@ export class EditorCamera extends PerspectiveCamera {
 	private pan(x: number, y: number): void {
 		const speed = this.panSpeed / this.zoom;
 
+		this.swing.duration = 0;
 		RIGHT.set(1, 0, 0).applyQuaternion(this.quaternion);
 		STEP.set(0, 1, 0).applyQuaternion(this.quaternion);
 

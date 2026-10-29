@@ -61,11 +61,12 @@
 		},
 	];
 
-	const CENTER = 50;
 	const RADIUS = 34;
 	const DRAG_THRESHOLD = 3;
 
 	const INVERSE = new Quaternion();
+	/** The rotation last drawn, so a still camera redraws nothing. Not a rotation at first, so the first frame draws. */
+	const LAST = new Quaternion(0, 0, 0, 0);
 	const POINT = new Vector3();
 
 	let layer: SVGGElement;
@@ -81,8 +82,9 @@
 			(axis) =>
 				layer.querySelector<SVGGElement>(`[data-axis="${axis.id}"]`)!,
 		);
-		const balls = groups.map((group) => group.querySelector("circle")!);
-		const labels = groups.map((group) => group.querySelector("text")!);
+		const balls = groups.map(
+			(group) => group.querySelector<SVGGElement>(".ball")!,
+		);
 		const lines = groups.map(
 			(group) => group.querySelector("line") ?? undefined,
 		);
@@ -90,20 +92,26 @@
 		let frame = requestAnimationFrame(draw);
 
 		function draw(): void {
-			INVERSE.copy(view.activeCamera.quaternion).invert();
+			frame = requestAnimationFrame(draw);
+
+			const facing = view.activeCamera.quaternion;
+
+			if (LAST.equals(facing)) {
+				return;
+			}
+
+			LAST.copy(facing);
+			INVERSE.copy(facing).invert();
 
 			for (let index = 0; index < AXES.length; index++) {
 				POINT.copy(AXES[index]!.direction).applyQuaternion(INVERSE);
 
-				const x = CENTER + POINT.x * RADIUS;
-				const y = CENTER - POINT.y * RADIUS;
+				const x = POINT.x * RADIUS;
+				const y = -POINT.y * RADIUS;
 
 				depths[index] = POINT.z;
 
-				balls[index]!.setAttribute("cx", `${x}`);
-				balls[index]!.setAttribute("cy", `${y}`);
-				labels[index]!.setAttribute("x", `${x}`);
-				labels[index]!.setAttribute("y", `${y}`);
+				balls[index]!.setAttribute("transform", `translate(${x} ${y})`);
 				lines[index]?.setAttribute("x2", `${x}`);
 				lines[index]?.setAttribute("y2", `${y}`);
 			}
@@ -129,8 +137,6 @@
 					layer.appendChild(groups[index]!);
 				}
 			}
-
-			frame = requestAnimationFrame(draw);
 		}
 
 		return () => cancelAnimationFrame(frame);
@@ -184,7 +190,7 @@
 
 <svg
 	class="gizmo"
-	viewBox="0 0 100 100"
+	viewBox="-50 -50 100 100"
 	role="img"
 	aria-label="View navigation: click an axis to look from it, drag to orbit"
 	onpointerdown={down}
@@ -192,7 +198,7 @@
 	onpointerup={up}
 	onpointercancel={up}
 >
-	<circle class="disc" cx={CENTER} cy={CENTER} r="49" />
+	<circle class="disc" r="49" />
 
 	<g bind:this={layer}>
 		{#each AXES as axis (axis.id)}
@@ -203,10 +209,12 @@
 				style:--color={colors[axis.axis]}
 			>
 				{#if axis.positive}
-					<line x1={CENTER} y1={CENTER} x2={CENTER} y2={CENTER} />
+					<line x1="0" y1="0" x2="0" y2="0" />
 				{/if}
-				<circle r={axis.positive ? 9 : 7.5} />
-				<text>{axis.label}</text>
+				<g class="ball">
+					<circle r={axis.positive ? 9 : 7.5} />
+					<text>{axis.label}</text>
+				</g>
 				<title>{axis.label}</title>
 			</g>
 		{/each}

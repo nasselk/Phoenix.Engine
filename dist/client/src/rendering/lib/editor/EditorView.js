@@ -1,7 +1,5 @@
 import Stats from "stats.js";
-import { BufferAttribute, BufferGeometry, Group, LineBasicMaterial, LineSegments, Matrix4, Quaternion, Vector3 } from "three";
-import { normalizeAnglePI } from "../../../../../shared/math/angle";
-import { clamp } from "../../../../../shared/math/utils";
+import { BufferAttribute, BufferGeometry, Group, LineBasicMaterial, LineSegments, Vector3 } from "three";
 import { AxisLines } from "./AxisLines";
 import { EditorCamera } from "./EditorCamera";
 import { InfiniteGrid } from "./InfiniteGrid";
@@ -16,40 +14,29 @@ const EDITOR_AXES = {
 };
 const SNAP_DURATION = 0.25;
 const FRUSTUM_LENGTH = 6;
-const FRUSTUM_CORNERS = [
-    [-1, 1],
-    [1, 1],
-    [1, -1],
-    [-1, -1],
-];
+const FRUSTUM_POINTS = new Float32Array([
+    0, 0, 0, -1, 1, -1,
+    0, 0, 0, 1, 1, -1,
+    0, 0, 0, 1, -1, -1,
+    0, 0, 0, -1, -1, -1,
+    -1, 1, -1, 1, 1, -1,
+    1, 1, -1, 1, -1, -1,
+    1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, 1, -1,
+]);
 const GIZMO_ORBIT_SPEED = 0.012;
-const WORLD_UP = new Vector3(0, 1, 0);
-const UNIT_SCALE = new Vector3(1, 1, 1);
-const LOOK = new Matrix4();
-const PIVOT = new Vector3();
-const BACK = new Vector3();
-const TURN = new Quaternion();
+const SCALE = new Vector3();
 export class EditorView extends Group {
     constructor(engine, { plane, grid, axes } = {}) {
         super();
         this.unsubscribers = [];
         this.wired = new Set();
         this.wireframe = false;
-        this.flying = false;
+        this.statsShown = true;
+        this.shadows = true;
+        this.shadowless = new Set();
         this.lastFrames = 0;
         this.lastSample = 0;
-        this.snap = {
-            active: false,
-            start: 0,
-            free: false,
-            fromYaw: 0,
-            toYaw: 0,
-            fromPitch: 0,
-            toPitch: 0,
-            from: new Quaternion(),
-            to: new Quaternion(),
-            pivot: new Vector3(),
-        };
         this.stats = {};
         this.plane = new InfinitePlane(plane);
         this.grid = new InfiniteGrid(grid);
@@ -82,6 +69,7 @@ export class EditorView extends Group {
                 style.opacity = "0.9";
                 style.zIndex = "1";
                 style.pointerEvents = "none";
+                style.display = this.statsShown ? "" : "none";
             }
         }
         this.lastFrames = this.context.world.framesReceived;
@@ -98,12 +86,11 @@ export class EditorView extends Group {
             if (this.wireframe) {
                 this.wireScene();
             }
-            if (this.flying) {
+            const flying = this.isFlying;
+            this.frustum.visible = flying;
+            if (flying) {
                 this.steer();
                 this.outline();
-            }
-            if (this.snap.active) {
-                this.swing();
             }
         }), this.context.loop.on("frameEnd", () => {
             this.stats.frames.end();
@@ -118,31 +105,27 @@ export class EditorView extends Group {
             this.stats.tps.update(now > this.lastSample ? ((frames - this.lastFrames) * 1000) / (now - this.lastSample) : 0, 120);
             this.lastFrames = frames;
             this.lastSample = now;
-        }), this.context.inputs.onPressInput((event) => {
-            switch (event.code) {
-                case "KeyV":
-                    this.toggleWireframe();
-                    break;
-            }
         }));
     }
-    toggleCamera(attach = this.flying) {
+    fly(enabled = !this.isFlying) {
         const { renderer } = this.context;
         const { camera } = this;
-        this.flying = !attach;
-        this.frustum.visible = !attach;
-        if (attach) {
+        if (enabled === this.isFlying) {
+            return;
+        }
+        this.frustum.visible = enabled;
+        if (enabled) {
+            renderer.activeCamera = camera.startFrom(renderer.camera);
+            this.outline();
+        }
+        else {
             camera.flyForward = camera.flyRight = camera.turn = camera.tilt = 0;
             camera.flyBoost = false;
             renderer.activeCamera = renderer.camera;
         }
-        else {
-            renderer.activeCamera = camera.startFrom(renderer.camera);
-            this.outline();
-        }
     }
     get isFlying() {
-        return this.flying;
+        return this.context.renderer.activeCamera === this.camera;
     }
     get activeCamera() {
         return this.context.renderer.activeCamera;
@@ -159,7 +142,7 @@ export class EditorView extends Group {
         return this.context.inputs.isInputPressed(code) ? 1 : 0;
     }
     static createFrustum() {
-        const geometry = new BufferGeometry().setAttribute("position", new BufferAttribute(new Float32Array(16 * 3), 3));
+        const geometry = new BufferGeometry().setAttribute("position", new BufferAttribute(FRUSTUM_POINTS, 3));
         const frustum = new LineSegments(geometry, new LineBasicMaterial({ color: 0xffaa00 }));
         frustum.visible = false;
         frustum.frustumCulled = false;
@@ -169,77 +152,43 @@ export class EditorView extends Group {
     }
     outline() {
         const game = this.context.renderer.camera;
-        const { frustum } = this;
-        const position = frustum.geometry.getAttribute("position");
         const height = Math.tan((game.fov * Math.PI) / 360) * FRUSTUM_LENGTH;
-        const width = height * game.aspect;
-        for (let corner = 0; corner < 4; corner++) {
-            const [x, y] = FRUSTUM_CORNERS[corner];
-            const [nextX, nextY] = FRUSTUM_CORNERS[(corner + 1) % 4];
-            position.setXYZ(corner * 4, 0, 0, 0);
-            position.setXYZ(corner * 4 + 1, x * width, y * height, -FRUSTUM_LENGTH);
-            position.setXYZ(corner * 4 + 2, x * width, y * height, -FRUSTUM_LENGTH);
-            position.setXYZ(corner * 4 + 3, nextX * width, nextY * height, -FRUSTUM_LENGTH);
-        }
-        position.needsUpdate = true;
-        frustum.matrixWorld.compose(game.position, game.quaternion, UNIT_SCALE);
+        this.frustum.matrixWorld.compose(game.position, game.quaternion, SCALE.set(height * game.aspect, height, FRUSTUM_LENGTH));
     }
     viewFrom(axis) {
-        const { snap } = this;
-        const side = EDITOR_AXES[axis];
-        snap.active = true;
-        snap.start = performance.now();
-        snap.free = this.flying;
-        if (snap.free) {
-            const { camera } = this;
-            snap.pivot.copy(camera.getWorldDirection(PIVOT)).multiplyScalar(camera.distance).add(camera.position);
-            snap.from.copy(camera.quaternion);
-            BACK.set(0, 0, side.y > 0 ? -1 : 1);
-            snap.to.setFromRotationMatrix(LOOK.lookAt(side, PIVOT.set(0, 0, 0), side.y === 0 ? WORLD_UP : BACK));
-            return;
-        }
-        const { camera } = this.context.renderer;
-        snap.fromYaw = camera.yaw;
-        snap.fromPitch = camera.pitch;
-        snap.toYaw = side.y === 0 ? camera.yaw + normalizeAnglePI(Math.atan2(side.x, side.z) - camera.yaw) : camera.yaw;
-        snap.toPitch = clamp(side.y > 0 ? camera.maxPitch : side.y < 0 ? camera.minPitch : 0, camera.minPitch, camera.maxPitch);
+        this.activeCamera.lookFrom(EDITOR_AXES[axis], SNAP_DURATION);
     }
     orbit(x, y) {
-        this.snap.active = false;
-        if (!this.flying) {
-            this.context.renderer.camera.rotate(-x * GIZMO_ORBIT_SPEED, y * GIZMO_ORBIT_SPEED);
-            return;
-        }
-        const { camera } = this;
-        PIVOT.copy(camera.getWorldDirection(PIVOT)).multiplyScalar(camera.distance).add(camera.position);
-        camera.quaternion.premultiply(TURN.setFromAxisAngle(WORLD_UP, -x * GIZMO_ORBIT_SPEED));
-        camera.rotateX(-y * GIZMO_ORBIT_SPEED);
-        this.around(PIVOT);
+        this.activeCamera.orbit(-x * GIZMO_ORBIT_SPEED, y * GIZMO_ORBIT_SPEED);
     }
-    swing() {
-        const { snap } = this;
-        const progress = Math.min((performance.now() - snap.start) / (SNAP_DURATION * 1000), 1);
-        const eased = progress * progress * (3 - 2 * progress);
-        if (progress === 1) {
-            snap.active = false;
-        }
-        if (snap.free !== this.flying) {
-            snap.active = false;
+    toggleShadows(enabled = !this.shadows) {
+        if (enabled === this.shadows) {
             return;
         }
-        if (snap.free) {
-            this.camera.quaternion.slerpQuaternions(snap.from, snap.to, eased);
-            this.around(snap.pivot);
+        this.shadows = enabled;
+        if (enabled) {
+            for (const light of this.shadowless) {
+                light.castShadow = true;
+            }
+            this.shadowless.clear();
         }
         else {
-            const { camera } = this.context.renderer;
-            camera.yaw = snap.fromYaw + (snap.toYaw - snap.fromYaw) * eased;
-            camera.pitch = snap.fromPitch + (snap.toPitch - snap.fromPitch) * eased;
+            this.context.renderer.scene.traverse((object) => {
+                if (object.isLight && object.castShadow) {
+                    object.castShadow = false;
+                    this.shadowless.add(object);
+                }
+            });
         }
     }
-    around(pivot) {
-        const { camera } = this;
-        camera.position.copy(pivot).addScaledVector(BACK.set(0, 0, 1).applyQuaternion(camera.quaternion), camera.distance);
+    toggleGrid(enabled = !this.grid.visible) {
+        this.plane.visible = this.grid.visible = this.axes.visible = enabled;
+    }
+    toggleStats(enabled = !this.statsShown) {
+        this.statsShown = enabled;
+        for (const panel of Object.values(this.stats)) {
+            panel.dom.style.display = enabled ? "" : "none";
+        }
     }
     toggleWireframe(enabled = !this.wireframe) {
         this.wireframe = enabled;
@@ -275,9 +224,8 @@ export class EditorView extends Group {
     }
     destroy() {
         this.toggleWireframe(false);
-        if (this.flying) {
-            this.toggleCamera(true);
-        }
+        this.toggleShadows(true);
+        this.fly(false);
         this.camera.destroy();
         this.frustum.geometry.dispose();
         this.frustum.material.dispose();

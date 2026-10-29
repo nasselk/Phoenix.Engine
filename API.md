@@ -39,8 +39,8 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options), one per page
 ├─ options: world { entities, context?, capacity?, seed? }, network? { in, out, simulation? { latency, loss } },
 │           inputs? { binds }, loop? { FPS, speed },
-│           assets? (AssetManagerOptions), renderer? (RendererSettings), audio? { globalVolume, muteInitial },
-│           native? (boolean | { target, contextMenu, zoom, drag, viewport, focus }, on by default)
+│           assets? (AssetManagerOptions), renderer? (RenderSystemOptions), audio? { globalVolume, muteInitial },
+│           native? (boolean | { target, contextMenu, zoom, drag, viewport, focus }, on by default; focus: no Tab, and clicked buttons take no focus)
 ├─ init(...promises)            builds renderer, audio, inputs, starts the loop; awaits the extra promises too
 ├─ destroy()
 ├─ isMobile                      true → TouchCamera, false → DesktopCamera
@@ -50,6 +50,7 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 ├─ renderer: RenderSystem
 │  ├─ scene: three.Scene                     add your objects here (entities add their own group)
 │  ├─ camera: OrbitCamera                    the game's: DesktopCamera or TouchCamera; updates every frame, drawn or not
+│  │                                         a ControlledCamera: turn, tilt, speeds, lens, fit, connect, update, orbit, lookFrom
 │  │  ├─ target?: {x,y,z}                    what it orbits; assign an entity's position to follow it
 │  │  ├─ yaw, pitch, distance                min/maxPitch, min/maxDistance
 │  │  ├─ turn (-1…1), turnSpeed; tilt (-1…1), tiltSpeed   turn and tilt every frame, from the game's actions or a stick
@@ -57,10 +58,12 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │  │  ├─ rotateSpeed, zoomSpeed, dragging, zooming
 │  │  ├─ verticalFov, minHorizontalFov       fov widens on narrow screens to keep minHorizontalFov
 │  │  ├─ rotate(yaw, pitch), zoomBy(amount), pinchBy(ratio)
+│  │  ├─ orbit(yaw, pitch)                   rotate, and stop a lookFrom swing
+│  │  ├─ lookFrom(direction, seconds = 0)    swing round its target to look from that side, within its pitch limits
 │  │  ├─ isOrbiting, fit(aspect?), update(dt?), connect(element?), destroy()
 │  │  ├─ DesktopCamera: button (mouse drag turns it, wheel zooms)
 │  │  └─ TouchCamera: pinchSpeed
-│  ├─ activeCamera: RenderCamera             the camera drawn, and the only one hearing the canvas; camera by
+│  ├─ activeCamera: ControlledCamera         the camera drawn, and the only one hearing the canvas; camera by
 │  │                                         default. Set another (the editor's EditorCamera), then camera to go back
 │  ├─ textureBuilder: TextureBuilder         textures drawn on an OffscreenCanvas
 │  │  ├─ draw(ctx => …, clear = true, width?, height?)   resets transform/alpha/styles, then calls you
@@ -173,31 +176,33 @@ Entity<C>                                    abstract
    └─ MovingEntity<C>                        same as PositionEntity on the client
 ```
 
-Also exported: `OrbitCamera`, `OrbitCameraOptions`, `OrbitTarget`, `DesktopCamera`, `DesktopCameraOptions`, `TouchCamera`, `TouchCameraOptions`, `EditorView`, `EditorViewOptions`, `EditorAxis`, `EditorCameraOptions`, `RenderCamera`, `RenderSystem`, `RenderSystemState`, `RendererSettings`, `AssetManager`, `AssetCache`, `AssetKind`, `AssetKinds`, `AssetLoader`, `AssetManagerOptions`, `AssetManifest`, `AssetSource`, `AssetSources`, `SoundSource`, `AudioSystem`, `AudioOptions`, `SoundBuilder`, `SoundLayer`, `encodeWav(pcm)` → WAV bytes, `PCMSource`, `InputSystem`, `InputSystemOptions`, `ActionCallback`, `NetworkSystem`, `NetworkSystemOptions`, `NetworkState`, `NetworkStats`, `NetworkChannelStats`, `GameLoop`, `GameLoopParams`, `LoopStats`, `ClientWorldOptions`, `PositionEntityOptions` (`x y z pitch yaw roll`), `MovingEntityOptions`, `EngineOptions`, and:
+Also exported: `OrbitCamera`, `OrbitCameraOptions`, `OrbitTarget`, `DesktopCamera`, `DesktopCameraOptions`, `TouchCamera`, `TouchCameraOptions`, `EditorView`, `EditorViewOptions`, `EditorAxis`, `EditorCameraOptions`, `ControlledCamera` (the base of every camera the renderer draws: `orbit`, `lookFrom`, `step`, `listen`/`unlisten` to implement), `ControlledCameraOptions`, `RenderSystem`, `RenderSystemState`, `RenderSystemOptions`, `AssetManager`, `AssetCache`, `AssetKind`, `AssetKinds`, `AssetLoader`, `AssetManagerOptions`, `AssetManifest`, `AssetSource`, `AssetSources`, `SoundSource`, `AudioSystem`, `AudioOptions`, `SoundBuilder`, `SoundLayer`, `encodeWav(pcm)` → WAV bytes, `PCMSource`, `InputSystem`, `InputSystemOptions`, `ActionCallback`, `NetworkSystem`, `NetworkSystemOptions`, `NetworkState`, `NetworkStats`, `NetworkChannelStats`, `GameLoop`, `GameLoopParams`, `LoopStats`, `ClientWorldOptions`, `PositionEntityOptions` (`x y z pitch yaw roll`), `MovingEntityOptions`, `EngineOptions`, and:
 
 ```
 EditorView extends three.Group               new EditorView(engine, { plane?, grid?, axes? }); add it to the scene
 ├─ init(selector)                            mounts FPS / ms / memory / ping / bandwidth / TPS panels in that element
 │                                            TPS: server frames received per second, 0 while the room is still
-├─ toggleCamera(attach?)                     fly camera (the EngineEditor camera tool): makes `camera` the renderer's
+├─ fly(enabled = !isFlying)                  fly camera (the EngineEditor camera tool): makes `camera` the renderer's
 │                                            activeCamera, starting where the game's is; the game's keeps following its target
 ├─ camera: EditorCamera                      the camera it flies
 ├─ frustum: LineSegments                    the game camera's outline (edges and far rectangle), shown while flying
-├─ isFlying, activeCamera                    whether its camera is drawn; the drawn one
-├─ viewFrom(axis: EditorAxis)                swing the drawn camera round to look from "x" | "y" | "z" | "-x" | "-y" | "-z"
-│                                            (0.25 s): the game's within its pitch limits, the editor's around the point `distance` ahead
-├─ orbit(x, y)                               orbit the drawn camera by a drag of so many pixels, the same way
-├─ toggleWireframe(on?)   (V)
+├─ isFlying, activeCamera                    whether its camera is the renderer's activeCamera; the drawn one
+├─ viewFrom(axis: EditorAxis)                activeCamera.lookFrom that side, "x" | "y" | "z" | "-x" | "-y" | "-z", over 0.25 s
+├─ orbit(x, y)                               activeCamera.orbit by a drag of so many pixels on the gizmo
+├─ toggleWireframe(on?), toggleGrid(on?), toggleStats(on?)   grid: floor, grid and axes; stats: the panels
+├─ toggleShadows(on?)                        off: lights casting shadows stop; on: those same lights cast again
+│                                            with the EngineEditor, bindEditor drives these from its state
 ├─ plane, grid, stats, destroy()
 ├─ axes: AxisLines                          colors { x, y, z } (red, green, blue; set with `axes: { xColor… }`), shared with the gizmo
-EditorCamera extends three.PerspectiveCamera  new EditorCamera(options?); flies free, made the renderer's activeCamera
+EditorCamera extends ControlledCamera       new EditorCamera(options?); flies free, made the renderer's activeCamera
 ├─ turn, tilt, flyForward, flyRight (-1…1), flyBoost   every frame, set from keys (EditorView does it)
 ├─ rotateSpeed, turnSpeed, tiltSpeed, flySpeed, boost, panSpeed, zoomSpeed, minZoom, maxZoom, distance
 ├─ turnButton = 2 (right drag turns it), panButton = 0 (left drag slides it); the wheel zooms its lens
-├─ startFrom(camera)                         take another camera's place, facing and lens
+├─ startFrom(camera)                         take another camera's place, facing and lens (its verticalFov and minHorizontalFov)
+├─ orbit(yaw, pitch), lookFrom(direction, seconds = 0)   around the point `distance` ahead, which stays put
 └─ setZoom(zoom), fit(aspect?), update(dt?), connect(element?), destroy()
 storage                                      localStorage, else sessionStorage, else memory, whichever is reachable; setStorage(replacement)
-isMobileDevice() → { mobile, tablet, any }   DeviceType
+isMobileDevice() → { mobile, tablet, any }   DeviceType; phones and tablets by user agent (iPadOS's "Macintosh" one included), else a touch screen with a coarse pointer, a tablet from 600 px on its smallest side
 ```
 
 ## `phoenix.engine/server`
@@ -215,7 +220,7 @@ Engine<In, Out, InSchemas, OutSchemas, D, C>                new Engine(options),
 ├─ on("init" | "destroy")
 │
 ├─ network: NetworkSystem
-│  ├─ options: in, out, limits { [event]: { maxRate, byteLength } }, port, origins, TLS, proxied, http, ws
+│  ├─ options: in, out, limits { [event]: { maxRate, byteLength } } (byteLength left out: the event schema's min/maxByteLength), port, origins, TLS, proxied, http, ws
 │  ├─ onMessage(event, (socket, data) => …) → remove   one handler per event: a second throws
 │  ├─ broadcast(topic, event, data?)
 │  ├─ route(path, request => Response)       extra GET routes, before init; request.params
@@ -234,7 +239,7 @@ World (a room)                               engine.createRoom(); shares the que
 ├─ inviteCode, maxPlayers, public, sockets: Set<Socket>, destroyed
 ├─ physics: RAPIER.World                     gravity GRAVITY, stepped once a tick
 ├─ bodies: Set<PositionEntity>               entities with a body
-├─ spawn(kind, options?)                     typed by the registry; throws when full
+├─ spawn(kind, options?)                     typed by the registry; throws when full; options.id (1–65535) is reserved, throws when taken
 ├─ join(socket) → boolean, leave(socket) → boolean
 ├─ frame(socket, visibleEntities) → bytes | undefined   what this socket must learn; send it as "sync"
 ├─ clean()                                   after every socket got its frame this tick
@@ -267,7 +272,7 @@ Entity<C>                                    abstract
    ├─ yaw (get, set: stands it upright)      rotation.setFromEuler(pitch, yaw, roll) for the rest
    ├─ body?: RAPIER.RigidBody                body.userData is the entity
    ├─ embody(bodyDesc, ...colliderDescs)     protected; call in the constructor
-   ├─ beforePhysics(), afterPhysics()        copy to and from the body around the step
+   ├─ beforePhysics(), afterPhysics()        copy to and from the body around the step; a fixed body is only written to, when code moved it
    ├─ onTouch(other), onTouchEnd(other)      override to listen: once per entity pair, solid or sensor (setSensor(true)), after the step
    ├─ isTouching(other), touch(other, started)   touch is the room's call
    ├─ teleport(x, y, z) / teleport(vector)
@@ -288,7 +293,7 @@ Worlds (both sides)                          client World and server room
 ├─ clear(...kinds), destroy()
 ├─ entities: Map<id, Entity>, size, capacity, registry, time
 ├─ RNG                                       seeded by the `seed` option (random by default): RNG.random(), or () => RNG.random() to any random helper
-└─ on("spawn" [entity] | "destroy" [entity] | "beforeUpdate" [dt] | "update" [dt])   beforeUpdate: before any entity updates (input, a local simulation)
+└─ on("spawn" [entity] | "despawn" [entity] | "beforeUpdate" [dt] | "update" [dt])   beforeUpdate: before any entity updates (input, a local simulation)
 
 SpatialGrid<T extends { position }>(cellSize)   what is near a point, without scanning everything
 ├─ insert(item), update(item) after it moved (cheap if it stayed in its cell), remove(item), has(item), clear(), size
@@ -348,7 +353,7 @@ BufferWriter                                 writeUint8/16/32/64, writeInt8…64
 BufferReader                                 readUint8…, readInt8…, readFloat16/32/64, readBits, readBoolean, readString, readBuffer, remainingBytes
 ├─ static fromPrecision(int, max, bits, signed?, min?)   and back
 Buffers                                      import buffers from phoenix.engine, never from @nasselk/binarypack: games do not install it
-Event schemas: defineSchemas and FieldType from @nasselk/binaryschema, a peer dependency the game installs
+Event schemas: defineSchemas and the field builders (field.uint8(), field.string({ maxLength })…) from @nasselk/binaryschema, a peer dependency the game installs; a limit without byteLength takes the schema's minByteLength/maxByteLength
 
 Protocol, ProtocolChannel, MAX_EVENTS (256 per direction), Contract, ContractOf, Side, SchemasFor, InboundEvent, OutboundEvent,
 InboundSchemas, OutboundSchemas, MessagePayload, SendPayload
@@ -366,7 +371,7 @@ Thread<ThreadMessages>(worker | port)         messages and awaited requests betw
 ├─ request(event, data, ThreadRequestOptions { transfer?, timeout? }) → Promise<response>   rejects on throw, no handler, timeout, terminate, worker stop
 ├─ onRequest(event, (data, transfer) => response | Promise) → unsubscribe   one per event; push to transfer to hand buffers back
 └─ terminate()                                stops the worker / closes the port, rejects what is waiting
-IDAllocator: allocate, allocateNegative, free, freeWithTimeout, processTimeouts, pendingTimeouts, clear
+IDAllocator: allocate, allocateNegative, reserve(id) → false when taken, free, freeWithTimeout, processTimeouts, pendingTimeouts, clear
 CounterMap<K>: increment, decrement, getCount, has, delete, outOfBounds, clear
 get(baseURL, route, settings?), post / put(baseURL, route, body, settings?), del(baseURL, route, body?, settings?)
                                              → HTTPResponse<T> { success, data, error? }
@@ -410,12 +415,17 @@ GridCell.svelte      content for one cell, inside a GridLayout: at (GridPosition
                      Cells sharing `at` render in creation order; the first to set each option decides it,
                      with a warning on conflict
 EngineEditor.svelte  development editor: a vertical toolbar on the left (EditorTool: "none" | "camera" |
-                     "select" | "move" | "remove"), the picked one highlighted. props: view (the EditorView).
-                     "camera" flies view's camera until another tool is picked; the rest do nothing yet.
+                     "select" | "move" | "remove"), the picked one highlighted, and under it toggles:
+                     wireframe, grid and axes, shadows, stats, gizmo, game interface. props: view (the EditorView).
+                     Everything lives in `editor` (EditorState: tool, gizmo, wireframe, grid, stats, shadows, ui), a
+                     store the bars read and write; bindEditor(view) → stop makes the view follow it
+                     ("camera" flies its camera, the toggles show as set) from the
+                     moment it is called, on screen or not: call it once where the view is made.
+                     `ui` is the game's to read: hide the game's own interface while it is false.
                      Bottom right, a navigation gizmo like Blender's: click an axis to view from it
                      (view.viewFrom), drag it to orbit (view.orbit).
-                     Load it in development only
+                     Load it in development only, module exports included (await import(...))
 native.css           import first: no selection, no overscroll, no tap highlight
 ```
 
-Types from the components' modules: `GridPosition`, `GridDirection`, `GridLayoutProps`, `GridCellProps` (GridLayout.svelte, GridCell.svelte), `JoystickProps`, `JoystickMove` (Joystick.svelte), `EditorTool`, `EngineEditorProps` (EngineEditor.svelte).
+Types from the components' modules: `GridPosition`, `GridDirection`, `GridLayoutProps`, `GridCellProps` (GridLayout.svelte, GridCell.svelte), `JoystickProps`, `JoystickMove` (Joystick.svelte), `EditorTool`, `EditorState`, `EngineEditorProps`, and the values `editor`, `bindEditor` (EngineEditor.svelte).

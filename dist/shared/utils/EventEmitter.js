@@ -16,8 +16,19 @@ export class EventEmitter {
         this.listeners.clear();
     }
     emit(event, ...args) {
-        for (const callback of this.listeners.get(event) ?? []) {
-            callback(...args);
+        const callbacks = this.listeners.get(event);
+        if (callbacks !== undefined) {
+            for (const callback of callbacks) {
+                callback(...args);
+            }
+        }
+    }
+    emitUnchecked(event, a, b) {
+        const callbacks = this.listeners.get(event);
+        if (callbacks !== undefined) {
+            for (const callback of callbacks) {
+                callback(a, b);
+            }
         }
     }
 }
