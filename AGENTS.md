@@ -64,7 +64,8 @@ Every runtime dependency of `dist/` goes in the **root** `package.json` (the wor
 
 **Boundaries**
 - Mechanisms, not rules. Room codes, visibility, controls, UI and gameplay belong to games. Something every game would need belongs here.
-- Rapier (`@dimforge/rapier3d-simd-compat`), three.js, Svelte and BinarySchema (`@nasselk/binaryschema`) are **peer dependencies**, imported directly by games. Never re-export them, never add a second Rapier package: two copies of Rapier crash.
+- Rapier (`@dimforge/rapier3d-simd-compat`), three.js and Svelte are **peer dependencies**, imported directly by games. Never re-export them, never add a second Rapier package: two copies of Rapier crash.
+- BinarySchema (`@nasselk/binaryschema`) is the game's alone: the engine never imports it, and only calls the generated schemas it is handed, through its own `Schema` type (`shared/networking/protocol.ts`).
 - BinaryPack (`@nasselk/binarypack`) is the opposite: the engine's own dependency, re-exported from `phoenix.engine`, because the protocol creates buffers and checks `instanceof BufferWriter`. Games never install it.
 - Changing a public API means updating the README, **[API.md](./API.md)**, and the template if it uses it.
 

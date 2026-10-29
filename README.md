@@ -60,7 +60,7 @@ One package, several subpath exports. Each side's entry point re-exports everyth
 | `phoenix.engine/native.css` | browser | Default styles that make the page behave like an app (no selection, no overscroll, no tap highlight). |
 | `phoenix.engine/ui/<Name>.svelte` | browser | Svelte 5 components: `Joystick`, `GridLayout` and `GridCell`, `EngineEditor`. |
 
-The game imports Rapier, three.js and Svelte from their own packages; the engine re-exports none of them. `@nasselk/binaryschema` is a peer too: the game installs it and writes its event schemas with it, and the engine only calls the schemas it is handed. `@nasselk/binarypack` is the other way round: the engine creates and checks buffers itself, so it is the engine's own dependency, re-exported from `phoenix.engine`. A game never installs it and imports `BufferReader`/`BufferWriter` from `phoenix.engine`.
+The game imports Rapier, three.js and Svelte from their own packages; the engine re-exports none of them. `@nasselk/binaryschema` is the game's alone: the game installs it, writes its event schemas with it and generates their code, and the engine only calls the generated schemas it is handed, through its own `Schema` type. `@nasselk/binarypack` is the other way round: the engine creates and checks buffers itself, so it is the engine's own dependency, re-exported from `phoenix.engine`. A game never installs it and imports `BufferReader`/`BufferWriter` from `phoenix.engine`.
 
 ## Installation
 
@@ -78,7 +78,6 @@ bun add three svelte                     # client: rendering and UI
 | `@dimforge/rapier3d-simd-compat` | `^0.21.0` | the server, and a client that simulates physics |
 | `three` | `^0.186.1` | the client (optional peer) |
 | `svelte` | `^5.57.3` | the client, when using the UI kit (optional peer) |
-| `@nasselk/binaryschema` | `github:nasselk/BinarySchema` | both sides: the game's event schemas, and the payload types of `send`/`onMessage` |
 
 Rapier is the SIMD build (faster collision detection and solving; every modern browser, Bun and Node support WebAssembly SIMD) in its *compat* form (the WebAssembly is embedded in the JavaScript and loaded by `initPhysics()`, so it works in Bun and in any bundler without plugins). They are peers so that the engine and the game share **one copy** of each. With Rapier this is not a nicety: two copies means two WebAssembly instances, one of which is never initialised, and objects from one cannot be used in the other.
 
@@ -383,21 +382,30 @@ Adding a field to a kind changes no protocol and no schema, only that kind's two
 
 ### The protocol
 
-Each side declares the events it receives (`in`) and sends (`out`), and optionally a schema per event:
+Each side declares the events it receives (`in`) and sends (`out`), and optionally a schema per event. Schemas are written with BinarySchema and compiled ahead of time: a schema file exports them as default, the `binaryschema` command generates their encoders and decoders next to it, and the game hands the engine the generated file's default export.
 
 ```ts
-import { defineSchemas, field } from "@nasselk/binaryschema";
+// client.ts
+import { field, type Schemas } from "@nasselk/binaryschema";
+
+export default {
+	join: { fields: { code: field.string({ maxLength: 16 }) } },
+	chat: { fields: { text: field.string({ maxLength: 256 }) } },
+} satisfies Schemas;
+```
+
+```ts
+// bunx binaryschema client.ts   → client.gen.ts
+import clientSchemas from "./client.gen";
 
 export const CLIENT_EVENTS = ["join", "chat"] as const;
 
-export const clientSchemas = defineSchemas({
-	join: { fields: { code: field.string({ maxLength: 16 }) } },
-	chat: { fields: { text: field.string({ maxLength: 256 }) } },
-});
-
+// out: { events: CLIENT_EVENTS, schema: clientSchemas }
 // client: engine.network.send("chat", { text: "hi" });
 // server: network.onMessage("chat", (socket, { text }) => …);
 ```
+
+The engine only calls a schema's `encode(data, writer)`, `decode(reader)`, `minByteLength` and `maxByteLength` (its `Schema` type), and types `send` and `onMessage` from them. Regenerate after any change to a schema file: the generated file is what goes on the wire.
 
 An event's code is its index in its list, so both sides must use the same lists — keep them in a folder both import. A direction holds up to 256 events. The engine sends nothing of its own: a game that wants its ping measures it with its own events and sets `engine.network.stats.latency`, which `EditorView` shows. An event without a schema carries raw bytes (the `sync` frame) or nothing. The server enforces `limits` per event (`maxRate`, `byteLength`) and closes connections that break them. A limit without a `byteLength` holds an event with a schema to its schema's `minByteLength`/`maxByteLength`, so a string field needs a `maxLength` for its size to be capped; the size of an event with no limit is checked only against `ws.maxMessageSize`. After a dropped connection the client reconnects by itself, as a new socket that is in no room: the game seats it again. The client world is **not** cleared on its own: on `engine.network.on("reconnection")`, call `engine.world.clear()` before the game rejoins its room, or entities despawned while the connection was down stay on screen forever.
 

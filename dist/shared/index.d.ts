@@ -8,7 +8,7 @@ export { clamp, wrap } from "./math/utils";
 export { ObservableVector2, Vector2, type Vector2Structure } from "./math/vector2";
 export { ObservableVector3, Vector3, type Vector3Structure } from "./math/vector3";
 export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "./networking/invite";
-export { type Contract, type ContractOf, type InboundEvent, type InboundSchemas, MAX_EVENTS, type MessagePayload, type OutboundEvent, type OutboundSchemas, Protocol, ProtocolChannel, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
+export { type Contract, type ContractOf, type DecodedData, type EncodedData, type InboundEvent, type InboundSchemas, MAX_EVENTS, type MessagePayload, type OutboundEvent, type OutboundSchemas, Protocol, ProtocolChannel, type Schema, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
 export * from "./physics/index";
 export { CounterMap } from "./utils/CounterMap";
 export { extractRGBA, getRandomColor, hex, hexToRgba, isHexColor, isRGBA, rgbaToHex } from "./utils/color";

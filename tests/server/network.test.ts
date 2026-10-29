@@ -1,8 +1,30 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { defineSchemas, field } from "@nasselk/binaryschema";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { field, generate, type Schemas } from "@nasselk/binaryschema";
 import { NetworkSystem } from "../../server/src/networking/NetworkSystem";
+import type { Schema } from "../../shared/networking/protocol";
 
 let network: NetworkSystem | undefined;
+
+/** A generated schema, which also encodes a message on its own. */
+type Generated<T> = Schema<T, T> & { encode(data: T): Uint8Array };
+
+/** The code `binaryschema` would generate for these schemas, loaded: what a game hands the engine. */
+async function compile<S>(schemas: Schemas): Promise<S> {
+	const folder = await mkdtemp(join(tmpdir(), "schemas-"));
+	const file = join(folder, "schemas.gen.ts");
+
+	await writeFile(file, generate(schemas, { runtime: import.meta.resolve("@nasselk/binaryschema/runtime") }));
+
+	try {
+		return (await import(pathToFileURL(file).href)).default;
+	} finally {
+		await rm(folder, { recursive: true, force: true });
+	}
+}
 
 /** A server on a free port, accepting sockets from that origin only. */
 async function listen(): Promise<number> {
@@ -42,7 +64,7 @@ describe("NetworkSystem", () => {
 	});
 
 	test("an event's size limit defaults to its schema's: a frame outside it closes the socket", async () => {
-		const schemas = defineSchemas({ chat: { fields: { text: field.string({ maxLength: 4 }) } } });
+		const schemas = await compile<{ chat: Generated<{ text: string }> }>({ chat: { fields: { text: field.string({ maxLength: 4 }) } } });
 		const heard: string[] = [];
 
 		network = new NetworkSystem({ port: 0, in: { events: ["chat"] as const, schema: schemas }, limits: { chat: { maxRate: 100 } } });

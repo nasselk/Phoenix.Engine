@@ -79,7 +79,6 @@
 		"typescript": "^7.0.2"
 	},
 	"peerDependencies": {
-		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"three": "^0.186.1",
 		"svelte": "^5.57.3"

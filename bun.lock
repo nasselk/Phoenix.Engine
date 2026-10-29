@@ -24,7 +24,6 @@
       },
       "peerDependencies": {
         "@dimforge/rapier3d-simd-compat": "^0.21.0",
-        "@nasselk/binaryschema": "github:nasselk/BinarySchema",
         "svelte": "^5.57.3",
         "three": "^0.186.1",
       },
@@ -91,7 +90,7 @@
 
     "@nasselk/binarypack": ["@nasselk/binarypack@github:nasselk/BinaryPack#dd2b0db", {}, "nasselk-BinaryPack-dd2b0db", "sha512-Y/l/paguNt/vD37v7S/g4B3+QjDa1pRK4oiRPrdsdyVNcVTLrsF9Lw7YDnhFkR7I3Nhm+Wr8Sjd+xrHNJllsfw=="],
 
-    "@nasselk/binaryschema": ["@nasselk/binaryschema@github:nasselk/BinarySchema#4354e39", { "dependencies": { "@nasselk/binarypack": "github:nasselk/BinaryPack" } }, "nasselk-BinarySchema-4354e39", "sha512-EhsmOKymaSIzHhhyNyTNF40+w1h54OsZjCvfoQi+AQLZojWcXvRJyhTkep8Wki623aRhPJrKNoYHsuXQrpi0EA=="],
+    "@nasselk/binaryschema": ["@nasselk/binaryschema@github:nasselk/BinarySchema#981ce9e", { "dependencies": { "@nasselk/binarypack": "github:nasselk/BinaryPack" }, "bin": { "binaryschema": "./dist/cli.js" } }, "nasselk-BinarySchema-981ce9e", "sha512-ti2E5xV05Evm4EsJFfIKFwXxw7yrBaNHd5DVGrPkvv2M0wDKU6dUngATR2WHYX4RKZFnfVBZ85Jcf2kjs9JVYA=="],
 
     "@sveltejs/acorn-typescript": ["@sveltejs/acorn-typescript@1.0.13", "", { "peerDependencies": { "acorn": "^8.9.0" } }, "sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ=="],
 

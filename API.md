@@ -356,7 +356,11 @@ BufferReader                                 readUint8…, readInt8…, readFloa
 └─ static fromPrecision(int, max, bits, signed?, min?)   and back
 Buffers                                      what a reader or a raw send takes: an ArrayBuffer, a view, a BufferWriter or BufferReader
                                              import all three from phoenix.engine, never from @nasselk/binarypack: games do not install it
-Event schemas: defineSchemas and the field builders (field.uint8(), field.string({ maxLength })…) from @nasselk/binaryschema, a peer dependency the game installs; a limit without byteLength takes the schema's minByteLength/maxByteLength
+Event schemas: written with the field builders (field.uint8(), field.string({ maxLength })…) of @nasselk/binaryschema, a peer dependency the game installs,
+                                             in a file that exports them as default; `binaryschema file.ts` generates file.gen.ts, whose default export
+                                             is what `in`/`out` take as `schema`. A limit without byteLength takes the schema's minByteLength/maxByteLength
+Schema<Input, Output>                        what the engine calls: minByteLength, maxByteLength, encode(data, writer), decode(reader)
+EncodedData<S>, DecodedData<S>               a schema's Input and Output: what send takes and a handler receives
 
 Protocol, ProtocolChannel, MAX_EVENTS (256 per direction), Contract, ContractOf, Side, SchemasFor, InboundEvent, OutboundEvent,
 InboundSchemas, OutboundSchemas, MessagePayload, SendPayload

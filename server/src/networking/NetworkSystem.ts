@@ -1,8 +1,7 @@
 import { BufferReader, type Buffers } from "@nasselk/binarypack";
-import type { Schema } from "@nasselk/binaryschema";
 import type { BunRequest, Server } from "bun";
 import { MessageHandlers } from "../../../shared/networking/handlers";
-import { type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, Protocol, type SchemasFor, type SendPayload, SOCKET_ROUTE } from "../../../shared/networking/protocol";
+import { type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, Protocol, type Schema, type SchemasFor, type SendPayload, SOCKET_ROUTE } from "../../../shared/networking/protocol";
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";

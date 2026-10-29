@@ -26,7 +26,7 @@ export { ObservableVector2, Vector2, type Vector2Structure } from "./math/vector
 export { ObservableVector3, Vector3, type Vector3Structure } from "./math/vector3";
 export { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH, type RoomOccupancy } from "./networking/invite";
 // Networking: the wire contract types both sides declare against
-export { type Contract, type ContractOf, type InboundEvent, type InboundSchemas, MAX_EVENTS, type MessagePayload, type OutboundEvent, type OutboundSchemas, Protocol, ProtocolChannel, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
+export { type Contract, type ContractOf, type DecodedData, type EncodedData, type InboundEvent, type InboundSchemas, MAX_EVENTS, type MessagePayload, type OutboundEvent, type OutboundSchemas, Protocol, ProtocolChannel, type Schema, type SchemasFor, type SendPayload, type Side } from "./networking/protocol";
 // Physics: the integration and the collisions, the same on both sides, for a game that simulates on
 // either. A collider attaches to anything with a position, so a client can run what the server ran.
 export * from "./physics/index";

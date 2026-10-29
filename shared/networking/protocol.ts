@@ -1,5 +1,21 @@
 import { BufferReader, type Buffers, BufferWriter } from "@nasselk/binarypack";
-import type { DecodedData, EncodedData, Schema } from "@nasselk/binaryschema";
+
+/**
+ * What the engine needs of an event's schema: one entry of the default export of a file the
+ * `binaryschema` command generated. `Input` is the data `send` takes, `Output` what a handler receives.
+ */
+export interface Schema<Input = any, Output = any> {
+	readonly minByteLength: number;
+	readonly maxByteLength: number;
+	encode(data: Input, writer: BufferWriter): number;
+	decode(reader: BufferReader): Output;
+}
+
+/** The data a schema encodes. */
+export type EncodedData<S> = S extends Schema<infer Input, any> ? Input : never;
+
+/** The data a schema decodes. */
+export type DecodedData<S> = S extends Schema<any, infer Output> ? Output : never;
 
 /**
  * Schemas keyed by the events they encode: every key of `S` must name an event of `E`, or be
