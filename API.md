@@ -43,28 +43,15 @@ Engine<In, Out, InSchemas, OutSchemas, Action, D, C>        new Engine(options),
 │           native? (boolean | { target, contextMenu, zoom, drag, viewport, focus }, on by default; focus: no Tab, and clicked buttons take no focus)
 ├─ init(...promises)            builds renderer, audio, inputs, starts the loop; awaits the extra promises too
 ├─ destroy()
-├─ isMobile                      true → TouchCamera, false → DesktopCamera
+├─ isMobile                      whether this looks like a phone or tablet (the camera takes a mouse and fingers either way)
 ├─ each frame: world.update(dt) → renderer "render" event → camera.update(dt) (and activeCamera's) → draw from activeCamera
 ├─ on("init" | "destroy")
 │
 ├─ renderer: RenderSystem
 │  ├─ scene: three.Scene                     add your objects here (entities add their own group)
-│  ├─ camera: OrbitCamera                    the game's: DesktopCamera or TouchCamera; updates every frame, drawn or not
-│  │                                         a ControlledCamera: turn, tilt, speeds, lens, fit, connect, update, orbit, lookFrom
-│  │  ├─ target?: {x,y,z}                    what it orbits; assign an entity's position to follow it. Unset, it stays where it was put
-│  │  ├─ yaw, pitch, distance                min/maxPitch, min/maxDistance
-│  │  ├─ turn (-1…1), turnSpeed; tilt (-1…1), tiltSpeed   turn and tilt every frame, from the game's actions or a stick
-│  │  │                                      the camera reads no keys: the game sets these from its actions
-│  │  ├─ rotateSpeed, zoomSpeed, dragging, zooming
-│  │  ├─ verticalFov, minHorizontalFov       fov widens on narrow screens to keep minHorizontalFov
-│  │  ├─ rotate(yaw, pitch), zoomBy(amount), pinchBy(ratio)
-│  │  ├─ orbit(yaw, pitch)                   rotate, and stop a lookFrom swing
-│  │  ├─ lookFrom(direction, seconds = 0)    swing round its target to look from that side, within its pitch limits
-│  │  ├─ isOrbiting, fit(aspect?), update(dt?), connect(element?), destroy()
-│  │  ├─ DesktopCamera: button (mouse drag turns it, wheel zooms)
-│  │  └─ TouchCamera: pinchSpeed
-│  ├─ activeCamera: ControlledCamera         the camera drawn, and the only one hearing the canvas; camera by
-│  │                                         default. Set another (the editor's EditorCamera), then camera to go back
+│  ├─ camera: Camera                         the game's; updates every frame, drawn or not
+│  ├─ activeCamera: Camera                   the camera drawn, and the only one hearing the canvas; camera by
+│  │                                         default. Set another (the editor's), then camera to go back
 │  ├─ textureBuilder: TextureBuilder         textures drawn on an OffscreenCanvas
 │  │  ├─ draw(ctx => …, clear = true, width?, height?)   resets transform/alpha/styles, then calls you
 │  │  ├─ save(name?) → Promise<Texture>      with a name, stored in assets.cache as "texture"; takes assets.anisotropy
@@ -176,16 +163,36 @@ Entity<C>                                    abstract
    └─ MovingEntity<C>                        same as PositionEntity on the client
 ```
 
-Also exported: `OrbitCamera`, `OrbitCameraOptions`, `OrbitTarget`, `DesktopCamera`, `DesktopCameraOptions`, `TouchCamera`, `TouchCameraOptions`, `EditorView`, `EditorViewOptions`, `EditorAxis`, `EditorCameraOptions`, `ControlledCamera` (the base of every camera the renderer draws: `orbit`, `lookFrom`, `step`, `listen`/`unlisten` to implement), `ControlledCameraOptions`, `RenderSystem`, `RenderSystemState`, `RenderSystemOptions`, `AssetManager`, `AssetCache`, `AssetKind`, `AssetKinds`, `AssetLoader`, `AssetManagerOptions`, `AssetManifest`, `AssetSource`, `AssetSources`, `SoundSource`, `AudioSystem`, `AudioOptions`, `SoundBuilder`, `SoundLayer`, `encodeWav(pcm)` → WAV bytes, `PCMSource`, `InputSystem`, `InputSystemOptions`, `ActionCallback`, `NetworkSystem`, `NetworkSystemOptions`, `NetworkState`, `NetworkStats`, `NetworkChannelStats`, `GameLoop`, `GameLoopParams`, `LoopStats`, `ClientWorldOptions`, `PositionEntityOptions` (`x y z pitch yaw roll`), `MovingEntityOptions`, `EngineOptions`, and:
+Also exported: `CameraOptions`, `CameraTarget`, `EditorView`, `EditorViewOptions`, `EditorAxis`, `RenderSystem`, `RenderSystemState`, `RenderSystemOptions`, `AssetManager`, `AssetCache`, `AssetKind`, `AssetKinds`, `AssetLoader`, `AssetManagerOptions`, `AssetManifest`, `AssetSource`, `AssetSources`, `SoundSource`, `AudioSystem`, `AudioOptions`, `SoundBuilder`, `SoundLayer`, `encodeWav(pcm)` → WAV bytes, `PCMSource`, `InputSystem`, `InputSystemOptions`, `ActionCallback`, `NetworkSystem`, `NetworkSystemOptions`, `NetworkState`, `NetworkStats`, `NetworkChannelStats`, `GameLoop`, `GameLoopParams`, `LoopStats`, `ClientWorldOptions`, `PositionEntityOptions` (`x y z pitch yaw roll`), `MovingEntityOptions`, `EngineOptions`, and:
 
 ```
+Camera extends three.PerspectiveCamera       new Camera(options?); the one camera, the game's and the editor's
+│                                            turns around `anchor` from yaw, pitch and distance; a mouse and fingers both drive it
+├─ target?: {x,y,z}                          what the anchor follows; assign an entity's position. Read, never written
+├─ anchor: Vector3                           the point it turns around, its own: copies target every frame, else flying and panning move it
+├─ yaw, pitch, distance                      min/maxPitch (0.1…1.45 by default; ±Math.PI / 2 reaches straight up and down), min/maxDistance
+├─ turn, tilt (-1…1), turnSpeed, tiltSpeed   turn and tilt every frame, from the game's actions or a stick
+├─ flyForward, flyRight (-1…1), flyBoost     fly the anchor along the view every frame, at flySpeed (boost× while flyBoost); not with a target
+│                                            the camera reads no keys: the game sets these from its actions
+├─ turnsAbout: "anchor" | "eye"              what a drag, turn and tilt turn it around; "eye" looks around in place (never with a target)
+├─ zoomMode: "distance" | "lens"             what the wheel and a pinch change; lens within minZoom…maxZoom
+├─ dragging, zooming, panning                panning is off by default; it slides the anchor (never with a target)
+├─ turnButton = 0, panButton = 2             mouse buttons; one finger turns, two pinch and slide
+├─ rotateSpeed, touchRotateScale (2: a finger turns twice as far), zoomSpeed, pinchSpeed, panSpeed
+├─ verticalFov, minHorizontalFov             fov widens on narrow screens to keep minHorizontalFov
+├─ rotate(yaw, pitch), zoomBy(amount), pinchBy(ratio), setZoom(zoom)
+├─ orbit(yaw, pitch)                         rotate around the anchor, and stop a lookFrom swing
+├─ lookFrom(direction, seconds = 0)          swing round the anchor to look from that side, within its pitch limits
+├─ startFrom(camera)                         take another camera's place, facing and lens; the anchor goes `distance` ahead
+└─ isOrbiting, fit(aspect?), update(dt?), connect(element?), destroy()
 EditorView extends three.Group               new EditorView(engine, { plane?, grid?, axes? }); add it to the scene
 ├─ init(selector)                            mounts FPS / ms / memory / ping / bandwidth / TPS panels in that element
 │                                            TPS: server frames received per second, 0 while the room is still
 ├─ fly(enabled = !isFlying)                  fly camera (the EngineEditor camera tool): makes `camera` the renderer's
 │                                            activeCamera, starting where the game's is; the game's keeps following its target
 │                                            WASD flies, Shift faster, arrows turn; right drag turns, left drag slides, wheel zooms
-├─ camera: EditorCamera                      the camera it flies
+├─ camera: Camera                            the camera it flies: turnsAbout "eye", zoomMode "lens", panning, turnButton 2,
+│                                            panButton 0, pitch ±Math.PI / 2; on touch one finger looks, two pinch and slide
 ├─ frustum: LineSegments                     the game camera's outline (edges and far rectangle), shown while flying
 ├─ isFlying, activeCamera                    whether its camera is the renderer's activeCamera; the drawn one
 ├─ viewFrom(axis: EditorAxis)                activeCamera.lookFrom that side, "x" | "y" | "z" | "-x" | "-y" | "-z", over 0.25 s
@@ -195,13 +202,6 @@ EditorView extends three.Group               new EditorView(engine, { plane?, gr
 │                                            with the EngineEditor, bindEditor drives these from its state
 ├─ plane, grid, stats, destroy()
 └─ axes: AxisLines                           colors { x, y, z } (red, green, blue; set with `axes: { xColor… }`), shared with the gizmo
-EditorCamera extends ControlledCamera        new EditorCamera(options?); flies free, made the renderer's activeCamera
-├─ turn, tilt, flyForward, flyRight (-1…1), flyBoost   every frame, set from keys (EditorView does it)
-├─ rotateSpeed, turnSpeed, tiltSpeed, flySpeed, boost, panSpeed, zoomSpeed, minZoom, maxZoom, distance
-├─ turnButton = 2 (right drag turns it), panButton = 0 (left drag slides it); the wheel zooms its lens
-├─ startFrom(camera)                         take another camera's place, facing and lens (its verticalFov and minHorizontalFov)
-├─ orbit(yaw, pitch), lookFrom(direction, seconds = 0)   around the point `distance` ahead, which stays put
-└─ setZoom(zoom), fit(aspect?), update(dt?), connect(element?), destroy()
 storage                                      localStorage, else sessionStorage, else memory, whichever is reachable; setStorage(replacement)
 isMobileDevice() → { mobile, tablet, any }   DeviceType; phones and tablets by user agent (iPadOS's "Macintosh" one included), else a touch screen with a coarse pointer, a tablet from 600 px on its smallest side
 ```
