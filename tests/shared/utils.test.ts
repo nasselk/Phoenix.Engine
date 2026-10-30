@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:
 import { extractRGBA } from "../../shared/utils/color";
 import { IDAllocator } from "../../shared/utils/IDAllocator";
 import { Interval, Timeout, Timer } from "../../shared/utils/timers/timer";
+import { censorText } from "../../shared/utils/validation/text";
 
 describe("Timer", () => {
 	let now = 0;
@@ -101,6 +102,21 @@ describe("colours", () => {
 		expect(extractRGBA("#ff8000")).toEqual({ r: 255, g: 128, b: 0, a: 1 });
 		expect(extractRGBA("#f80")).toEqual({ r: 255, g: 136, b: 0, a: 1 });
 		expect(extractRGBA("rgba(1, 2, 3, 0.5)")).toEqual({ r: 1, g: 2, b: 3, a: 0.5 });
+	});
+});
+
+describe("censorText", () => {
+	test("stars out a listed word standing on its own, whatever its case, keeping its length", () => {
+		expect(censorText("ass")).toBe("***");
+		expect(censorText("ASS hat")).toBe("*** hat");
+		expect(censorText("Fück you")).toBe("**** you");
+		expect(censorText("hello there")).toBe("hello there");
+	});
+
+	test("only whitespace, _, - and digits count as edges, so a word inside another is left alone", () => {
+		expect(censorText("an ass_ass-ass1ass")).toBe("an ***_***-***1***");
+		expect(censorText("class")).toBe("class");
+		expect(censorText("fück!")).toBe("fück!");
 	});
 });
 

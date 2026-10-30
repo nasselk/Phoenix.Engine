@@ -1,8 +1,30 @@
 import profanities from "./profanity.json" with { type: "json" };
-const profanityPatterns = profanities.map((word) => {
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`(?<=(^|[\\s_\\-0-9]))${escaped}(?=([\\s_\\-0-9]|$))`, "ig");
-});
+const SEPARATOR = /[\s_\-0-9]/y;
+const ASCII_FOLDS = Uint16Array.from({ length: 128 }, (_, code) => foldUnit(code));
+function foldUnit(code) {
+    const upper = String.fromCharCode(code).toUpperCase();
+    if (upper.length !== 1) {
+        return code;
+    }
+    const folded = upper.charCodeAt(0);
+    return code >= 128 && folded < 128 ? code : folded;
+}
+function fold(text) {
+    let folded = "";
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        folded += String.fromCharCode(code < 128 ? ASCII_FOLDS[code] : foldUnit(code));
+    }
+    return folded;
+}
+const profanityWords = profanities.map((word) => ({ folded: fold(word), stars: "*".repeat(word.length) }));
+function isEdge(text, index) {
+    if (index < 0 || index >= text.length) {
+        return true;
+    }
+    SEPARATOR.lastIndex = index;
+    return SEPARATOR.test(text);
+}
 const validationPatterns = [
     /[\x00-\x1F\x7F]/,
 ];
@@ -30,9 +52,31 @@ export function validateText(text, length = Infinity) {
     return true;
 }
 export function censorText(text) {
-    for (let i = 0; i < profanityPatterns.length; i++) {
-        const pattern = profanityPatterns[i];
-        text = text.replaceAll(pattern, "*".repeat(profanities[i].length));
+    let folded = fold(text);
+    for (const { folded: word, stars } of profanityWords) {
+        let index = folded.indexOf(word);
+        if (index === -1) {
+            continue;
+        }
+        let censored = "";
+        let censoredFolded = "";
+        let copied = 0;
+        while (index !== -1) {
+            const end = index + word.length;
+            if (isEdge(folded, index - 1) && isEdge(folded, end)) {
+                censored += text.slice(copied, index) + stars;
+                censoredFolded += folded.slice(copied, index) + stars;
+                copied = end;
+                index = folded.indexOf(word, end);
+            }
+            else {
+                index = folded.indexOf(word, index + 1);
+            }
+        }
+        if (copied > 0) {
+            text = censored + text.slice(copied);
+            folded = censoredFolded + folded.slice(copied);
+        }
     }
     return text;
 }
