@@ -1,5 +1,12 @@
-import { BufferReader, type Buffers } from "@nasselk/binarypack";
-import type { DecodedData, EncodedData, Schema } from "@nasselk/binaryschema";
+import { BufferReader, type Buffers, BufferWriter } from "@nasselk/binarypack";
+export interface Schema<Input = any, Output = any> {
+    readonly minByteLength: number;
+    readonly maxByteLength: number;
+    encode(data: Input, writer: BufferWriter): number;
+    decode(reader: BufferReader): Output;
+}
+export type EncodedData<S> = S extends Schema<infer Input, any> ? Input : never;
+export type DecodedData<S> = S extends Schema<any, infer Output> ? Output : never;
 export type SchemasFor<S, E extends readonly string[]> = {
     readonly [K in keyof S]: K extends E[number] ? Schema : never;
 };

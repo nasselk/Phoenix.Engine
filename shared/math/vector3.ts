@@ -1,3 +1,4 @@
+import { DeepImmutable } from "../utils/types";
 import { clamp } from "./utils";
 
 /**
@@ -23,25 +24,7 @@ class Vector3 {
 	 * // Rotate around origin
 	 * vec.rotate(Math.PI / 2, axis, Vector3.NULL);
 	 */
-	public static readonly NULL: Vector3 = Object.freeze(new Vector3());
-
-	/**
-	 * A temporary vector instance for calculations to avoid creating new objects.
-	 *
-	 * @remarks
-	 * This vector is mutable and should be used carefully to avoid unintended side effects.
-	 *
-	 * @example
-	 * // Use TEMP1 for intermediate calculations
-	 * const result = Vector3.TEMP1.set(vec1).add(vec2);
-	 */
-	public static readonly TEMP1: Vector3 = new Vector3();
-	public static readonly TEMP2: Vector3 = new Vector3();
-	public static readonly TEMP3: Vector3 = new Vector3();
-	public static readonly TEMP4: Vector3 = new Vector3();
-	public static readonly TEMP5: Vector3 = new Vector3();
-
-	private static readonly SCRATCH: Vector3 = new Vector3();
+	public static readonly NULL: DeepImmutable<Vector3Structure> = { x: 0, y: 0, z: 0 };
 
 	/** The x-coordinate of the vector. */
 	public x: number;
@@ -560,17 +543,6 @@ class Vector3 {
 		const dz = vector.z - this.z;
 
 		return Math.atan2(dy, Math.sqrt(dx ** 2 + dz ** 2));
-	}
-
-	/**
-	 * Calculates the shortest distance from this point to a line segment.
-	 *
-	 * @param p1 - First endpoint of the line segment.
-	 * @param p2 - Second endpoint of the line segment.
-	 * @returns The shortest distance to the line segment.
-	 */
-	public segmentDistance(p1: Vector3Structure, p2: Vector3Structure): number {
-		return Math.sqrt(this.distanceSquared(this.projectOnSegment(p1, p2, Vector3.SCRATCH)));
 	}
 
 	/**

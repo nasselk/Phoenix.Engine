@@ -1,3 +1,4 @@
+import { DeepImmutable } from "../utils/types";
 export type QuaternionStructure = {
     x: number;
     y: number;
@@ -7,9 +8,7 @@ export type QuaternionStructure = {
 export declare function eulerToQuaternion<Q extends QuaternionStructure>(pitch: number, yaw: number, roll: number, out: Q): Q;
 export declare function quaternionToEuler({ x, y, z, w }: QuaternionStructure, out: [number, number, number]): [number, number, number];
 declare class Quaternion {
-    static readonly IDENTITY: Quaternion;
-    static readonly TEMP1: Quaternion;
-    static readonly TEMP2: Quaternion;
+    static readonly IDENTITY: DeepImmutable<QuaternionStructure>;
     x: number;
     y: number;
     z: number;

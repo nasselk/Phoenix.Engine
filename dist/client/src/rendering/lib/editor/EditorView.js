@@ -1,7 +1,7 @@
 import Stats from "stats.js";
 import { BufferAttribute, BufferGeometry, Group, LineBasicMaterial, LineSegments, Vector3 } from "three";
+import { Camera } from "../../Camera";
 import { AxisLines } from "./AxisLines";
-import { EditorCamera } from "./EditorCamera";
 import { InfiniteGrid } from "./InfiniteGrid";
 import { InfinitePlane } from "./InfinitePlane";
 const EDITOR_AXES = {
@@ -41,7 +41,7 @@ export class EditorView extends Group {
         this.plane = new InfinitePlane(plane);
         this.grid = new InfiniteGrid(grid);
         this.axes = new AxisLines(axes);
-        this.camera = new EditorCamera();
+        this.camera = EditorView.createCamera();
         this.frustum = EditorView.createFrustum();
         this.context = engine;
         this.add(this.plane, this.grid, this.axes, this.frustum);
@@ -140,6 +140,9 @@ export class EditorView extends Group {
     }
     key(code) {
         return this.context.inputs.isInputPressed(code) ? 1 : 0;
+    }
+    static createCamera() {
+        return new Camera({ turnsAbout: "eye", zoomMode: "lens", panning: true, turnButton: 2, panButton: 0, minPitch: -Math.PI / 2, maxPitch: Math.PI / 2 });
     }
     static createFrustum() {
         const geometry = new BufferGeometry().setAttribute("position", new BufferAttribute(FRUSTUM_POINTS, 3));

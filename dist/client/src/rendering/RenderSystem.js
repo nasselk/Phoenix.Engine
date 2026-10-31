@@ -2,9 +2,8 @@ import { NoToneMapping, Scene, WebGLRenderer } from "three";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
 import { waitForUserGesture } from "../utils/gesture";
+import { Camera } from "./Camera";
 import { Batcher } from "./lib/Batcher";
-import { DesktopCamera } from "./lib/camera/DesktopCamera";
-import { TouchCamera } from "./lib/camera/TouchCamera";
 import { TextureBuilder } from "./lib/TextureBuilder";
 export var RenderSystemState;
 (function (RenderSystemState) {
@@ -14,14 +13,14 @@ export var RenderSystemState;
     RenderSystemState[RenderSystemState["DESTROYED"] = 3] = "DESTROYED";
 })(RenderSystemState || (RenderSystemState = {}));
 export class RenderSystem extends EventEmitter {
-    constructor(assets, view, touch = false) {
+    constructor(assets, view) {
         super();
         this.aspect = 1;
         this.view = view ?? this.createRenderingView();
         this.initialized = RenderSystemState.NULL;
         this.resolution = 1;
         this.scene = new Scene();
-        this.camera = touch ? new TouchCamera() : new DesktopCamera();
+        this.camera = new Camera();
         this.active = this.camera;
         this.textureBuilder = new TextureBuilder(assets);
         this.batcher = new Batcher();

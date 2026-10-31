@@ -216,12 +216,7 @@ class Vector2 {
         return Math.min(this.x, this.y);
     }
 }
-Vector2.NULL = Object.freeze(new Vector2());
-Vector2.TEMP1 = new Vector2();
-Vector2.TEMP2 = new Vector2();
-Vector2.TEMP3 = new Vector2();
-Vector2.TEMP4 = new Vector2();
-Vector2.TEMP5 = new Vector2();
+Vector2.NULL = { x: 0, y: 0 };
 class ObservableVector2 extends Vector2 {
     constructor(a = 0, b = a, polar = false) {
         super(a, b, polar);

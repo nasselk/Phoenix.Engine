@@ -1,3 +1,5 @@
+import { DeepImmutable } from "../utils/types";
+
 /** Anything with x, y, z and w: a Rapier rotation, a three.js quaternion, or a `Quaternion`. */
 export type QuaternionStructure = { x: number; y: number; z: number; w: number };
 
@@ -60,10 +62,7 @@ export function quaternionToEuler({ x, y, z, w }: QuaternionStructure, out: [num
  * them as equal, and every blend takes the shorter way round.
  */
 class Quaternion {
-	public static readonly IDENTITY: Quaternion = Object.freeze(new Quaternion());
-
-	public static readonly TEMP1: Quaternion = new Quaternion();
-	public static readonly TEMP2: Quaternion = new Quaternion();
+	public static readonly IDENTITY: DeepImmutable<QuaternionStructure> = { x: 0, y: 0, z: 0, w: 1 };
 
 	public x: number;
 	public y: number;

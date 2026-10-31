@@ -55,13 +55,11 @@
 		"types:check": "bun run --sequential --no-exit-on-error types:client types:server",
 		"types:client": "cd client && bun run types:check",
 		"types:server": "cd server && bun run types:check",
-		"format": "biome format --write",
-		"lint": "biome lint --write",
 		"biome:check": "biome check --write",
 		"prepare": "husky || true"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^1.63.0",
+		"@lucide/svelte": "^1.65.0",
 		"@nasselk/binarypack": "github:nasselk/BinaryPack",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
@@ -71,7 +69,7 @@
 	},
 	"devDependencies": {
 		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
-		"@biomejs/biome": "2.5.15",
+		"@biomejs/biome": "2.6.4",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"@types/bun": "^1.4.4",
 		"@types/three": "^0.186.0",
@@ -79,7 +77,6 @@
 		"typescript": "^7.0.2"
 	},
 	"peerDependencies": {
-		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"three": "^0.186.1",
 		"svelte": "^5.57.3"

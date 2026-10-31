@@ -41,12 +41,21 @@ bun run format        # Biome
 - Test the contracts games rely on and that break quietly: the wire, replication, physics sync, connections, input, timing, math. Not getters, not three.js or Rapier themselves.
 - A fix gets a test only if no existing test would have caught it, and it goes in that module's file, usually as one more expectation in the test covering that behaviour.
 
+## Commits
+
+- **Commit on your own**, locally, as soon as a change is done and checked: one commit per change (a fix, a feature, a refactor), never unrelated work mixed in one. **Push only when the user asks.**
+- Before each commit: `bun run types:check`, `bun run test` and `bun run build`; the rebuilt `dist/` goes in the same commit as the change it comes from.
+- The message says what changed, in a short first line ("Rooms unregister themselves on destroy"), and why in the body when it is not obvious.
+- A big or risky change (a renderer swap, a new library, a refactor across many files) goes on its own branch (`feature/<name>`), merged into `main` once the user has tried it. Small changes go straight on the current branch.
+- Leave work you did not do out of your commits: stage files or hunks by name, never `git add .` over someone else's changes.
+- The engine and the template are separate repositories: commit each on its own, the engine first when the template needs the change.
+
 ## Releasing a change
 
 `dist/` is committed, because nothing builds the engine when a game installs it.
 
 1. `bun run build` (it empties `dist/` first, so moved or deleted files leave no stale copies).
-2. Test, typecheck, commit and push.
+2. Test, typecheck, commit, and push once the user asks.
 3. In the game: `bun update phoenix.engine`, then **restart its dev servers** (they do not reload `node_modules`), then its own `types:check` and tests.
 
 Every runtime dependency of `dist/` goes in the **root** `package.json` (the workspaces' own are ignored by installers), and so do the `@types` packages of any library in the public `.d.ts` files.
@@ -55,7 +64,8 @@ Every runtime dependency of `dist/` goes in the **root** `package.json` (the wor
 
 **Boundaries**
 - Mechanisms, not rules. Room codes, visibility, controls, UI and gameplay belong to games. Something every game would need belongs here.
-- Rapier (`@dimforge/rapier3d-simd-compat`), three.js, Svelte and BinarySchema (`@nasselk/binaryschema`) are **peer dependencies**, imported directly by games. Never re-export them, never add a second Rapier package: two copies of Rapier crash.
+- Rapier (`@dimforge/rapier3d-simd-compat`), three.js and Svelte are **peer dependencies**, imported directly by games. Never re-export them, never add a second Rapier package: two copies of Rapier crash.
+- BinarySchema (`@nasselk/binaryschema`) is the game's alone: the engine never imports it, and only calls the generated schemas it is handed, through its own `Schema` type (`shared/networking/protocol.ts`).
 - BinaryPack (`@nasselk/binarypack`) is the opposite: the engine's own dependency, re-exported from `phoenix.engine`, because the protocol creates buffers and checks `instanceof BufferWriter`. Games never install it.
 - Changing a public API means updating the README, **[API.md](./API.md)**, and the template if it uses it.
 

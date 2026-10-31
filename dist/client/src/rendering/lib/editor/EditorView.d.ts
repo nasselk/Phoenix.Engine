@@ -1,9 +1,8 @@
 import Stats from "stats.js";
 import { BufferGeometry, Group, LineBasicMaterial, LineSegments } from "three";
 import type { Engine } from "../../../engine";
-import type { ControlledCamera } from "../camera/ControlledCamera";
+import { Camera } from "../../Camera";
 import { AxisLines, type AxisLinesOptions } from "./AxisLines";
-import { EditorCamera } from "./EditorCamera";
 import { InfiniteGrid, type InfiniteGridOptions } from "./InfiniteGrid";
 import { InfinitePlane, type InfinitePlaneOptions } from "./InfinitePlane";
 export type EditorAxis = "x" | "y" | "z" | "-x" | "-y" | "-z";
@@ -16,7 +15,7 @@ export declare class EditorView extends Group {
     readonly plane: InfinitePlane;
     readonly grid: InfiniteGrid;
     readonly axes: AxisLines;
-    readonly camera: EditorCamera;
+    readonly camera: Camera;
     readonly frustum: LineSegments<BufferGeometry, LineBasicMaterial>;
     private readonly context;
     private readonly unsubscribers;
@@ -40,9 +39,10 @@ export declare class EditorView extends Group {
     init(stats: string): Promise<void>;
     fly(enabled?: boolean): void;
     get isFlying(): boolean;
-    get activeCamera(): ControlledCamera;
+    get activeCamera(): Camera;
     private steer;
     private key;
+    private static createCamera;
     private static createFrustum;
     private outline;
     viewFrom(axis: EditorAxis): void;

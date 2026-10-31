@@ -55,7 +55,9 @@ export class World<D extends EntityDefinitions, C> extends BaseWorld<D, C, Entit
 		const despawns = reader.readUint16();
 
 		for (let i = 0; i < despawns; i++) {
-			this.get(reader.readUint16())?.destroy();
+			const id = reader.readUint16();
+
+			this.get(id)?.destroy();
 		}
 
 		const spawns = reader.readUint16();
@@ -71,7 +73,7 @@ export class World<D extends EntityDefinitions, C> extends BaseWorld<D, C, Entit
 
 			const existing = this.get(id);
 
-			if (existing !== undefined && existing.kind === kind) {
+			if (existing?.kind === kind) {
 				existing.deserialize(reader);
 			} else {
 				existing?.destroy();
