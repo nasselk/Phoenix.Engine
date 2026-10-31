@@ -181,9 +181,6 @@ class Vector3 {
         const dz = vector.z - this.z;
         return Math.atan2(dy, Math.sqrt(dx ** 2 + dz ** 2));
     }
-    segmentDistance(p1, p2) {
-        return Math.sqrt(this.distanceSquared(this.projectOnSegment(p1, p2, Vector3.SCRATCH)));
-    }
     projectOnSegment(p1, p2, out = new Vector3()) {
         const abx = p2.x - p1.x;
         const aby = p2.y - p1.y;
@@ -268,13 +265,7 @@ class Vector3 {
         return Math.min(this.x, this.y, this.z);
     }
 }
-Vector3.NULL = Object.freeze(new Vector3());
-Vector3.TEMP1 = new Vector3();
-Vector3.TEMP2 = new Vector3();
-Vector3.TEMP3 = new Vector3();
-Vector3.TEMP4 = new Vector3();
-Vector3.TEMP5 = new Vector3();
-Vector3.SCRATCH = new Vector3();
+Vector3.NULL = { x: 0, y: 0, z: 0 };
 class ObservableVector3 extends Vector3 {
     constructor(a = 0, b = a, c = b, polar = false) {
         super(a, b, c, polar);

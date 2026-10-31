@@ -1,6 +1,6 @@
 import { PerspectiveCamera, Vector3 } from "three";
-import { normalizeAnglePI } from "../../../../../shared/math/angle";
-import { clamp } from "../../../../../shared/math/utils";
+import { normalizeAnglePI } from "../../../shared/math/angle";
+import { clamp } from "../../../shared/math/utils";
 const MAX_FRAME = 0.1;
 const OFFSET = new Vector3();
 const EYE = new Vector3();

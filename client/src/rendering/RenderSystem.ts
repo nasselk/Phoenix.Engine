@@ -4,8 +4,8 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
 import type { AssetManager } from "../assets/AssetManager";
 import { waitForUserGesture } from "../utils/gesture";
+import { Camera } from "./Camera";
 import { Batcher } from "./lib/Batcher";
-import { Camera } from "./lib/camera/Camera";
 import { TextureBuilder } from "./lib/TextureBuilder";
 
 type RenderSystemEvents = {

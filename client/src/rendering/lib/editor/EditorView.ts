@@ -1,7 +1,7 @@
 import Stats from "stats.js";
 import { BufferAttribute, BufferGeometry, Group, type Light, LineBasicMaterial, LineSegments, type Material, type Mesh, Vector3 } from "three";
 import type { Engine } from "../../../engine";
-import { Camera } from "../camera/Camera";
+import { Camera } from "../../Camera";
 import { AxisLines, type AxisLinesOptions } from "./AxisLines";
 import { InfiniteGrid, type InfiniteGridOptions } from "./InfiniteGrid";
 import { InfinitePlane, type InfinitePlaneOptions } from "./InfinitePlane";

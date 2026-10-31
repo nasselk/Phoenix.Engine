@@ -1,6 +1,6 @@
 import Stats from "stats.js";
 import { BufferAttribute, BufferGeometry, Group, LineBasicMaterial, LineSegments, Vector3 } from "three";
-import { Camera } from "../camera/Camera";
+import { Camera } from "../../Camera";
 import { AxisLines } from "./AxisLines";
 import { InfiniteGrid } from "./InfiniteGrid";
 import { InfinitePlane } from "./InfinitePlane";

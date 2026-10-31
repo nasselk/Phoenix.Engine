@@ -7,7 +7,7 @@ export { InputSystem } from "./controls/InputSystem";
 export { Engine } from "./engine";
 export { GameLoop } from "./GameLoop";
 export { NetworkState, NetworkSystem } from "./networking/NetworkSystem";
-export { Camera } from "./rendering/lib/camera/Camera";
+export { Camera } from "./rendering/Camera";
 export { EditorView } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, RenderSystemState } from "./rendering/RenderSystem";
 export { isMobileDevice } from "./utils/mobile";

@@ -1,6 +1,6 @@
 import { PerspectiveCamera, Vector3, type Vector3Like } from "three";
-import { normalizeAnglePI } from "../../../../../shared/math/angle";
-import { clamp } from "../../../../../shared/math/utils";
+import { normalizeAnglePI } from "../../../shared/math/angle";
+import { clamp } from "../../../shared/math/utils";
 
 export type CameraTarget = { readonly x: number; readonly y: number; readonly z: number };
 

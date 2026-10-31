@@ -11,7 +11,7 @@ export { type ActionCallback, InputSystem, type InputSystemOptions } from "./con
 export { Engine, type EngineOptions } from "./engine";
 export { GameLoop, type GameLoopParams, type LoopStats } from "./GameLoop";
 export { type NetworkChannelStats, NetworkState, type NetworkStats, NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
-export { Camera, type CameraOptions, type CameraTarget } from "./rendering/lib/camera/Camera";
+export { Camera, type CameraOptions, type CameraTarget } from "./rendering/Camera";
 export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, type RenderSystemOptions, RenderSystemState } from "./rendering/RenderSystem";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";

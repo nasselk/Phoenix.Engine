@@ -1,14 +1,10 @@
+import { DeepImmutable } from "../index.js";
 type Vector2Structure = {
     x: number;
     y: number;
 };
 declare class Vector2 {
-    static readonly NULL: Vector2;
-    static readonly TEMP1: Vector2;
-    static readonly TEMP2: Vector2;
-    static readonly TEMP3: Vector2;
-    static readonly TEMP4: Vector2;
-    static readonly TEMP5: Vector2;
+    static readonly NULL: DeepImmutable<Vector2Structure>;
     x: number;
     y: number;
     constructor(x?: number, y?: number);

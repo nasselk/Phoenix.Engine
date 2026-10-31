@@ -2,8 +2,8 @@ import { type ColorRepresentation, Scene, type ShadowMapType, type ToneMapping, 
 import type { WebGPURenderer } from "three/webgpu";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import type { AssetManager } from "../assets/AssetManager";
+import { Camera } from "./Camera";
 import { Batcher } from "./lib/Batcher";
-import { Camera } from "./lib/camera/Camera";
 import { TextureBuilder } from "./lib/TextureBuilder";
 type RenderSystemEvents = {
     init: [renderer: HTMLCanvasElement];
