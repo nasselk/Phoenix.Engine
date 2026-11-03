@@ -543,7 +543,7 @@ bun run init          # install, set up git hooks
 bun run build         # compile client and server into dist/
 bun run test          # engine tests (bun test tests)
 bun run types:check   # typecheck client and server
-bun run format        # Biome: tabs, double quotes, 320 columns
+bun run biome:check   # Biome: tabs, double quotes, 320 columns
 ```
 
 The repository is a Bun workspace: `client/` and `server/` build separately into one `dist/`, each compiling `shared/` with it, matching the `exports` map in [package.json](./package.json). There is no dev server here — the engine runs inside a game.

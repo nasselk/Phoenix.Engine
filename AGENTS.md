@@ -10,15 +10,15 @@ A library, not an application: games install it from GitHub and run its built `d
 
 ## Layout
 
-| Folder | Entry point | Runs on |
-| --- | --- | --- |
-| `shared/` | `phoenix.engine` | both: world and entity bases, math (`Vector3`, `Quaternion`, `Interpolator`), protocol, physics loading, utilities |
-| `server/src/` | `phoenix.engine/server` | Bun: `Engine`, `World` (a room), writing entities, `NetworkSystem`, `GameLoop`, replication |
-| `client/src/` | `phoenix.engine/client` | browser: `Engine`, `World` (a mirror), reading entities, rendering, cameras, input, audio, assets, editor |
-| `client/src/text/` | `phoenix.engine/text` | browser: `Text` (SDF text in the scene) |
-| `client/src/UI/components/` | `phoenix.engine/ui/*.svelte` | browser: `Joystick`, `GridLayout`, `GridCell`, `EngineEditor` (Svelte, compiled by the game) |
-| `client/src/UI/native.css` | `phoenix.engine/native.css` | browser: app-like page styles |
-| `tests/` | — | Bun's test runner, against the source |
+| Folder                      | Entry point                  | Runs on                                                                                                            |
+| --------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `shared/`                   | `phoenix.engine`             | both: world and entity bases, math (`Vector3`, `Quaternion`, `Interpolator`), protocol, physics loading, utilities |
+| `server/src/`               | `phoenix.engine/server`      | Bun: `Engine`, `World` (a room), writing entities, `NetworkSystem`, `GameLoop`, replication                        |
+| `client/src/`               | `phoenix.engine/client`      | browser: `Engine`, `World` (a mirror), reading entities, rendering, cameras, input, audio, assets, editor          |
+| `client/src/text/`          | `phoenix.engine/text`        | browser: `Text` (SDF text in the scene)                                                                            |
+| `client/src/UI/components/` | `phoenix.engine/ui/*.svelte` | browser: `Joystick`, `GridLayout`, `GridCell`, `EngineEditor` (Svelte, compiled by the game)                       |
+| `client/src/UI/native.css`  | `phoenix.engine/native.css`  | browser: app-like page styles                                                                                      |
+| `tests/`                    | —                            | Bun's test runner, against the source                                                                              |
 
 Each side's entry point re-exports everything shared. Anything a game should use must be exported from the right `index.ts`, **and listed in [API.md](./API.md)** (`tests/api-map.test.ts` fails otherwise).
 
@@ -28,7 +28,7 @@ Each side's entry point re-exports everything shared. Anything a game should use
 bun run build         # compile client and server into dist/
 bun run test          # engine tests (tests/)
 bun run types:check   # typecheck client and server
-bun run format        # Biome
+bun run biome:check   # Biome: format and check
 ```
 
 **Before calling any change done:** `bun run types:check` and `bun run test` pass, and `bun run build` succeeds. Behaviour an engine change adds or fixes gets a test in `tests/`.
@@ -80,7 +80,7 @@ Every runtime dependency of `dist/` goes in the **root** `package.json` (the wor
 - Quantise with `BufferWriter.toPrecision` / `BufferReader.fromPrecision` and `wrap`.
 
 **Performance**
-- No allocation in per-tick or per-frame code: reuse static scratch objects (`Vector3.TEMP1`…`TEMP5`, `Quaternion.TEMP1`/`TEMP2`, or a module-level one).
+- No allocation in per-tick or per-frame code: reuse a module-level scratch object, or pass one as `out`.
 - Only touch a Rapier body when something changed, so bodies at rest sleep.
 
 ## Code style

@@ -319,7 +319,7 @@ EntityRegistry: names, size, has(name), code(name), kind(code), class(name), kin
 MAX_ENTITY_KINDS, Entity / World (the shared bases), EntityClass, EntityConstructor, EntityDefinitions, EntityOptions, WorldEvents, WorldOptions
 
 Vector3 / ObservableVector3                  mutable, chainable; Vector2 / ObservableVector2 the same in 2D
-├─ static NULL, TEMP1…TEMP5                  scratch vectors for hot paths
+├─ static NULL                               read-only {x, y, z} of zeros, not a vector
 ├─ set, add, subtract, multiply, divide (vector, scalar?) or (x, y, z), scale(s)
 ├─ setDirection / addDirection(azimuth, elevation, distance), interpolate(v, t)
 │                                            y-up: azimuth is the yaw facing the vector (0 → +z, π/2 → +x), elevation the angle above the ground
@@ -330,7 +330,7 @@ Vector3 / ObservableVector3                  mutable, chainable; Vector2 / Obser
 ├─ magnitude (get/set), magnitudeSquared, azimuth, elevation, xyz, max, min, isNull, equals, clone, toString
 └─ Observable: store(x?, y?, z?), storeX/Y/Z, hasUpdated(delta?), hasUpdatedX/Y/Z
 Quaternion / ObservableQuaternion
-├─ static IDENTITY, TEMP1, TEMP2
+├─ static IDENTITY                           read-only {x, y, z, w}, not a quaternion
 ├─ set, setFromEuler(pitch, yaw, roll), setFromYaw, setFromAxisAngle(axis, angle), toEuler(out?), yaw
 ├─ multiply, premultiply, invert, normalize, length, dot, slerp(target, t), angleTo, equals(q, eps?)
 ├─ pack() → u32, unpack(u32), clone
