@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { PerspectiveCamera, Vector3 } from "three";
-import { Camera, type CameraOptions } from "../../client/src/rendering/lib/camera/Camera";
+import { Camera, type CameraOptions } from "../../client/src/rendering/Camera";
 
 /** The horizontal field of view a camera shows, in degrees. */
 function horizontal(camera: Camera): number {
