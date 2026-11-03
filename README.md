@@ -559,7 +559,7 @@ Gameplay behaviour — how the physics feels — is tested in the game, against 
 Games install the engine from GitHub and nothing builds it on install, so **`dist/` is committed**:
 
 1. `bun run build` — it starts from an empty `dist/`, so moved or deleted files leave no stale copies behind;
-2. `bun run test` and `bun run types:check`;
+2. `bun test` and `bun run types:check`;
 3. commit and push;
 4. in the game: `bun update phoenix.engine`.
 
