@@ -25,6 +25,6 @@
 		}
 	},
 	"files": {
-		"includes": ["**/*.*", "!**/node_modules", "!**/dist", "!**/builds", "!**/*.svelte"]
+		"includes": ["**/*.*", "!**/node_modules", "!**/dist", "!**/builds", "!**/*.svelte", "!**/*.md"]
 	}
 }
