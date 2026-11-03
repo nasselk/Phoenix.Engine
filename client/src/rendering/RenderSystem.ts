@@ -4,11 +4,8 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { log } from "../../../shared/utils/logger";
 import type { AssetManager } from "../assets/AssetManager";
 import { waitForUserGesture } from "../utils/gesture";
+import { Camera } from "./Camera";
 import { Batcher } from "./lib/Batcher";
-import type { OrbitCamera } from "./lib/camera/Camera";
-import type { ControlledCamera } from "./lib/camera/ControlledCamera";
-import { DesktopCamera } from "./lib/camera/DesktopCamera";
-import { TouchCamera } from "./lib/camera/TouchCamera";
 import { TextureBuilder } from "./lib/TextureBuilder";
 
 type RenderSystemEvents = {
@@ -51,7 +48,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	public readonly scene: Scene;
 
 	/** The game's camera. It keeps updating every frame, drawn or not. */
-	public camera: OrbitCamera;
+	public camera: Camera;
 
 	/** The texture builder for creating textures in the 3D scene */
 	public readonly textureBuilder: TextureBuilder;
@@ -67,16 +64,12 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 
 	private observer?: ResizeObserver;
 
-	private active: ControlledCamera;
+	private active: Camera;
 
 	/** The canvas's shape at the last resize, which a camera made active is fitted to. */
 	private aspect = 1;
 
-	/**
-	 * @param touch Fingers rather than a mouse: the camera then turns on a drag and zooms on a pinch,
-	 *   where a desktop one waits for a held button and a wheel. The engine passes what it detected.
-	 */
-	public constructor(assets: AssetManager, view?: HTMLCanvasElement, touch: boolean = false) {
+	public constructor(assets: AssetManager, view?: HTMLCanvasElement) {
 		super();
 
 		this.view = view ?? this.createRenderingView();
@@ -84,7 +77,7 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 		this.resolution = 1;
 
 		this.scene = new Scene();
-		this.camera = touch ? new TouchCamera() : new DesktopCamera();
+		this.camera = new Camera();
 		this.active = this.camera;
 		this.textureBuilder = new TextureBuilder(assets);
 		this.batcher = new Batcher();
@@ -97,11 +90,11 @@ export class RenderSystem extends EventEmitter<RenderSystemEvents> {
 	 * `camera` until something else is set, such as the editor's flying camera. Set `camera` back to
 	 * return to the game's view.
 	 */
-	public get activeCamera(): ControlledCamera {
+	public get activeCamera(): Camera {
 		return this.active;
 	}
 
-	public set activeCamera(camera: ControlledCamera) {
+	public set activeCamera(camera: Camera) {
 		if (camera === this.active) {
 			return;
 		}

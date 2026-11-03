@@ -185,9 +185,7 @@ class Quaternion {
         return new Quaternion(this.x, this.y, this.z, this.w);
     }
 }
-Quaternion.IDENTITY = Object.freeze(new Quaternion());
-Quaternion.TEMP1 = new Quaternion();
-Quaternion.TEMP2 = new Quaternion();
+Quaternion.IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
 class ObservableQuaternion extends Quaternion {
     constructor(x, y, z, w) {
         super(x, y, z, w);

@@ -1,3 +1,4 @@
+import { DeepImmutable } from "../index.js";
 import { clamp } from "./utils.js";
 
 /**
@@ -23,23 +24,7 @@ class Vector2 {
 	 * // Rotate around origin
 	 * vec.rotate(Math.PI / 2, Vector2D.NULL);
 	 */
-	public static readonly NULL: Vector2 = Object.freeze(new Vector2());
-
-	/**
-	 * A temporary vector instance for calculations to avoid creating new objects.
-	 *
-	 * @remarks
-	 * This vector is mutable and should be used carefully to avoid unintended side effects.
-	 *
-	 * @example
-	 * // Use TEMP1 for intermediate calculations
-	 * const result = Vector2D.TEMP1.set(vec1).add(vec2);
-	 */
-	public static readonly TEMP1: Vector2 = new Vector2();
-	public static readonly TEMP2: Vector2 = new Vector2();
-	public static readonly TEMP3: Vector2 = new Vector2();
-	public static readonly TEMP4: Vector2 = new Vector2();
-	public static readonly TEMP5: Vector2 = new Vector2();
+	public static readonly NULL: DeepImmutable<Vector2Structure> = { x: 0, y: 0 };
 
 	/** The x-coordinate of the vector. */
 	public x: number;

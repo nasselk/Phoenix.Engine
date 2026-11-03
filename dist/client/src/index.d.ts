@@ -8,11 +8,7 @@ export { type ActionCallback, InputSystem, type InputSystemOptions } from "./con
 export { Engine, type EngineOptions } from "./engine";
 export { GameLoop, type GameLoopParams, type LoopStats } from "./GameLoop";
 export { type NetworkChannelStats, NetworkState, type NetworkStats, NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
-export { OrbitCamera, type OrbitCameraOptions, type OrbitTarget } from "./rendering/lib/camera/Camera";
-export { ControlledCamera, type ControlledCameraOptions } from "./rendering/lib/camera/ControlledCamera";
-export { DesktopCamera, type DesktopCameraOptions } from "./rendering/lib/camera/DesktopCamera";
-export { TouchCamera, type TouchCameraOptions } from "./rendering/lib/camera/TouchCamera";
-export { EditorCamera, type EditorCameraOptions } from "./rendering/lib/editor/EditorCamera";
+export { Camera, type CameraOptions, type CameraTarget } from "./rendering/Camera";
 export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, type RenderSystemOptions, RenderSystemState } from "./rendering/RenderSystem";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";

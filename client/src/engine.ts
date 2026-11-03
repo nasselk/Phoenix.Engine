@@ -77,7 +77,7 @@ export class Engine<
 
 		this.loop = new GameLoop(options.loop);
 		this.assets = new AssetManager(options.assets);
-		this.renderer = new RenderSystem(this.assets, undefined, this.isMobile);
+		this.renderer = new RenderSystem(this.assets);
 		this.network = new NetworkSystem<In, Out, InSchemas, OutSchemas>(options.network);
 		this.inputs = new InputSystem<Action>(options.inputs);
 		this.audio = new AudioSystem(this.assets);

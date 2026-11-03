@@ -1,16 +1,11 @@
+import { DeepImmutable } from "../utils/types";
 type Vector3Structure = {
     x: number;
     y: number;
     z: number;
 };
 declare class Vector3 {
-    static readonly NULL: Vector3;
-    static readonly TEMP1: Vector3;
-    static readonly TEMP2: Vector3;
-    static readonly TEMP3: Vector3;
-    static readonly TEMP4: Vector3;
-    static readonly TEMP5: Vector3;
-    private static readonly SCRATCH;
+    static readonly NULL: DeepImmutable<Vector3Structure>;
     x: number;
     y: number;
     z: number;
@@ -40,7 +35,6 @@ declare class Vector3 {
     distanceSquared(vector: Vector3Structure): number;
     azimuthTo(vector: Vector3Structure): number;
     elevationTo(vector: Vector3Structure): number;
-    segmentDistance(p1: Vector3Structure, p2: Vector3Structure): number;
     projectOnSegment(p1: Vector3Structure, p2: Vector3Structure, out?: Vector3): Vector3;
     project(direction: Vector3Structure, out?: Vector3): Vector3;
     reflect(normal: Vector3Structure): this;

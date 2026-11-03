@@ -1,9 +1,8 @@
 import Stats from "stats.js";
 import { BufferAttribute, BufferGeometry, Group, type Light, LineBasicMaterial, LineSegments, type Material, type Mesh, Vector3 } from "three";
 import type { Engine } from "../../../engine";
-import type { ControlledCamera } from "../camera/ControlledCamera";
+import { Camera } from "../../Camera";
 import { AxisLines, type AxisLinesOptions } from "./AxisLines";
-import { EditorCamera } from "./EditorCamera";
 import { InfiniteGrid, type InfiniteGridOptions } from "./InfiniteGrid";
 import { InfinitePlane, type InfinitePlaneOptions } from "./InfinitePlane";
 
@@ -58,7 +57,7 @@ export class EditorView extends Group {
 	public readonly grid: InfiniteGrid;
 	public readonly axes: AxisLines;
 	/** The camera the editor flies, while the game's own stays where it is. */
-	public readonly camera: EditorCamera;
+	public readonly camera: Camera;
 	/** The game camera's outline, shown while the editor flies its own camera. */
 	public readonly frustum: LineSegments<BufferGeometry, LineBasicMaterial>;
 	private readonly context: Engine<any, any, any, any, any, any, any>;
@@ -88,7 +87,7 @@ export class EditorView extends Group {
 		this.plane = new InfinitePlane(plane);
 		this.grid = new InfiniteGrid(grid);
 		this.axes = new AxisLines(axes);
-		this.camera = new EditorCamera();
+		this.camera = EditorView.createCamera();
 		this.frustum = EditorView.createFrustum();
 		this.context = engine;
 
@@ -211,7 +210,7 @@ export class EditorView extends Group {
 	}
 
 	/** The camera drawn right now: the editor's while it flies, the game's otherwise. What the navigation gizmo shows and turns. */
-	public get activeCamera(): ControlledCamera {
+	public get activeCamera(): Camera {
 		return this.context.renderer.activeCamera;
 	}
 
@@ -227,6 +226,11 @@ export class EditorView extends Group {
 
 	private key(code: string): number {
 		return this.context.inputs.isInputPressed(code) ? 1 : 0;
+	}
+
+	/** Flies free: right drag or one finger looks around in place, left drag or two fingers slide it, the wheel or a pinch zooms its lens, and it can look straight down. */
+	private static createCamera(): Camera {
+		return new Camera({ turnsAbout: "eye", zoomMode: "lens", panning: true, turnButton: 2, panButton: 0, minPitch: -Math.PI / 2, maxPitch: Math.PI / 2 });
 	}
 
 	/** The game camera's outline, built once at unit size: `outline` only places and stretches it. */

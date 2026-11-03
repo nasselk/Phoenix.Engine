@@ -25,7 +25,8 @@ export class World extends BaseWorld {
         this.serverTime = reader.readUint32() / 1000;
         const despawns = reader.readUint16();
         for (let i = 0; i < despawns; i++) {
-            this.get(reader.readUint16())?.destroy();
+            const id = reader.readUint16();
+            this.get(id)?.destroy();
         }
         const spawns = reader.readUint16();
         for (let i = 0; i < spawns; i++) {
@@ -36,7 +37,7 @@ export class World extends BaseWorld {
                 throw new Error(`Entity ${id} spawned as unknown kind ${code}, so the rest of the frame cannot be read; this build knows [ ${registry.describe()} ]`);
             }
             const existing = this.get(id);
-            if (existing !== undefined && existing.kind === kind) {
+            if (existing?.kind === kind) {
                 existing.deserialize(reader);
             }
             else {
