@@ -554,13 +554,30 @@ class Vector3 {
 	 * @returns `out`, set to the closest point on the segment.
 	 */
 	public projectOnSegment(p1: Vector3Structure, p2: Vector3Structure, out: Vector3 = new Vector3()): Vector3 {
+		const t = this.segmentFactor(p1, p2);
+
+		return out.set(p1.x + (p2.x - p1.x) * t, p1.y + (p2.y - p1.y) * t, p1.z + (p2.z - p1.z) * t);
+	}
+
+	/**
+	 * Calculates the shortest distance from this point to a line segment.
+	 *
+	 * @param p1 - First endpoint of the line segment.
+	 * @param p2 - Second endpoint of the line segment.
+	 * @returns The shortest distance to the line segment.
+	 */
+	public segmentDistance(p1: Vector3Structure, p2: Vector3Structure): number {
+		const t = this.segmentFactor(p1, p2);
+
+		return Math.sqrt((p1.x + (p2.x - p1.x) * t - this.x) ** 2 + (p1.y + (p2.y - p1.y) * t - this.y) ** 2 + (p1.z + (p2.z - p1.z) * t - this.z) ** 2);
+	}
+
+	private segmentFactor(p1: Vector3Structure, p2: Vector3Structure): number {
 		const abx = p2.x - p1.x;
 		const aby = p2.y - p1.y;
 		const abz = p2.z - p1.z;
 		const lengthSquared = abx ** 2 + aby ** 2 + abz ** 2;
-		const t = lengthSquared === 0 ? 0 : clamp(((this.x - p1.x) * abx + (this.y - p1.y) * aby + (this.z - p1.z) * abz) / lengthSquared, 0, 1);
-
-		return out.set(p1.x + abx * t, p1.y + aby * t, p1.z + abz * t);
+		return lengthSquared === 0 ? 0 : clamp(((this.x - p1.x) * abx + (this.y - p1.y) * aby + (this.z - p1.z) * abz) / lengthSquared, 0, 1);
 	}
 
 	/**

@@ -36,6 +36,8 @@ declare class Vector3 {
     azimuthTo(vector: Vector3Structure): number;
     elevationTo(vector: Vector3Structure): number;
     projectOnSegment(p1: Vector3Structure, p2: Vector3Structure, out?: Vector3): Vector3;
+    segmentDistance(p1: Vector3Structure, p2: Vector3Structure): number;
+    private segmentFactor;
     project(direction: Vector3Structure, out?: Vector3): Vector3;
     reflect(normal: Vector3Structure): this;
     equals(x: number, y?: number, z?: number): boolean;

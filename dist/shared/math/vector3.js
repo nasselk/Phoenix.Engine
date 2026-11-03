@@ -182,12 +182,19 @@ class Vector3 {
         return Math.atan2(dy, Math.sqrt(dx ** 2 + dz ** 2));
     }
     projectOnSegment(p1, p2, out = new Vector3()) {
+        const t = this.segmentFactor(p1, p2);
+        return out.set(p1.x + (p2.x - p1.x) * t, p1.y + (p2.y - p1.y) * t, p1.z + (p2.z - p1.z) * t);
+    }
+    segmentDistance(p1, p2) {
+        const t = this.segmentFactor(p1, p2);
+        return Math.sqrt((p1.x + (p2.x - p1.x) * t - this.x) ** 2 + (p1.y + (p2.y - p1.y) * t - this.y) ** 2 + (p1.z + (p2.z - p1.z) * t - this.z) ** 2);
+    }
+    segmentFactor(p1, p2) {
         const abx = p2.x - p1.x;
         const aby = p2.y - p1.y;
         const abz = p2.z - p1.z;
         const lengthSquared = abx ** 2 + aby ** 2 + abz ** 2;
-        const t = lengthSquared === 0 ? 0 : clamp(((this.x - p1.x) * abx + (this.y - p1.y) * aby + (this.z - p1.z) * abz) / lengthSquared, 0, 1);
-        return out.set(p1.x + abx * t, p1.y + aby * t, p1.z + abz * t);
+        return lengthSquared === 0 ? 0 : clamp(((this.x - p1.x) * abx + (this.y - p1.y) * aby + (this.z - p1.z) * abz) / lengthSquared, 0, 1);
     }
     project(direction, out = new Vector3()) {
         const lengthSquared = direction.x ** 2 + direction.y ** 2 + direction.z ** 2;
