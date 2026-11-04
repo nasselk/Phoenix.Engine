@@ -59,7 +59,7 @@
 		"prepare": "husky || true"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^1.67.0",
+		"@lucide/svelte": "^1.68.0",
 		"@nasselk/binarypack": "github:nasselk/BinaryPack",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",

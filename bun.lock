@@ -5,7 +5,7 @@
     "": {
       "name": "phoenix.engine",
       "dependencies": {
-        "@lucide/svelte": "^1.67.0",
+        "@lucide/svelte": "^1.68.0",
         "@nasselk/binarypack": "github:nasselk/BinaryPack",
         "@types/howler": "^2.2.13",
         "@types/stats.js": "^0.17.4",
@@ -90,7 +90,7 @@
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
-    "@lucide/svelte": ["@lucide/svelte@1.67.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-DeqoOkMm3QihcNsrQB5drR/8azWDGuozfagDpm/anIqaJdflLUMhwLFPEANl/W3FLhXx6HmQwEWz7zBtZ6KXcQ=="],
+    "@lucide/svelte": ["@lucide/svelte@1.68.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-5iOupZmuGCJD89emoHsTlwkwMHzuNTBUwt/IbH3YVnmphBNqKqz4CKepzsOBXpf+c17DXlTOeV8nhzV0pU+5qw=="],
 
     "@nasselk/binarypack": ["@nasselk/binarypack@github:nasselk/BinaryPack#dd2b0db", {}, "nasselk-BinaryPack-dd2b0db", "sha512-Y/l/paguNt/vD37v7S/g4B3+QjDa1pRK4oiRPrdsdyVNcVTLrsF9Lw7YDnhFkR7I3Nhm+Wr8Sjd+xrHNJllsfw=="],
 
