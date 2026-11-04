@@ -1,4 +1,5 @@
-import { PerspectiveCamera, Vector3, type Vector3Like } from "three";
+import { PerspectiveCamera, Vector3 } from "three";
+import { type Vector3Structure } from "../../../shared";
 export type CameraTarget = {
     readonly x: number;
     readonly y: number;
@@ -90,7 +91,7 @@ export declare class Camera extends PerspectiveCamera {
     set minHorizontalFov(degrees: number);
     rotate(yaw: number, pitch: number): this;
     orbit(yaw: number, pitch: number): this;
-    lookFrom(direction: Vector3Like, seconds?: number): this;
+    lookFrom(direction: Vector3Structure, seconds?: number): this;
     zoomBy(amount: number): this;
     pinchBy(ratio: number): this;
     setZoom(zoom: number): this;

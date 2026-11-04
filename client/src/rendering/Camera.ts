@@ -1,4 +1,5 @@
-import { PerspectiveCamera, Vector3, type Vector3Like } from "three";
+import { PerspectiveCamera, Vector3 } from "three";
+import { type Vector3Structure } from "../../../shared";
 import { normalizeAnglePI } from "../../../shared/math/angle";
 import { clamp } from "../../../shared/math/utils";
 
@@ -323,7 +324,7 @@ export class Camera extends PerspectiveCamera {
 	}
 
 	/** Swing round its anchor, over so many seconds, to look from that side, the shortest way round, within its pitch limits: `(0, 1, 0)` from above. 0 seconds is at once. */
-	public lookFrom(direction: Vector3Like, seconds: number = 0): this {
+	public lookFrom(direction: Vector3Structure, seconds: number = 0): this {
 		const { swing } = this;
 
 		swing.fromYaw = this.yaw;

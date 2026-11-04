@@ -1,8 +1,7 @@
 import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
 import type { BufferWriter } from "@nasselk/binarypack";
-import type { Vector3Like } from "three";
 import { ObservableQuaternion, Quaternion } from "../../../../shared/math/quaternion";
-import { ObservableVector3, Vector3 } from "../../../../shared/math/vector3";
+import { ObservableVector3, Vector3, type Vector3Structure } from "../../../../shared/math/vector3";
 import { RAPIER } from "../../../../shared/physics/rapier";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import type { World } from "../world";
@@ -205,9 +204,9 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		}
 	}
 
-	public teleport(position: Vector3Like): void;
+	public teleport(position: Vector3Structure): void;
 	public teleport(x: number, y: number, z: number): void;
-	public teleport(a: number | Vector3Like, b?: number, c?: number): void {
+	public teleport(a: number | Vector3Structure, b?: number, c?: number): void {
 		if (typeof a === "number") {
 			this.position.set(a, b, c);
 		} else {

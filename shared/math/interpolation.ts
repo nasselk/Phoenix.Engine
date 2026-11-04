@@ -1,8 +1,8 @@
-import type { Vector3Like } from "three";
 import { extractRGBA } from "../utils/color";
 
 import { normalizeAnglePI } from "./angle";
 import type { Quaternion } from "./quaternion";
+import type { Vector3Structure } from "./vector3";
 
 const view = (globalThis as any).document; // Check if running in a browser environment
 
@@ -45,7 +45,7 @@ function lerpAngle(start: number, end: number, factor: number, deltaTime?: numbe
 	return lerp(start, start + delta, factor, deltaTime, limit);
 }
 
-export function lerpVector(start: Vector3Like, end: Vector3Like, factor: number, deltaTime?: number, limit?: number): void {
+export function lerpVector(start: Vector3Structure, end: Vector3Structure, factor: number, deltaTime?: number, limit?: number): void {
 	start.x = lerp(start.x, end.x, factor, deltaTime, limit);
 	start.y = lerp(start.y, end.y, factor, deltaTime, limit);
 	start.z = lerp(start.z, end.z, factor, deltaTime, limit);
@@ -101,7 +101,7 @@ function tweenAngle(start: number, end: number, duration: number, elapsed: numbe
 	return tween(start, start + delta, duration, elapsed, curve);
 }
 
-export function tweenVector(start: Vector3Like, end: Vector3Like, duration: number, elapsed: number, curve?: InterpolationCurve): void {
+export function tweenVector(start: Vector3Structure, end: Vector3Structure, duration: number, elapsed: number, curve?: InterpolationCurve): void {
 	start.x = tween(start.x, end.x, duration, elapsed, curve);
 	start.y = tween(start.y, end.y, duration, elapsed, curve);
 	start.z = tween(start.z, end.z, duration, elapsed, curve);

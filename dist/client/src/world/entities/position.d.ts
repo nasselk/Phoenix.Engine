@@ -1,7 +1,7 @@
 import type { BufferReader } from "@nasselk/binarypack";
-import { Group, type Vector3Like } from "three";
+import { Group } from "three";
 import { Quaternion } from "../../../../shared/math/quaternion";
-import { Vector3 } from "../../../../shared/math/vector3";
+import { Vector3, type Vector3Structure } from "../../../../shared/math/vector3";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import type { World } from "../world";
 import { Entity } from "./entity";
@@ -22,7 +22,7 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     constructor(world: World<any, any>, context: C, options?: PositionEntityOptions);
     onSpawn(): void;
     onDestroy(): void;
-    teleport(position: Vector3Like): void;
+    teleport(position: Vector3Structure): void;
     teleport(x: number, y: number, z: number): void;
     update(deltaTime: number): void;
     protected updatePosition(deltaTime: number): void;

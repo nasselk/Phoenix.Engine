@@ -1,7 +1,7 @@
 import type { BufferReader } from "@nasselk/binarypack";
-import { Group, type Vector3Like } from "three";
+import { Group } from "three";
 import { Quaternion } from "../../../../shared/math/quaternion";
-import { Vector3 } from "../../../../shared/math/vector3";
+import { Vector3, type Vector3Structure } from "../../../../shared/math/vector3";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import type { World } from "../world";
 import { Entity } from "./entity";
@@ -52,9 +52,9 @@ export abstract class PositionEntity<C> extends Entity<C> {
 		this.group.removeFromParent();
 	}
 
-	public teleport(position: Vector3Like): void;
+	public teleport(position: Vector3Structure): void;
 	public teleport(x: number, y: number, z: number): void;
-	public teleport(a: number | Vector3Like, b?: number, c?: number): void {
+	public teleport(a: number | Vector3Structure, b?: number, c?: number): void {
 		if (typeof a === "number") {
 			this.targetPosition.set(a, b, c);
 			this.position.set(a, b, c);

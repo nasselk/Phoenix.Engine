@@ -1,8 +1,7 @@
 import type { ColliderDesc, RigidBody, RigidBodyDesc } from "@dimforge/rapier3d-simd-compat";
 import type { BufferWriter } from "@nasselk/binarypack";
-import type { Vector3Like } from "three";
 import { ObservableQuaternion } from "../../../../shared/math/quaternion";
-import { ObservableVector3 } from "../../../../shared/math/vector3";
+import { ObservableVector3, type Vector3Structure } from "../../../../shared/math/vector3";
 import type { EntityOptions } from "../../../../shared/world/entity";
 import type { World } from "../world";
 import { Entity } from "./entity";
@@ -36,7 +35,7 @@ export declare abstract class PositionEntity<C> extends Entity<C> {
     beforePhysics(): void;
     afterPhysics(): void;
     onDestroy(): void;
-    teleport(position: Vector3Like): void;
+    teleport(position: Vector3Structure): void;
     teleport(x: number, y: number, z: number): void;
     clean(): void;
     serialize(writer: BufferWriter): void;

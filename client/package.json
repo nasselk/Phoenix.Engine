@@ -16,8 +16,8 @@
 	"devDependencies": {
 		"@types/howler": "^2.2.13",
 		"@types/stats.js": "^0.17.4",
-		"@types/three": "^0.186.0",
+		"@types/three": "^0.187.0",
 		"@lucide/svelte": "^1.59.0",
-		"three": "^0.186.1"
+		"three": "^0.187.0"
 	}
 }
