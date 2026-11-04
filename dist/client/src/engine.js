@@ -16,7 +16,8 @@ export class Engine extends EventEmitter {
         if (options.native !== false) {
             this.ordinary = native(options.native === true ? undefined : options.native);
         }
-        this.isMobile = isMobileDevice().any;
+        const urlParams = new URLSearchParams(window.location.search);
+        this.isMobile = isMobileDevice().any || urlParams.get("forceMobile") === "true";
         this.rendering = options.renderer ?? {};
         this.sound = options.audio ?? {};
         this.loop = new GameLoop(options.loop);
