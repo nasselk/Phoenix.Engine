@@ -82,15 +82,16 @@
 
     // What the game reads starts at 0 where the dead zone ends, so nothing jumps as it leaves it.
     const pushed = reach / radius;
-    const distance = pushed <= deadZone ? 0 : (pushed - deadZone) / (1 - deadZone);
+    const distance =
+      pushed <= deadZone ? 0 : (pushed - deadZone) / (1 - deadZone);
     const x = unitX * distance;
     const y = -unitY * distance;
 
     onmove?.({ x, y, angle: distance === 0 ? 0 : Math.atan2(y, x), distance });
   }
 
-  function stop(event: PointerEvent): void {
-    if (event.pointerId !== pointer) {
+  function stop(event?: PointerEvent): void {
+    if (pointer === null || (event && event.pointerId !== pointer)) {
       return;
     }
 
@@ -109,7 +110,9 @@
     const zone = stickyZone;
 
     if (zone === undefined) {
-      return;
+      return () => {
+        stop();
+      };
     }
 
     zone.addEventListener("pointerdown", start);
@@ -118,6 +121,8 @@
     zone.addEventListener("pointercancel", stop);
 
     return () => {
+      stop();
+
       zone.removeEventListener("pointerdown", start);
       zone.removeEventListener("pointermove", move);
       zone.removeEventListener("pointerup", stop);
@@ -163,7 +168,10 @@
     border-radius: 50%;
     background: var(--joystick-base, var(--ui-sunken, rgb(0 0 0 / 0.16)));
     /* Tinted with the accent rather than plain white: over a dark scene the ring has to be findable. */
-    border: var(--joystick-base-border, var(--outline) solid color-mix(in srgb, var(--accent) 35%, transparent));
+    border: var(
+      --joystick-base-border,
+      var(--outline) solid color-mix(in srgb, var(--accent) 35%, transparent)
+    );
     backdrop-filter: var(--joystick-blur, var(--ui-surface-blur, none));
     z-index: var(--joystick-layer, 1);
     /* A UI layer that lets presses through to the canvas must not let them through here. */
@@ -204,6 +212,9 @@
 
   /* Held, it lifts to exactly what the kit's primary button does under a cursor, and nothing else changes. */
   .held .stick {
-    background: var(--joystick-stick-held, var(--ui-accent-fill-hover, #2d6aed));
+    background: var(
+      --joystick-stick-held,
+      var(--ui-accent-fill-hover, #2d6aed)
+    );
   }
 </style>
