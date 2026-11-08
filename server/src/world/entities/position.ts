@@ -21,7 +21,7 @@ export type PositionEntityOptions = EntityOptions & {
 };
 
 export abstract class PositionEntity<C> extends Entity<C> {
-	public readonly position: ObservableVector3;
+	public readonly position: Readonly<ObservableVector3>;
 	/** Which way it is turned. Set it with `setFromEuler` or `yaw`; read which way it faces with `yaw`. */
 	public readonly rotation: ObservableQuaternion;
 
@@ -213,7 +213,7 @@ export abstract class PositionEntity<C> extends Entity<C> {
 			this.position.set(a.x, a.y, a.z);
 		}
 
-		this.body?.setTranslation(this.position, false);
+		this.body?.setTranslation(this.position, true);
 	}
 
 	/** Only what `serializeUpdate` sent counts as sent: a change still under its epsilon keeps adding up until it is. */

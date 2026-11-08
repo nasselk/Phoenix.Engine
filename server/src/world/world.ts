@@ -172,12 +172,14 @@ export class World<D extends EntityDefinitions, C, N extends Contract = Contract
 			throw new Error(`Entity id ${id} is taken`);
 		}
 
-		const entity = new Kind(this, this.context, options) as InstanceType<D[K]>;
+		let entity;
 
 		try {
+			entity = new Kind(this, this.context, options) as InstanceType<D[K]>;
+
 			return this.insert(kind, entity, options.id);
 		} catch (error) {
-			entity.onDestroy();
+			entity?.onDestroy();
 
 			throw error;
 		}

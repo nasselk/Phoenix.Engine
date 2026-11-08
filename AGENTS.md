@@ -29,6 +29,7 @@ bun run build         # compile client and server into dist/
 bun test              # engine tests (tests/)
 bun run types:check   # typecheck client and server
 bun run biome:check   # Biome: format and check
+bun run release patch # tag and push a release: only when the user asks
 ```
 
 **Before calling any change done:** `bun run types:check` and `bun run test` pass, and `bun run build` succeeds. Behaviour an engine change adds or fixes gets a test in `tests/`.
@@ -52,11 +53,11 @@ bun run biome:check   # Biome: format and check
 
 ## Releasing a change
 
-`dist/` is committed, because nothing builds the engine when a game installs it.
+`dist/` is committed, because nothing builds the engine when a game installs it. Games depend on a release tag (`github:nasselk/Phoenix.Engine#v1.2.3`), never on `main`, so they upgrade when they choose.
 
-1. `bun run build` (it empties `dist/` first, so moved or deleted files leave no stale copies).
-2. Test, typecheck, commit, and push once the user asks.
-3. In the game: `bun update phoenix.engine`, then **restart its dev servers** (they do not reload `node_modules`), then its own `types:check` and tests.
+1. Each change is committed on its own as usual, with `bun run build` and its rebuilt `dist/` (the build empties `dist/` first, so moved or deleted files leave no stale copies).
+2. **Only when the user asks for a release:** `bun run release <patch|minor|major>` (`--dry-run` to check without building or pushing). On a clean `main` that is up to date, it typechecks, tests, builds, bumps `version`, commits `Release vX.Y.Z` with `dist/`, tags it and pushes both. `patch`: fixes; `minor`: features games need not touch; `major`: a broken API or wire (games bump their `gameVersion`).
+3. In the game: `bun add github:nasselk/Phoenix.Engine#vX.Y.Z`, then **restart its dev servers** (they do not reload `node_modules`), then its own `types:check` and tests.
 
 Every runtime dependency of `dist/` goes in the **root** `package.json` (the workspaces' own are ignored by installers), and so do the `@types` packages of any library in the public `.d.ts` files.
 

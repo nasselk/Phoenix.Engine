@@ -39,8 +39,8 @@ export class InputSystem<const Action extends string = never> {
 	private readonly handlers = {
 		keydown: (event: KeyboardEvent) => this.keyDown(event),
 		keyup: (event: KeyboardEvent) => this.release(event.code, event),
-		pointerdown: (event: PointerEvent) => this.press(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keydown")),
-		pointerup: (event: PointerEvent) => this.release(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keyup")),
+		mousedown: (event: MouseEvent) => this.press(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keydown")),
+		mouseup: (event: MouseEvent) => this.release(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keyup")),
 		blur: () => this.releaseAll(),
 	};
 	/** Where a mouse button has to go down to count: the game's view, so a click on the interface is not an action. */
@@ -69,9 +69,8 @@ export class InputSystem<const Action extends string = never> {
 
 		window.addEventListener("keydown", this.handlers.keydown);
 		window.addEventListener("keyup", this.handlers.keyup);
-		element.addEventListener("pointerdown", this.handlers.pointerdown as EventListener);
-		window.addEventListener("pointerup", this.handlers.pointerup);
-		window.addEventListener("pointercancel", this.handlers.pointerup);
+		element.addEventListener("mousedown", this.handlers.mousedown as EventListener);
+		window.addEventListener("mouseup", this.handlers.mouseup);
 		window.addEventListener("blur", this.handlers.blur);
 
 		this.initialized = true;
@@ -283,9 +282,8 @@ export class InputSystem<const Action extends string = never> {
 
 		window.removeEventListener("keydown", this.handlers.keydown);
 		window.removeEventListener("keyup", this.handlers.keyup);
-		this.element?.removeEventListener("pointerdown", this.handlers.pointerdown as EventListener);
-		window.removeEventListener("pointerup", this.handlers.pointerup);
-		window.removeEventListener("pointercancel", this.handlers.pointerup);
+		this.element?.removeEventListener("mousedown", this.handlers.mousedown as EventListener);
+		window.removeEventListener("mouseup", this.handlers.mouseup);
 		window.removeEventListener("blur", this.handlers.blur);
 
 		// Callbacks are game code and pressed keys are stale once the keyboard is no longer watched.

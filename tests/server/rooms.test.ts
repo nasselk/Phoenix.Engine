@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, test } from "bun:test";
 import { Engine } from "../../server/src/engine";
+import { INVITE_CODE_ALPHABET, INVITE_CODE_LENGTH } from "../../shared/networking/invite";
 import { initPhysics } from "../../shared/physics/rapier";
 import { defineEntities } from "../../shared/world/registry";
 import { Box, createSocket } from "../fixtures";
@@ -28,6 +29,25 @@ beforeAll(async () => {
 });
 
 describe("Engine rooms", () => {
+	test("a room opened without a code gets a free one of INVITE_CODE_LENGTH letters, any of INVITE_CODE_ALPHABET", () => {
+		const engine = createEngine();
+		const seen = new Set<string>();
+
+		for (let i = 0; i < 500; i++) {
+			const code = engine.createRoom().inviteCode;
+
+			expect(code).toHaveLength(INVITE_CODE_LENGTH);
+			expect([...code].every((letter) => INVITE_CODE_ALPHABET.includes(letter))).toBe(true);
+
+			for (const letter of code) {
+				seen.add(letter);
+			}
+		}
+
+		expect(engine.rooms.size).toBe(500);
+		expect(seen.size).toBe(INVITE_CODE_ALPHABET.length);
+	});
+
 	test("fullestRoom picks the fullest public room with a free seat", () => {
 		const engine = createEngine();
 		const full = engine.createRoom({ maxPlayers: 4 });

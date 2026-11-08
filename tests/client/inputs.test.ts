@@ -125,7 +125,7 @@ describe("InputSystem", () => {
 	});
 
 	describe("mouse buttons", () => {
-		const pointer = (type: string, button = 0) => Object.assign(new Event(type), { button });
+		const mouse = (type: string, button = 0) => Object.assign(new Event(type), { button });
 
 		function listening() {
 			const previous = (globalThis as { window?: unknown }).window;
@@ -134,7 +134,7 @@ describe("InputSystem", () => {
 
 			(globalThis as { window?: unknown }).window = page;
 
-			const inputs = new InputSystem({ binds: { fire: ["Pointer0"] } });
+			const inputs = new InputSystem({ binds: { fire: ["Pointer0"], aim: ["Pointer2"] } });
 
 			inputs.init(view as unknown as HTMLElement);
 
@@ -152,25 +152,32 @@ describe("InputSystem", () => {
 		test("count only when pressed on the view, not on the interface around it", () => {
 			const { inputs, page, view, restore } = listening();
 
-			page.dispatchEvent(pointer("pointerdown"));
+			page.dispatchEvent(mouse("mousedown"));
 			expect(inputs.isActionRunning("fire")).toBe(false);
 
-			view.dispatchEvent(pointer("pointerdown"));
+			view.dispatchEvent(mouse("mousedown"));
 			expect(inputs.isActionRunning("fire")).toBe(true);
 
-			page.dispatchEvent(pointer("pointerup"));
+			page.dispatchEvent(mouse("mouseup"));
 			expect(inputs.isActionRunning("fire")).toBe(false);
 
 			restore();
 		});
 
-		test("let go when the browser cancels the pointer", () => {
+		test("held together, each goes down and up on its own, in any order", () => {
 			const { inputs, page, view, restore } = listening();
 
-			view.dispatchEvent(pointer("pointerdown"));
-			page.dispatchEvent(pointer("pointercancel"));
+			view.dispatchEvent(mouse("mousedown", 0));
+			view.dispatchEvent(mouse("mousedown", 2));
+			expect(inputs.isActionRunning("fire")).toBe(true);
+			expect(inputs.isActionRunning("aim")).toBe(true);
 
+			page.dispatchEvent(mouse("mouseup", 0));
 			expect(inputs.isActionRunning("fire")).toBe(false);
+			expect(inputs.isActionRunning("aim")).toBe(true);
+
+			page.dispatchEvent(mouse("mouseup", 2));
+			expect(inputs.isActionRunning("aim")).toBe(false);
 
 			restore();
 		});

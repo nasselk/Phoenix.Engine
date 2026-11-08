@@ -269,14 +269,14 @@ Entity<C>                                    abstract
 ├─ isDirty, clean()                          dirty only when something on the wire changed
 ├─ onSpawn(), onDestroy(), destroy()
 └─ PositionEntity<C>
-   ├─ position: ObservableVector3, rotation: ObservableQuaternion
+   ├─ position: ObservableVector3, rotation: ObservableQuaternion   write position only on a fixed body or none; move the others with teleport or through body
    ├─ yaw (get, set: stands it upright)      rotation.setFromEuler(pitch, yaw, roll) for the rest
    ├─ body?: RAPIER.RigidBody                body.userData is the entity
    ├─ embody(bodyDesc, ...colliderDescs)     protected; call in the constructor
    ├─ beforePhysics(), afterPhysics()        copy to and from the body around the step; a fixed body is only written to, when code moved it
    ├─ onTouch(other), onTouchEnd(other)      override to listen: once per entity pair, solid or sensor (setSensor(true)), after the step
    ├─ isTouching(other), touch(other, started)   touch is the room's call
-   ├─ teleport(x, y, z) / teleport(vector)
+   ├─ teleport(x, y, z) / teleport(vector)   jump there, body included, waking it
    ├─ room                                   protected: the World it is in
    └─ MovingEntity<C>
       ├─ options: velocity { x, y, z }, gravityScale, damping   left out: the body description's own

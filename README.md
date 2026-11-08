@@ -76,7 +76,7 @@ bun add three svelte                     # client: rendering and UI
 | Peer dependency                  | Version    | Needed by                                         |
 | -------------------------------- | ---------- | ------------------------------------------------- |
 | `@dimforge/rapier3d-simd-compat` | `^0.21.0`  | the server, and a client that simulates physics   |
-| `three`                          | `^0.186.1` | the client (optional peer)                        |
+| `three`                          | `^0.187.0` | the client (optional peer)                        |
 | `svelte`                         | `^5.57.3`  | the client, when using the UI kit (optional peer) |
 
 Rapier is the SIMD build (faster collision detection and solving; every modern browser, Bun and Node support WebAssembly SIMD) in its _compat_ form (the WebAssembly is embedded in the JavaScript and loaded by `initPhysics()`, so it works in Bun and in any bundler without plugins). They are peers so that the engine and the game share **one copy** of each. With Rapier this is not a nicety: two copies means two WebAssembly instances, one of which is never initialised, and objects from one cannot be used in the other.
@@ -325,7 +325,8 @@ this.embody(RigidBodyDesc.dynamic(), ColliderDesc.cuboid(0.5, 0.5, 0.5).setFrict
 ```
 
 - **Rapier owns the motion.** Velocity, mass and gravity live on `entity.body`; read and change them there. Pass `wakeUp: true` when changing a sleeping body (`setLinvel(v, true)`), or the change is ignored.
-- **Body types**: `dynamic` (moved by forces and contacts), `fixed` (floors, walls; moved only by code: set `entity.position`, `rotation` or `yaw` and it goes into the body before the next step, and nothing is read back after it), `kinematicPositionBased`/`kinematicVelocityBased` (moved by code through its `body`, with `setNextKinematicTranslation` or `setLinvel`; pushes others, is never pushed; where it ends up comes back to `entity.position` after the step).
+- **Body types**: `dynamic` (moved by forces and contacts), `fixed` (floors, walls; moved only by code: `entity.position.set(x, y, z)`, `rotation` or `yaw`, and it goes into the body before the next step, and nothing is read back after it), `kinematicPositionBased`/`kinematicVelocityBased` (moved by code through its `body`, with `setNextKinematicTranslation` or `setLinvel`; pushes others, is never pushed; where it ends up comes back to `entity.position` after the step).
+- **Moving a dynamic or kinematic body**: its position belongs to the body and is read back from it after every step. Move it through the body (`setLinvel`, `applyImpulse`, `setNextKinematicTranslation`), or jump it somewhere with `teleport(x, y, z)`, which also wakes it. Writing `entity.position` does not move it: while it is awake, the next step overwrites the write; while it sleeps, clients are sent a position the body is not at, and it snaps back once it wakes.
 - **Mass** comes from the colliders: `density × volume`, or `ColliderDesc.setMass(m)`.
 - **Rotation** is a quaternion, `entity.rotation`, copied to and from Rapier's as it is. A body with all rotations locked (`lockRotations()`) is turned by code: set `entity.yaw` (a turn about the vertical axis, standing it upright) or `entity.rotation.setFromEuler(pitch, yaw, roll)`, and it goes into the body before each step. Otherwise the physics turns it, and its rotation comes back out after. Spawn options take `pitch`, `yaw`, `roll` in radians, applied yaw, then pitch, then roll.
 - **`body.userData`** is the entity, so a raycast or contact can find what it hit: `hit.collider.parent()?.userData`.
@@ -556,12 +557,14 @@ Gameplay behaviour — how the physics feels — is tested in the game, against 
 
 ### Releasing a change
 
-Games install the engine from GitHub and nothing builds it on install, so **`dist/` is committed**:
+Games install the engine from GitHub and nothing builds it on install, so **`dist/` is committed**. A game depends on a release tag, `"phoenix.engine": "github:nasselk/Phoenix.Engine#v1.2.3"`, so pushes to `main` never reach it until it upgrades.
 
-1. `bun run build` — it starts from an empty `dist/`, so moved or deleted files leave no stale copies behind;
-2. `bun test` and `bun run types:check`;
-3. commit and push;
-4. in the game: `bun update phoenix.engine`.
+1. Each change goes in with `bun run build` and its rebuilt `dist/`. The build starts from an empty `dist/`, so moved or deleted files leave no stale copies behind.
+2. `bun run release <patch|minor|major>` releases what is on `main`. It refuses a dirty tree, another branch or a `main` behind `origin`. It typechecks, tests and builds, bumps `version`, commits `Release vX.Y.Z` with `dist/`, tags it, and pushes the commit and the tag together. `--dry-run` runs the checks and stops before building.
+   - `patch`: fixes.
+   - `minor`: features existing games need not touch.
+   - `major`: a changed public API, or a changed wire (`PositionEntity`'s serialization or any shared base's): games must bump their `gameVersion`.
+3. In the game: `bun add github:nasselk/Phoenix.Engine#vX.Y.Z`.
 
 Every runtime dependency of `dist/` must be listed in the **root** `package.json` — the workspaces' own `package.json` files are ignored by anything installing the engine. Type packages for libraries that appear in the public `.d.ts` files (`@types/howler`, `@types/stats.js`) belong in `dependencies` too, or games see those types as `any`.
 
@@ -570,7 +573,7 @@ Every runtime dependency of `dist/` must be listed in the **root** `package.json
 - **Two copies of Rapier** (`undefined is not an object (evaluating 'mA.rawshape_cuboid')`): the game and the engine resolve different copies. Happens under `bun link`, when the versions stop overlapping, or when the game imports another Rapier package (`rapier3d-compat` instead of `rapier3d-simd-compat`). Check `bun pm ls --all | grep rapier3d`.
 - **Vite and CommonJS dependencies** (`does not provide an export named 'Howl'`): a game that excludes `phoenix.engine` from Vite's `optimizeDeps` must include its CommonJS dependencies through it: `"phoenix.engine > howler"`, `"phoenix.engine > stats.js"`.
 - **A stale `dist/`**: the game runs the built engine, not its source. Rebuild after every change.
-- **A stale dev server**: a game's dev servers do not reload `node_modules`. After `bun update phoenix.engine`, restart them, or client and server run different engine builds and no frame decodes.
+- **A stale dev server**: a game's dev servers do not reload `node_modules`. After upgrading the engine, restart them, or client and server run different engine builds and no frame decodes.
 
 ## License
 

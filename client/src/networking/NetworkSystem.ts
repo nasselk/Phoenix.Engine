@@ -7,9 +7,14 @@ import { error, log, warn } from "../../../shared/utils/logger";
 import { Interval, Timeout } from "../../../shared/utils/timers/timer";
 import { wait } from "../../../shared/utils/timers/wait";
 
+const RETRYABLE = new Set([1001, 1006, 1011, 1012, 1013]);
+const RETRY_BASE = 500;
+const RETRY_MAX = 15_000;
+const MAX_RETRIES = 10;
+
 type NetworkEvents = {
 	connection: [];
-	disconnection: [code: number, reason: string, manual: boolean];
+	disconnection: [code: number, reason: string, manual: boolean, retrying: boolean];
 	reconnection: [];
 	message: [event: string, data: BufferReader];
 	stats: [stats: NetworkStats];
@@ -80,6 +85,7 @@ export class NetworkSystem<
 	private reconnectTimeout?: Timeout;
 	private manuallyDisconnected: boolean;
 	private reconnecting: boolean;
+	private reconnectRetries = 0;
 	private readonly simulation: {
 		latency: number;
 		loss: number;
@@ -326,6 +332,8 @@ export class NetworkSystem<
 		this.resetStats();
 		this.statsTimer.resume();
 
+		this.reconnectRetries = 0;
+
 		this.emit("connection");
 
 		if (this.reconnecting) {
@@ -339,21 +347,27 @@ export class NetworkSystem<
 		this.reconnectTimeout?.clear();
 		this.statsTimer.pause();
 
-		this.emit("disconnection", code, reason, this.manuallyDisconnected);
+		const retrying = !this.manuallyDisconnected && this.baseURL !== undefined && RETRYABLE.has(code) && this.reconnectRetries < MAX_RETRIES;
+
+		this.emit("disconnection", code, reason, this.manuallyDisconnected, retrying);
 
 		// 1006 is an abnormal close: no close frame, so the server never decided to drop us.
 		if (!this.manuallyDisconnected && this.baseURL) {
 			const baseURL = this.baseURL;
+			const floor = code === 1013 ? 4 * RETRY_BASE : RETRY_BASE;
+			const delay = Math.min(floor * 2 ** this.reconnectRetries, RETRY_MAX) * (0.5 + Math.random() * 0.5);
 
-			error("Network", "Connection lost, trying to reconnect", code, reason);
+			this.reconnectRetries++;
+			warn("Network", `Connection closed (${code}), retry ${this.reconnectRetries} in ${Math.round(delay)} ms`, reason);
 
 			this.reconnectTimeout = new Timeout(() => {
 				this.reconnecting = true;
 				this.connect(baseURL).catch((err) => {
 					warn("Network", "Reconnection failed:", err instanceof Error ? err.message : err);
 				});
-			}, 500);
+			}, delay);
 		} else {
+			this.reconnectRetries = 0;
 			log("Network", "Disconnected from server with code", code, reason);
 		}
 

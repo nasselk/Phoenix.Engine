@@ -16,6 +16,10 @@ type EngineEvents = {
 /** How many random codes `createRoom` tries before it gives up on finding one no open room has. */
 export const MAX_INVITE_CODE_ATTEMPTS = 100;
 
+const RANDOM_BYTES = new Uint8Array(INVITE_CODE_LENGTH);
+/** Bytes at or past this would make the first letters of the alphabet likelier than the rest. */
+const UNBIASED_BYTES = 256 - (256 % INVITE_CODE_ALPHABET.length);
+
 /** Everything the engine is handed: the room capacity, and optionally the networking to bring up with it. */
 export type EngineOptions<In extends readonly string[] = [], Out extends readonly string[] = [], InSchemas = {}, OutSchemas = {}, D extends EntityDefinitions = EntityDefinitions, C = never> = {
 	readonly entities: EntityRegistry<D>;
@@ -126,7 +130,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 	 * characters from INVITE_CODE_ALPHABET. Whatever it needs beyond entities — a sync loop, a round
 	 * timer — is built by the caller against the room it just got, and listens for `room.on("update")`.
 	 */
-	public createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.freeInviteCode(), seed }: RoomOptions = {}): this["Room"] {
+	public createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.generateInviteCode(), seed }: RoomOptions = {}): this["Room"] {
 		if (this.rooms.has(inviteCode)) {
 			throw new Error(`A room with invite code "${inviteCode}" already exists`);
 		}
@@ -196,12 +200,18 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		return true;
 	}
 
-	private freeInviteCode(): string {
-		for (let attempt = 0; attempt < MAX_INVITE_CODE_ATTEMPTS; attempt++) {
+	private generateInviteCode(maxAttempts: number = MAX_INVITE_CODE_ATTEMPTS): string {
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
 			let code = "";
 
-			for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
-				code += INVITE_CODE_ALPHABET[Math.floor(Math.random() * INVITE_CODE_ALPHABET.length)];
+			while (code.length < INVITE_CODE_LENGTH) {
+				crypto.getRandomValues(RANDOM_BYTES);
+
+				for (let i = 0; i < RANDOM_BYTES.length && code.length < INVITE_CODE_LENGTH; i++) {
+					if (RANDOM_BYTES[i]! < UNBIASED_BYTES) {
+						code += INVITE_CODE_ALPHABET[RANDOM_BYTES[i]! % INVITE_CODE_ALPHABET.length];
+					}
+				}
 			}
 
 			if (!this.rooms.has(code)) {
@@ -209,7 +219,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 			}
 		}
 
-		throw new Error(`No free invite code after ${MAX_INVITE_CODE_ATTEMPTS} attempts: too many rooms are open`);
+		throw new Error(`No free invite code after ${maxAttempts} attempts: too many rooms are open`);
 	}
 
 	public destroy(): void {
