@@ -59,7 +59,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.70.0",
-		"@nasselk/binarypack": "github:nasselk/BinaryPack#1.0.0",
+		"@nasselk/binarypack": "github:nasselk/BinaryPack#v1.0.0",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
 		"stats.js": "^0.17.0",
