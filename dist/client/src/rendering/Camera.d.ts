@@ -72,12 +72,14 @@ export declare class Camera extends PerspectiveCamera {
     private element?;
     private verticalFovDegrees;
     private minHorizontalFovDegrees;
-    private turnPointer;
-    private panPointer;
+    private turnHeld;
+    private panHeld;
     private readonly touches;
     private spread;
     private readonly middle;
     private readonly swing;
+    private readonly onMouseDown;
+    private readonly onMouseUp;
     private readonly onPointerDown;
     private readonly onPointerMove;
     private readonly onPointerUp;

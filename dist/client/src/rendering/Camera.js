@@ -17,20 +17,30 @@ export class Camera extends PerspectiveCamera {
         this.flyForward = 0;
         this.flyRight = 0;
         this.flyBoost = false;
-        this.turnPointer = -1;
-        this.panPointer = -1;
+        this.turnHeld = false;
+        this.panHeld = false;
         this.touches = new Map();
         this.spread = 0;
         this.middle = { x: 0, y: 0 };
         this.swing = { duration: 0, elapsed: 0, fromYaw: 0, toYaw: 0, fromPitch: 0, toPitch: 0 };
+        this.onMouseDown = (event) => {
+            if (this.dragging && event.button === this.turnButton) {
+                this.turnHeld = true;
+            }
+            else if (this.panning && event.button === this.panButton) {
+                this.panHeld = true;
+            }
+        };
+        this.onMouseUp = (event) => {
+            if (event.button === this.turnButton) {
+                this.turnHeld = false;
+            }
+            if (event.button === this.panButton) {
+                this.panHeld = false;
+            }
+        };
         this.onPointerDown = (event) => {
             if (event.pointerType === "mouse") {
-                if (this.dragging && event.button === this.turnButton) {
-                    this.turnPointer = event.pointerId;
-                }
-                else if (this.panning && event.button === this.panButton) {
-                    this.panPointer = event.pointerId;
-                }
                 return;
             }
             if (this.touches.size >= 2) {
@@ -44,11 +54,14 @@ export class Camera extends PerspectiveCamera {
             catch { }
         };
         this.onPointerMove = (event) => {
-            if (event.pointerId === this.turnPointer) {
-                this.drag(event.movementX, event.movementY);
-            }
-            if (event.pointerId === this.panPointer) {
-                this.pan(event.movementX, event.movementY);
+            if (event.pointerType === "mouse") {
+                if (this.turnHeld) {
+                    this.drag(event.movementX, event.movementY);
+                }
+                if (this.panHeld) {
+                    this.pan(event.movementX, event.movementY);
+                }
+                return;
             }
             const touch = this.touches.get(event.pointerId);
             if (touch === undefined) {
@@ -74,12 +87,6 @@ export class Camera extends PerspectiveCamera {
             this.pan(middle.x - fromX, middle.y - fromY);
         };
         this.onPointerUp = (event) => {
-            if (event.pointerId === this.turnPointer) {
-                this.turnPointer = -1;
-            }
-            if (event.pointerId === this.panPointer) {
-                this.panPointer = -1;
-            }
             if (this.touches.delete(event.pointerId)) {
                 this.measureFingers();
             }
@@ -119,7 +126,7 @@ export class Camera extends PerspectiveCamera {
         this.place();
     }
     get isOrbiting() {
-        return this.turnPointer !== -1 || this.touches.size > 0;
+        return this.turnHeld || this.touches.size > 0;
     }
     fit(aspect = this.aspect) {
         const narrowest = this.minHorizontalFovDegrees;
@@ -209,10 +216,12 @@ export class Camera extends PerspectiveCamera {
         this.destroy();
         this.element = element;
         element.addEventListener("pointerdown", this.onPointerDown);
+        element.addEventListener("mousedown", this.onMouseDown);
         element.addEventListener("wheel", this.onWheel, { passive: true });
         window.addEventListener("pointermove", this.onPointerMove);
         window.addEventListener("pointerup", this.onPointerUp);
         window.addEventListener("pointercancel", this.onPointerUp);
+        window.addEventListener("mouseup", this.onMouseUp);
         return this;
     }
     destroy() {
@@ -221,12 +230,14 @@ export class Camera extends PerspectiveCamera {
             return this;
         }
         element.removeEventListener("pointerdown", this.onPointerDown);
+        element.removeEventListener("mousedown", this.onMouseDown);
         element.removeEventListener("wheel", this.onWheel);
         window.removeEventListener("pointermove", this.onPointerMove);
         window.removeEventListener("pointerup", this.onPointerUp);
         window.removeEventListener("pointercancel", this.onPointerUp);
+        window.removeEventListener("mouseup", this.onMouseUp);
         this.element = undefined;
-        this.turnPointer = this.panPointer = -1;
+        this.turnHeld = this.panHeld = false;
         this.touches.clear();
         this.spread = 0;
         return this;

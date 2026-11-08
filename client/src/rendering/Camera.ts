@@ -132,8 +132,8 @@ export class Camera extends PerspectiveCamera {
 	private verticalFovDegrees: number;
 	private minHorizontalFovDegrees: number;
 
-	private turnPointer = -1;
-	private panPointer = -1;
+	private turnHeld = false;
+	private panHeld = false;
 	private readonly touches = new Map<number, Touch>();
 	/** How far apart two fingers were last time, so a pinch is a ratio rather than a distance. */
 	private spread = 0;
@@ -143,14 +143,26 @@ export class Camera extends PerspectiveCamera {
 	/** A `lookFrom` swing in progress: from which yaw and pitch to which, over how long, and how far along. */
 	private readonly swing = { duration: 0, elapsed: 0, fromYaw: 0, toYaw: 0, fromPitch: 0, toPitch: 0 };
 
+	private readonly onMouseDown = (event: MouseEvent): void => {
+		if (this.dragging && event.button === this.turnButton) {
+			this.turnHeld = true;
+		} else if (this.panning && event.button === this.panButton) {
+			this.panHeld = true;
+		}
+	};
+
+	private readonly onMouseUp = (event: MouseEvent): void => {
+		if (event.button === this.turnButton) {
+			this.turnHeld = false;
+		}
+
+		if (event.button === this.panButton) {
+			this.panHeld = false;
+		}
+	};
+
 	private readonly onPointerDown = (event: PointerEvent): void => {
 		if (event.pointerType === "mouse") {
-			if (this.dragging && event.button === this.turnButton) {
-				this.turnPointer = event.pointerId;
-			} else if (this.panning && event.button === this.panButton) {
-				this.panPointer = event.pointerId;
-			}
-
 			return;
 		}
 
@@ -168,12 +180,16 @@ export class Camera extends PerspectiveCamera {
 	};
 
 	private readonly onPointerMove = (event: PointerEvent): void => {
-		if (event.pointerId === this.turnPointer) {
-			this.drag(event.movementX, event.movementY);
-		}
+		if (event.pointerType === "mouse") {
+			if (this.turnHeld) {
+				this.drag(event.movementX, event.movementY);
+			}
 
-		if (event.pointerId === this.panPointer) {
-			this.pan(event.movementX, event.movementY);
+			if (this.panHeld) {
+				this.pan(event.movementX, event.movementY);
+			}
+
+			return;
 		}
 
 		const touch = this.touches.get(event.pointerId);
@@ -211,14 +227,6 @@ export class Camera extends PerspectiveCamera {
 	};
 
 	private readonly onPointerUp = (event: PointerEvent): void => {
-		if (event.pointerId === this.turnPointer) {
-			this.turnPointer = -1;
-		}
-
-		if (event.pointerId === this.panPointer) {
-			this.panPointer = -1;
-		}
-
 		// The finger left on its own carries on from where it is, rather than from where the pinch was.
 		if (this.touches.delete(event.pointerId)) {
 			this.measureFingers();
@@ -270,7 +278,7 @@ export class Camera extends PerspectiveCamera {
 
 	/** Whether a held button or a finger is turning it right now. */
 	public get isOrbiting(): boolean {
-		return this.turnPointer !== -1 || this.touches.size > 0;
+		return this.turnHeld || this.touches.size > 0;
 	}
 
 	/**
@@ -405,10 +413,12 @@ export class Camera extends PerspectiveCamera {
 		this.element = element;
 
 		element.addEventListener("pointerdown", this.onPointerDown as EventListener);
+		element.addEventListener("mousedown", this.onMouseDown as EventListener);
 		element.addEventListener("wheel", this.onWheel as EventListener, { passive: true });
 		window.addEventListener("pointermove", this.onPointerMove);
 		window.addEventListener("pointerup", this.onPointerUp);
 		window.addEventListener("pointercancel", this.onPointerUp);
+		window.addEventListener("mouseup", this.onMouseUp);
 
 		return this;
 	}
@@ -421,13 +431,15 @@ export class Camera extends PerspectiveCamera {
 		}
 
 		element.removeEventListener("pointerdown", this.onPointerDown as EventListener);
+		element.removeEventListener("mousedown", this.onMouseDown as EventListener);
 		element.removeEventListener("wheel", this.onWheel as EventListener);
 		window.removeEventListener("pointermove", this.onPointerMove);
 		window.removeEventListener("pointerup", this.onPointerUp);
 		window.removeEventListener("pointercancel", this.onPointerUp);
+		window.removeEventListener("mouseup", this.onMouseUp);
 
 		this.element = undefined;
-		this.turnPointer = this.panPointer = -1;
+		this.turnHeld = this.panHeld = false;
 		this.touches.clear();
 		this.spread = 0;
 

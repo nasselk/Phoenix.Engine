@@ -7,7 +7,7 @@ function horizontal(camera: Camera): number {
 	return 2 * Math.atan(Math.tan((camera.fov * Math.PI) / 360) * camera.aspect) * (180 / Math.PI);
 }
 
-type Handlers = Record<"onPointerDown" | "onPointerMove" | "onPointerUp", (event: object) => void> & { onWheel(event: object): void };
+type Handlers = Record<"onMouseDown" | "onMouseUp" | "onPointerDown" | "onPointerMove" | "onPointerUp", (event: object) => void> & { onWheel(event: object): void };
 
 function handlers(camera: Camera): Handlers {
 	return camera as unknown as Handlers;
@@ -17,9 +17,9 @@ function handlers(camera: Camera): Handlers {
 function mouseDrag(camera: Camera, button: number, x: number, y: number): void {
 	const events = handlers(camera);
 
-	events.onPointerDown({ pointerType: "mouse", button, pointerId: 1 });
+	events.onMouseDown({ button });
 	events.onPointerMove({ pointerType: "mouse", pointerId: 1, movementX: x, movementY: y });
-	events.onPointerUp({ pointerType: "mouse", pointerId: 1 });
+	events.onMouseUp({ button });
 }
 
 /** Fingers put down at their first points, moved to their second, then lifted. */
@@ -299,6 +299,53 @@ describe("Camera", () => {
 		fingers(game, [0, 0, 20, 0], [100, 0, 120, 0]);
 
 		expect(game.anchor.toArray()).toEqual(anchor.toArray());
+	});
+
+	test("held together, the turn and pan buttons each start and stop on their own, in any order", () => {
+		const camera = new Camera({ panning: true, panSpeed: 0.1, turnButton: 2, panButton: 0 });
+		const events = handlers(camera);
+		const move = (x: number): void => events.onPointerMove({ pointerType: "mouse", pointerId: 1, movementX: x, movementY: 0 });
+
+		camera.update();
+
+		events.onMouseDown({ button: 2 });
+		events.onMouseDown({ button: 0 });
+
+		const yaw = camera.yaw;
+		const anchor = camera.anchor.clone();
+
+		move(20);
+
+		expect(camera.yaw).not.toBeCloseTo(yaw, 5);
+		expect(camera.anchor.distanceTo(anchor)).toBeGreaterThan(0);
+
+		events.onMouseUp({ button: 2 });
+
+		const panned = camera.yaw;
+
+		move(20);
+
+		expect(camera.yaw).toBe(panned);
+		expect(camera.isOrbiting).toBe(false);
+
+		events.onMouseDown({ button: 2 });
+		events.onMouseUp({ button: 0 });
+
+		const still = camera.anchor.clone();
+
+		move(20);
+
+		expect(camera.yaw).not.toBe(panned);
+		expect(camera.anchor.toArray()).toEqual(still.toArray());
+
+		events.onMouseUp({ button: 2 });
+
+		const stopped = camera.yaw;
+
+		move(20);
+
+		expect(camera.yaw).toBe(stopped);
+		expect(camera.isOrbiting).toBe(false);
 	});
 
 	test("starts from what another camera shows: its place, facing and lens", () => {

@@ -2,8 +2,8 @@ import type { BunRequest } from "bun";
 import { type Contract, type ContractOf, type InboundEvent, type MessagePayload, type OutboundEvent, Protocol, type SchemasFor, type SendPayload } from "../../../shared/networking/protocol";
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
-import { Socket } from "./socket";
 import type { World } from "../world/world";
+import { Socket } from "./socket";
 type NetworkSystemEvents<C extends Contract, R extends World<any, any, C>> = {
     listening: [port: number];
     connection: [socket: Socket<C, R>];
