@@ -6,7 +6,7 @@
       "name": "phoenix.engine",
       "dependencies": {
         "@lucide/svelte": "^1.70.0",
-        "@nasselk/binarypack": "github:nasselk/BinaryPack#v1.0.0",
+        "@nasselk/binarypack": "github:nasselk/BinaryPack#v1.3.0",
         "@types/howler": "^2.2.13",
         "@types/stats.js": "^0.17.4",
         "howler": "^2.2.4",
@@ -16,7 +16,7 @@
       "devDependencies": {
         "@biomejs/biome": "2.6.4",
         "@dimforge/rapier3d-simd-compat": "^0.21.0",
-        "@nasselk/binaryschema": "github:nasselk/BinarySchema#v1.0.0",
+        "@nasselk/binaryschema": "github:nasselk/BinarySchema#v1.1.0",
         "@types/bun": "^1.4.4",
         "@types/three": "^0.187.0",
         "husky": "^9.1.7",
@@ -92,9 +92,9 @@
 
     "@lucide/svelte": ["@lucide/svelte@1.70.0", "", { "peerDependencies": { "svelte": "^5" } }, "sha512-zvx7K/WLxo82c4ZYqbsfcYUPDVFrq4561xH0NHfSHJJbajj0AONTQ14EO095/WnfI4XUEl1tyS/nbjQNNiNxdQ=="],
 
-    "@nasselk/binarypack": ["@nasselk/binarypack@github:nasselk/BinaryPack#0e14379", {}, "nasselk-BinaryPack-0e14379", "sha512-pKOKHuH9G3NGkaaBe19A58pu8vxVPD6+oUySNBAwSpBWqzdkm4doOoH1epDWdMzZ4zkcFy+w+4OHESAccIfvAg=="],
+    "@nasselk/binarypack": ["@nasselk/binarypack@github:nasselk/BinaryPack#3963b83", {}, "nasselk-BinaryPack-3963b83", "sha512-lWQSLaXAmQfQVBSPRSmwgW6yvf1hG/XzSLTYXZ6dPSkn1VW6jdXboodIElQPIVJ/MltA4SteHF8+YeYiGCb0tQ=="],
 
-    "@nasselk/binaryschema": ["@nasselk/binaryschema@github:nasselk/BinarySchema#f3e85c1", { "dependencies": { "@nasselk/binarypack": "github:nasselk/BinaryPack" }, "bin": { "binaryschema": "./dist/cli.js" } }, "nasselk-BinarySchema-f3e85c1", "sha512-pZKZ/J1E7x/YbShdESXkgGwq95+bHcmyS+ILsq5SJJcTferln9lnXtfaraQ9BHCwKim8cMSZ0lWUkLMASVElow=="],
+    "@nasselk/binaryschema": ["@nasselk/binaryschema@github:nasselk/BinarySchema#edcb4f7", { "dependencies": { "@nasselk/binarypack": "github:nasselk/BinaryPack#v1.3.0" }, "bin": { "binaryschema": "./dist/cli.js" } }, "nasselk-BinarySchema-edcb4f7", "sha512-H6JWagAeAFOvKFSmGPahFvMnepopQxLpyQG7P3FkYc7xkm0GugjL57MxRGhTxToRjYt3nrV5LjnlU4WFw3xgGA=="],
 
     "@sveltejs/acorn-typescript": ["@sveltejs/acorn-typescript@1.0.13", "", { "peerDependencies": { "acorn": "^8.9.0" } }, "sha512-wgKggnhZVL9Bfx1OaKKTrYY9BFRk6C8UAkQNUcIv1+llzYrIqy+RZm5HPKzn0NpEBvTVhTqB4kQyllZywsRBRQ=="],
 
@@ -211,7 +211,5 @@
     "webgl-sdf-generator": ["webgl-sdf-generator@1.1.1", "", {}, "sha512-9Z0JcMTFxeE+b2x1LJTdnaT8rT8aEp7MVxkNwoycNmJWwPdzoXzMh0BjJSh/AEFP+KPYZUli814h8bJZFIZ2jA=="],
 
     "zimmerframe": ["zimmerframe@1.1.5", "", {}, "sha512-msJxIvYDYcoNL+PJsu+7qmpDWsYmAxTY+2TNYXXF0hzBzBk0BMecOqDOG/EckUoKCuKwObfbugIl8QpqHDXeFA=="],
-
-    "@nasselk/binaryschema/@nasselk/binarypack": ["@nasselk/binarypack@github:nasselk/BinaryPack#7d6987b", {}, "nasselk-BinaryPack-7d6987b", "sha512-ggGHGN7h4m+FvGK4IYGUDUjMxS0HFj7yu4a/qWZaw2+9/eozYp4lEiJAUltvdD8HeMZJoBgLARJyWXYwkNzWOw=="],
   }
 }

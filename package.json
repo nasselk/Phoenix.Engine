@@ -59,7 +59,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.70.0",
-		"@nasselk/binarypack": "github:nasselk/BinaryPack#v1.0.0",
+		"@nasselk/binarypack": "github:nasselk/BinaryPack#v1.3.0",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
 		"stats.js": "^0.17.0",
@@ -67,7 +67,7 @@
 		"troika-three-text": "^0.53.1"
 	},
 	"devDependencies": {
-		"@nasselk/binaryschema": "github:nasselk/BinarySchema#v1.0.0",
+		"@nasselk/binaryschema": "github:nasselk/BinarySchema#v1.1.0",
 		"@biomejs/biome": "2.6.4",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"@types/bun": "^1.4.4",
