@@ -13,8 +13,8 @@ export class InputSystem {
         this.handlers = {
             keydown: (event) => this.keyDown(event),
             keyup: (event) => this.release(event.code, event),
-            pointerdown: (event) => this.press(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keydown")),
-            pointerup: (event) => this.release(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keyup")),
+            mousedown: (event) => this.press(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keydown")),
+            mouseup: (event) => this.release(`Pointer${event.button}`, this.syntheticEvent(`Pointer${event.button}`, "keyup")),
             blur: () => this.releaseAll(),
         };
         this.initialized = false;
@@ -31,9 +31,8 @@ export class InputSystem {
         this.element = element;
         window.addEventListener("keydown", this.handlers.keydown);
         window.addEventListener("keyup", this.handlers.keyup);
-        element.addEventListener("pointerdown", this.handlers.pointerdown);
-        window.addEventListener("pointerup", this.handlers.pointerup);
-        window.addEventListener("pointercancel", this.handlers.pointerup);
+        element.addEventListener("mousedown", this.handlers.mousedown);
+        window.addEventListener("mouseup", this.handlers.mouseup);
         window.addEventListener("blur", this.handlers.blur);
         this.initialized = true;
     }
@@ -173,9 +172,8 @@ export class InputSystem {
         }
         window.removeEventListener("keydown", this.handlers.keydown);
         window.removeEventListener("keyup", this.handlers.keyup);
-        this.element?.removeEventListener("pointerdown", this.handlers.pointerdown);
-        window.removeEventListener("pointerup", this.handlers.pointerup);
-        window.removeEventListener("pointercancel", this.handlers.pointerup);
+        this.element?.removeEventListener("mousedown", this.handlers.mousedown);
+        window.removeEventListener("mouseup", this.handlers.mouseup);
         window.removeEventListener("blur", this.handlers.blur);
         this.listeners.start.clear();
         this.listeners.stop.clear();

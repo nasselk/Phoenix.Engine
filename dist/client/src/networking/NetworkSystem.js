@@ -5,6 +5,10 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { error, log, warn } from "../../../shared/utils/logger";
 import { Interval, Timeout } from "../../../shared/utils/timers/timer";
 import { wait } from "../../../shared/utils/timers/wait";
+const RETRYABLE = new Set([1001, 1006, 1011, 1012, 1013]);
+const RETRY_BASE = 500;
+const RETRY_MAX = 15000;
+const MAX_RETRIES = 10;
 export var NetworkState;
 (function (NetworkState) {
     NetworkState[NetworkState["CONNECTING"] = 0] = "CONNECTING";
@@ -16,6 +20,7 @@ export class NetworkSystem extends EventEmitter {
     constructor(options) {
         super();
         this.attempt = 0;
+        this.reconnectRetries = 0;
         this.protocol = new Protocol(options);
         this.handlers = new MessageHandlers(this.protocol.in);
         this.manuallyDisconnected = false;
@@ -157,6 +162,7 @@ export class NetworkSystem extends EventEmitter {
         log("Network", "Connected to", this.baseURL + SOCKET_ROUTE);
         this.resetStats();
         this.statsTimer.resume();
+        this.reconnectRetries = 0;
         this.emit("connection");
         if (this.reconnecting) {
             this.reconnecting = false;
@@ -166,18 +172,23 @@ export class NetworkSystem extends EventEmitter {
     onDisconnect(code, reason) {
         this.reconnectTimeout?.clear();
         this.statsTimer.pause();
-        this.emit("disconnection", code, reason, this.manuallyDisconnected);
+        const retrying = !this.manuallyDisconnected && this.baseURL !== undefined && RETRYABLE.has(code) && this.reconnectRetries < MAX_RETRIES;
+        this.emit("disconnection", code, reason, this.manuallyDisconnected, retrying);
         if (!this.manuallyDisconnected && this.baseURL) {
             const baseURL = this.baseURL;
-            error("Network", "Connection lost, trying to reconnect", code, reason);
+            const floor = code === 1013 ? 4 * RETRY_BASE : RETRY_BASE;
+            const delay = Math.min(floor * 2 ** this.reconnectRetries, RETRY_MAX) * (0.5 + Math.random() * 0.5);
+            this.reconnectRetries++;
+            warn("Network", `Connection closed (${code}), retry ${this.reconnectRetries} in ${Math.round(delay)} ms`, reason);
             this.reconnectTimeout = new Timeout(() => {
                 this.reconnecting = true;
                 this.connect(baseURL).catch((err) => {
                     warn("Network", "Reconnection failed:", err instanceof Error ? err.message : err);
                 });
-            }, 500);
+            }, delay);
         }
         else {
+            this.reconnectRetries = 0;
             log("Network", "Disconnected from server with code", code, reason);
         }
         this.manuallyDisconnected = false;

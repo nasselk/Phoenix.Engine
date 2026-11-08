@@ -2,7 +2,7 @@
 	"name": "phoenix.engine",
 	"author": "nasselk",
 	"description": "Typescript multiplayer game engine",
-	"version": "1.0.179",
+	"version": "1.0.180",
 	"type": "module",
 	"private": true,
 	"exports": {

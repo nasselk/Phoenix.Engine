@@ -16,7 +16,7 @@ export type PositionEntityOptions = EntityOptions & {
     readonly roll?: number;
 };
 export declare abstract class PositionEntity<C> extends Entity<C> {
-    readonly position: ObservableVector3;
+    readonly position: Readonly<ObservableVector3>;
     readonly rotation: ObservableQuaternion;
     body?: RigidBody;
     private turns;

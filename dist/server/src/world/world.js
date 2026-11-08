@@ -69,12 +69,13 @@ export class World extends BaseWorld {
         if (id !== undefined && !this.ids.reserve(id)) {
             throw new Error(`Entity id ${id} is taken`);
         }
-        const entity = new Kind(this, this.context, options);
+        let entity;
         try {
+            entity = new Kind(this, this.context, options);
             return this.insert(kind, entity, options.id);
         }
         catch (error) {
-            entity.onDestroy();
+            entity?.onDestroy();
             throw error;
         }
     }

@@ -119,7 +119,7 @@ export class PositionEntity extends Entity {
         else {
             this.position.set(a.x, a.y, a.z);
         }
-        this.body?.setTranslation(this.position, false);
+        this.body?.setTranslation(this.position, true);
     }
     clean() {
         const { position, rotation } = this;

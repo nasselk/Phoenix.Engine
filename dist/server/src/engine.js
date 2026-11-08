@@ -6,6 +6,8 @@ import { GameLoop } from "./GameLoop";
 import { NetworkSystem } from "./networking/NetworkSystem";
 import { World } from "./world/world";
 export const MAX_INVITE_CODE_ATTEMPTS = 100;
+const RANDOM_BYTES = new Uint8Array(INVITE_CODE_LENGTH);
+const UNBIASED_BYTES = 256 - (256 % INVITE_CODE_ALPHABET.length);
 export class Engine extends EventEmitter {
     constructor(options) {
         super();
@@ -39,7 +41,7 @@ export class Engine extends EventEmitter {
         log("Phoenix Server", "Successfully initiated the engine");
         this.emit("init");
     }
-    createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.freeInviteCode(), seed } = {}) {
+    createRoom({ maxPlayers, capacity, public: isPublic = true, inviteCode = this.generateInviteCode(), seed } = {}) {
         if (this.rooms.has(inviteCode)) {
             throw new Error(`A room with invite code "${inviteCode}" already exists`);
         }
@@ -84,17 +86,22 @@ export class Engine extends EventEmitter {
         this.rooms.delete(inviteCode);
         return true;
     }
-    freeInviteCode() {
-        for (let attempt = 0; attempt < MAX_INVITE_CODE_ATTEMPTS; attempt++) {
+    generateInviteCode(maxAttempts = MAX_INVITE_CODE_ATTEMPTS) {
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
             let code = "";
-            for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
-                code += INVITE_CODE_ALPHABET[Math.floor(Math.random() * INVITE_CODE_ALPHABET.length)];
+            while (code.length < INVITE_CODE_LENGTH) {
+                crypto.getRandomValues(RANDOM_BYTES);
+                for (let i = 0; i < RANDOM_BYTES.length && code.length < INVITE_CODE_LENGTH; i++) {
+                    if (RANDOM_BYTES[i] < UNBIASED_BYTES) {
+                        code += INVITE_CODE_ALPHABET[RANDOM_BYTES[i] % INVITE_CODE_ALPHABET.length];
+                    }
+                }
             }
             if (!this.rooms.has(code)) {
                 return code;
             }
         }
-        throw new Error(`No free invite code after ${MAX_INVITE_CODE_ATTEMPTS} attempts: too many rooms are open`);
+        throw new Error(`No free invite code after ${maxAttempts} attempts: too many rooms are open`);
     }
     destroy() {
         for (const inviteCode of [...this.rooms.keys()]) {

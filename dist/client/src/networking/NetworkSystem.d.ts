@@ -3,7 +3,7 @@ import { type Contract, type ContractOf, type InboundEvent, type MessagePayload,
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 type NetworkEvents = {
     connection: [];
-    disconnection: [code: number, reason: string, manual: boolean];
+    disconnection: [code: number, reason: string, manual: boolean, retrying: boolean];
     reconnection: [];
     message: [event: string, data: BufferReader];
     stats: [stats: NetworkStats];
@@ -47,6 +47,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private reconnectTimeout?;
     private manuallyDisconnected;
     private reconnecting;
+    private reconnectRetries;
     private readonly simulation;
     private readonly statsTimer;
     private readonly state;

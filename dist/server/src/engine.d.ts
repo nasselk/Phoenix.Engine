@@ -43,7 +43,7 @@ export declare class Engine<const In extends readonly string[] = [], const Out e
     fullestRoom(...exclude: string[]): this["Room"] | undefined;
     getRoom(inviteCode: string): this["Room"] | undefined;
     destroyRoom(inviteCode: string): boolean;
-    private freeInviteCode;
+    private generateInviteCode;
     destroy(): void;
 }
 export {};
