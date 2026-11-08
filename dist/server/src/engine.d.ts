@@ -28,7 +28,7 @@ export type RoomOptions = {
 };
 type ContextOf<C, Self> = [C] extends [never] ? Self : C;
 export declare class Engine<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, const D extends EntityDefinitions = EntityDefinitions, C = never> extends EventEmitter<EngineEvents> {
-    readonly network: NetworkSystem<In, Out, InSchemas, OutSchemas>;
+    readonly network: NetworkSystem<In, Out, InSchemas, OutSchemas, ContractOf<In, Out, InSchemas, OutSchemas>, this["Room"]>;
     readonly loop: GameLoop;
     readonly Room: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
     readonly rooms: Map<string, this["Room"]>;

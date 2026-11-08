@@ -20,13 +20,13 @@ export declare enum SocketState {
     CLOSING = 2,
     CLOSED = 3
 }
-export declare class Socket<C extends Contract = Contract> extends EventEmitter<SocketEvents<C>> {
+export declare class Socket<C extends Contract = Contract, R extends World<any, any, C> = World<any, any, C>> extends EventEmitter<SocketEvents<C>> {
     readonly id: number;
     readonly ip: string;
     lastMessage: number;
     messages: number;
     readonly rates: CounterMap<number>;
-    readonly room?: World<any, any, C>;
+    readonly room?: R;
     readonly seen: Seen;
     readonly data: SocketData;
     private readonly protocol;

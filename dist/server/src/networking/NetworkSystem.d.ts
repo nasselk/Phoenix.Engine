@@ -3,11 +3,12 @@ import { type Contract, type ContractOf, type InboundEvent, type MessagePayload,
 import { CounterMap } from "../../../shared/utils/CounterMap";
 import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { Socket } from "./socket";
-type NetworkSystemEvents<C extends Contract> = {
+import type { World } from "../world/world";
+type NetworkSystemEvents<C extends Contract, R extends World<any, any, C>> = {
     listening: [port: number];
-    connection: [socket: Socket<C>];
-    disconnection: [socket: Socket<C>, code: number, reason: string];
-    message: [socket: Socket<C>, event: InboundEvent<C>, data: MessagePayload<C, InboundEvent<C>>];
+    connection: [socket: Socket<C, R>];
+    disconnection: [socket: Socket<C, R>, code: number, reason: string];
+    message: [socket: Socket<C, R>, event: InboundEvent<C>, data: MessagePayload<C, InboundEvent<C>>];
     destroy: [];
 };
 export type EventLimit = {
@@ -56,9 +57,9 @@ export type NetworkSettings = Filled<Omit<NetworkTransportOptions, "TLS" | "http
     readonly ws: Filled<NonNullable<NetworkTransportOptions["ws"]>>;
 };
 export declare const DEFAULT_NETWORK_SETTINGS: NetworkSettings;
-export declare class NetworkSystem<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, C extends Contract = ContractOf<In, Out, InSchemas, OutSchemas>> extends EventEmitter<NetworkSystemEvents<C>> {
+export declare class NetworkSystem<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, C extends Contract = ContractOf<In, Out, InSchemas, OutSchemas>, R extends World<any, any, C> = World<any, any, C>> extends EventEmitter<NetworkSystemEvents<C, R>> {
     readonly protocol: Protocol<C>;
-    readonly sockets: Map<number, Socket<C>>;
+    readonly sockets: Map<number, Socket<C, R>>;
     readonly IPList: CounterMap<string>;
     readonly settings: NetworkSettings;
     private readonly http;
@@ -77,7 +78,7 @@ export declare class NetworkSystem<const In extends readonly string[] = [], cons
     private withinLimits;
     private static resolveLimit;
     route(path: string, handler: (request: BunRequest) => Response | Promise<Response>): this;
-    onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): () => void;
+    onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C, R>, data: MessagePayload<C, K>) => void): () => void;
     broadcast<K extends OutboundEvent<C>>(topic: string, event: K, ...[data]: SendPayload<C, K>): this;
     private handleUpgrade;
     destroy(): void;

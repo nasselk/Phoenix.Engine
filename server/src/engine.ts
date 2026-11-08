@@ -56,7 +56,7 @@ type ContextOf<C, Self> = [C] extends [never] ? Self : C;
  * one place to measure the whole process's tick budget.
  */
 export class Engine<const In extends readonly string[] = [], const Out extends readonly string[] = [], const InSchemas extends SchemasFor<InSchemas, In> = {}, const OutSchemas extends SchemasFor<OutSchemas, Out> = {}, const D extends EntityDefinitions = EntityDefinitions, C = never> extends EventEmitter<EngineEvents> {
-	public readonly network: NetworkSystem<In, Out, InSchemas, OutSchemas>;
+	public readonly network: NetworkSystem<In, Out, InSchemas, OutSchemas, ContractOf<In, Out, InSchemas, OutSchemas>, this["Room"]>;
 	public readonly loop: GameLoop;
 	/** What this engine's rooms are: its entity kinds, its context and its protocol. A type only, never set. */
 	declare public readonly Room: World<D, ContextOf<C, this>, ContractOf<In, Out, InSchemas, OutSchemas>>;
@@ -87,7 +87,7 @@ export class Engine<const In extends readonly string[] = [], const Out extends r
 		this.rooms = new Map();
 		this.entities = options.entities;
 		this.context = (options.context ?? this) as ContextOf<C, this>;
-		this.network = new NetworkSystem<In, Out, InSchemas, OutSchemas>(options.network);
+		this.network = new NetworkSystem<In, Out, InSchemas, OutSchemas, ContractOf<In, Out, InSchemas, OutSchemas>, this["Room"]>(options.network);
 		this.loop = new GameLoop(options.loop);
 
 		this.network.route("/rooms/:code", (request) => {

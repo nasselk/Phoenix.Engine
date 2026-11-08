@@ -250,7 +250,7 @@ World (a room)                               engine.createRoom(); shares the que
 └─ on("join" [socket] | "leave" [socket])    leave: by leave, by joining another room, by disconnecting, or on destroy
 
 Socket
-├─ id, ip, room?, data: SocketData   augment SocketData for your per-player fields
+├─ id, ip, room?, data: SocketData   room?: the engine's Room type; augment SocketData for your per-player fields
 ├─ send(event, data?), broadcast(topic, event, data?), cork(socket => …)
 ├─ subscribe(topic), unsubscribe(topic)
 ├─ disconnect(reason?, code?)                with a close frame; terminate() cuts it at once
@@ -277,7 +277,7 @@ Entity<C>                                    abstract
    ├─ onTouch(other), onTouchEnd(other)      override to listen: once per entity pair, solid or sensor (setSensor(true)), after the step
    ├─ isTouching(other), touch(other, started)   touch is the room's call
    ├─ teleport(x, y, z) / teleport(vector)   jump there, body included, waking it
-   ├─ room                                   protected: the World it is in
+   ├─ room                                   protected: the World it is in; override the getter as MyEngine["Room"] for the typed room
    └─ MovingEntity<C>
       ├─ options: velocity { x, y, z }, gravityScale, damping   left out: the body description's own
       └─ applyImpulse(x, y, z)

@@ -7,14 +7,15 @@ import { EventEmitter } from "../../../shared/utils/EventEmitter";
 import { IDAllocator } from "../../../shared/utils/IDAllocator";
 import { error, log } from "../../../shared/utils/logger";
 import { Interval } from "../../../shared/utils/timers/timer";
+import type { World } from "../world/world";
 import { HttpGate } from "./http";
 import { Socket, type SocketUserData } from "./socket";
 
-type NetworkSystemEvents<C extends Contract> = {
+type NetworkSystemEvents<C extends Contract, R extends World<any, any, C>> = {
 	listening: [port: number];
-	connection: [socket: Socket<C>];
-	disconnection: [socket: Socket<C>, code: number, reason: string];
-	message: [socket: Socket<C>, event: InboundEvent<C>, data: MessagePayload<C, InboundEvent<C>>];
+	connection: [socket: Socket<C, R>];
+	disconnection: [socket: Socket<C, R>, code: number, reason: string];
+	message: [socket: Socket<C, R>, event: InboundEvent<C>, data: MessagePayload<C, InboundEvent<C>>];
 	destroy: [];
 };
 
@@ -128,16 +129,17 @@ export class NetworkSystem<
 	const OutSchemas extends SchemasFor<OutSchemas, Out> = {},
 	// Never passed: an alias, so everything below reads `C` rather than the four pieces it is built from.
 	C extends Contract = ContractOf<In, Out, InSchemas, OutSchemas>,
-> extends EventEmitter<NetworkSystemEvents<C>> {
+	R extends World<any, any, C> = World<any, any, C>,
+> extends EventEmitter<NetworkSystemEvents<C, R>> {
 	/** The two event ⇄ code tables plus the framing. The client builds the mirror of it. */
 	public readonly protocol: Protocol<C>;
-	public readonly sockets: Map<number, Socket<C>>;
+	public readonly sockets: Map<number, Socket<C, R>>;
 	public readonly IPList: CounterMap<string>;
 	public readonly settings: NetworkSettings;
 	private readonly http: HttpGate;
 	/** Per-event limits by inbound wire code, so the hot path indexes an array instead of hashing a name. */
 	private readonly limits: Array<ResolvedLimit | undefined>;
-	private readonly handlers: MessageHandlers<(socket: Socket<C>, data: any) => void>;
+	private readonly handlers: MessageHandlers<(socket: Socket<C, R>, data: any) => void>;
 	private readonly socketIDs: IDAllocator;
 	/** GET routes added with `route`, served next to the built-in ones. */
 	private readonly extraRoutes = new Map<string, (request: BunRequest) => Response | Promise<Response>>();
@@ -253,7 +255,7 @@ export class NetworkSystem<
 					} else {
 						this.IPList.increment(data.ip);
 
-						const socket = (data.socket = new Socket<C>(this.protocol, ws, this.socketIDs.allocate()));
+						const socket = (data.socket = new Socket<C, R>(this.protocol, ws, this.socketIDs.allocate()));
 
 						this.sockets.set(socket.id, socket);
 
@@ -264,7 +266,7 @@ export class NetworkSystem<
 				},
 
 				message: (ws, message): void => {
-					const socket = ws.data.socket as Socket<C> | undefined;
+					const socket = ws.data.socket as Socket<C, R> | undefined;
 
 					if (!socket) {
 						return;
@@ -281,7 +283,7 @@ export class NetworkSystem<
 				},
 
 				close: (ws, code, reason): void => {
-					const socket = ws.data.socket as Socket<C> | undefined;
+					const socket = ws.data.socket as Socket<C, R> | undefined;
 
 					if (!socket) {
 						return;
@@ -318,7 +320,7 @@ export class NetworkSystem<
 	 * Vet one frame and route it. Everything here runs on input from the network, so each step
 	 * either passes or ends the connection — a handler only ever sees a frame that survived all of it.
 	 */
-	private handle(socket: Socket<C>, message: Buffers): void {
+	private handle(socket: Socket<C, R>, message: Buffers): void {
 		socket.lastMessage = performance.now();
 
 		if (++socket.messages > this.settings.ws.maxMessageRate) {
@@ -368,7 +370,7 @@ export class NetworkSystem<
 	}
 
 	/** Per-event rate and size checks. Disconnects and returns false when the frame is out of bounds. */
-	private withinLimits(socket: Socket<C>, code: number, limit: ResolvedLimit, byteLength: number): boolean {
+	private withinLimits(socket: Socket<C, R>, code: number, limit: ResolvedLimit, byteLength: number): boolean {
 		if (limit.maxRate !== undefined && socket.rates.increment(code) > limit.maxRate) {
 			socket.disconnect("Too many messages", 1008);
 
@@ -429,7 +431,7 @@ export class NetworkSystem<
 	 *   inbound schema or the raw reader otherwise.
 	 * @returns A function that removes the handler, so another can be registered.
 	 */
-	public onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C>, data: MessagePayload<C, K>) => void): () => void {
+	public onMessage<K extends InboundEvent<C>>(event: K, callback: (socket: Socket<C, R>, data: MessagePayload<C, K>) => void): () => void {
 		return this.handlers.add(event, callback);
 	}
 

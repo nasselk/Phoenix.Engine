@@ -35,14 +35,14 @@ export enum SocketState {
 	CLOSED,
 }
 
-export class Socket<C extends Contract = Contract> extends EventEmitter<SocketEvents<C>> {
+export class Socket<C extends Contract = Contract, R extends World<any, any, C> = World<any, any, C>> extends EventEmitter<SocketEvents<C>> {
 	public readonly id: number;
 	public readonly ip: string;
 	public lastMessage: number;
 	/** Frames received since the last `resetRates()`, in total... */
 	public messages: number;
 	public readonly rates: CounterMap<number>;
-	public readonly room?: World<any, any, C>;
+	public readonly room?: R;
 	/** Which entities this socket's client holds. The room's frames keep it; it empties when the socket leaves the room. */
 	public readonly seen: Seen;
 	/** The game's own record for this connection. See SocketData. */
