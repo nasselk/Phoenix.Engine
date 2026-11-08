@@ -542,7 +542,7 @@ this.group.add(tag);
 ```sh
 bun run init          # install, set up git hooks
 bun run build         # compile client and server into dist/
-bun run test          # engine tests (bun test tests)
+bun test              # engine tests (bun test tests)
 bun run types:check   # typecheck client and server
 bun run biome:check   # Biome: tabs, double quotes, 320 columns
 ```

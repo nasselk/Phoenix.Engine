@@ -51,7 +51,6 @@
 		"build:client": "rm -rf dist/client dist/client.tsconfig.tsbuildinfo && cd client && bun run build",
 		"build:server": "rm -rf dist/server dist/server.tsconfig.tsbuildinfo && cd server && bun run build",
 		"release": "bun ./scripts/release.ts",
-		"test": "bun test tests",
 		"types:check": "bun run --sequential --no-exit-on-error types:client types:server",
 		"types:client": "cd client && bun run types:check",
 		"types:server": "cd server && bun run types:check",
@@ -60,7 +59,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.70.0",
-		"@nasselk/binarypack": "github:nasselk/BinaryPack",
+		"@nasselk/binarypack": "github:nasselk/BinaryPack#1.0.0",
 		"howler": "^2.2.4",
 		"@types/howler": "^2.2.13",
 		"stats.js": "^0.17.0",
@@ -68,7 +67,7 @@
 		"troika-three-text": "^0.53.1"
 	},
 	"devDependencies": {
-		"@nasselk/binaryschema": "github:nasselk/BinarySchema",
+		"@nasselk/binaryschema": "github:nasselk/BinarySchema#v1.0.0",
 		"@biomejs/biome": "2.6.4",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"@types/bun": "^1.4.4",

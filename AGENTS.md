@@ -32,7 +32,7 @@ bun run biome:check   # Biome: format and check
 bun run release patch # tag and push a release: only when the user asks
 ```
 
-**Before calling any change done:** `bun run types:check` and `bun run test` pass, and `bun run build` succeeds. Behaviour an engine change adds or fixes gets a test in `tests/`.
+**Before calling any change done:** `bun run types:check` and `bun test` pass, and `bun run build` succeeds. Behaviour an engine change adds or fixes gets a test in `tests/`.
 
 ## Tests
 
