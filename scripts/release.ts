@@ -1,13 +1,9 @@
-import { spawnSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
-import path from "node:path";
-
 const LEVELS = ["patch", "minor", "major"] as const;
 
 type Level = (typeof LEVELS)[number];
 
-const ROOT = path.resolve(import.meta.dirname, "..");
-const PACKAGE_PATH = path.join(ROOT, "package.json");
+const ROOT = `${import.meta.dir}/..`;
+const PACKAGE = Bun.file(`${ROOT}/package.json`);
 const BRANCH = "main";
 const REMOTE = "origin";
 
@@ -19,7 +15,7 @@ function fail(message: string): never {
 function attempt(command: string, ...args: string[]): boolean {
 	console.log(`\n$ ${command} ${args.join(" ")}`);
 
-	return spawnSync(command, args, { cwd: ROOT, stdio: "inherit", shell: false }).status === 0;
+	return Bun.spawnSync([command, ...args], { cwd: ROOT, stdio: ["inherit", "inherit", "inherit"] }).exitCode === 0;
 }
 
 function run(command: string, ...args: string[]): void {
@@ -29,13 +25,13 @@ function run(command: string, ...args: string[]): void {
 }
 
 function read(command: string, ...args: string[]): string {
-	const result = spawnSync(command, args, { cwd: ROOT, encoding: "utf-8", shell: false });
+	const result = Bun.spawnSync([command, ...args], { cwd: ROOT });
 
-	if (result.status !== 0) {
-		fail(`${command} ${args.join(" ")} failed: ${result.stderr.trim()}`);
+	if (result.exitCode !== 0) {
+		fail(`${command} ${args.join(" ")} failed: ${result.stderr.toString().trim()}`);
 	}
 
-	return result.stdout.trim();
+	return result.stdout.toString().trim();
 }
 
 function bump(version: string, level: Level): string {
@@ -57,7 +53,7 @@ function bump(version: string, level: Level): string {
 	}
 }
 
-const args = process.argv.slice(2);
+const args = Bun.argv.slice(2);
 const level = args.find((arg) => !arg.startsWith("--")) as Level | undefined;
 const dryRun = args.includes("--dry-run");
 
@@ -87,7 +83,7 @@ if (behind > 0) {
 	fail(`${BRANCH} is ${behind} commit(s) behind ${REMOTE}/${BRANCH}: pull first`);
 }
 
-const source = readFileSync(PACKAGE_PATH, "utf-8");
+const source = await PACKAGE.text();
 const current = (JSON.parse(source) as { version: string }).version;
 const next = bump(current, level);
 const tag = `v${next}`;
@@ -114,11 +110,11 @@ if (updated === source) {
 	fail("Could not find the version field in package.json");
 }
 
-writeFileSync(PACKAGE_PATH, updated);
+await Bun.write(PACKAGE, updated);
 
 if (!attempt("git", "add", "package.json") || !attempt("git", "add", "--all", "dist") || !attempt("git", "commit", "-m", `Release ${tag}`)) {
-	spawnSync("git", ["reset", "-q", "--", "package.json", "dist"], { cwd: ROOT });
-	writeFileSync(PACKAGE_PATH, source);
+	Bun.spawnSync(["git", "reset", "-q", "--", "package.json", "dist"], { cwd: ROOT });
+	await Bun.write(PACKAGE, source);
 	fail(`Nothing was released: package.json is back at ${current}, and dist/ holds the new build, uncommitted`);
 }
 
