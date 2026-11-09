@@ -1,7 +1,6 @@
 {
 	"type": "module",
 	"name": "phoenix.engine.client",
-	"version": "0.9.3",
 	"private": true,
 	"description": "Typescript multiplayer game client",
 	"scripts": {

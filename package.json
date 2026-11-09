@@ -2,7 +2,7 @@
 	"name": "phoenix.engine",
 	"author": "nasselk",
 	"description": "Typescript multiplayer game engine",
-	"version": "2.1.0",
+	"version": "0.1.0",
 	"type": "module",
 	"private": true,
 	"exports": {
@@ -68,7 +68,7 @@
 	},
 	"devDependencies": {
 		"@nasselk/binaryschema": "github:nasselk/BinarySchema#v1.1.0",
-		"@biomejs/biome": "2.6.4",
+		"@biomejs/biome": "2.6.6",
 		"@dimforge/rapier3d-simd-compat": "^0.21.0",
 		"@types/bun": "^1.4.4",
 		"@types/three": "^0.187.0",
