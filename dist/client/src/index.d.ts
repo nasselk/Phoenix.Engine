@@ -13,6 +13,7 @@ export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering
 export { RenderSystem, type RenderSystemOptions, RenderSystemState } from "./rendering/RenderSystem";
 export { type Language, Languages, type Translation } from "./utils/languages";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";
+export { type CountryCode, closestServer, findRoomServer, getCountryCode, listServers, type Server, type Servers } from "./networking/servers";
 export { SettingsStorage } from "./utils/settings";
 export { setStorage, storage } from "./utils/storage";
 export { Entity } from "./world/entities/entity";

@@ -450,6 +450,10 @@ export const defaults = store.defaults;
 
 `settings` is a `$state` object: bind to it (`bind:value={settings.audio.volume}`) and read it in effects. Every change is saved, as only what differs from the defaults, so a default changed in a later version reaches players who never touched it. `store.reset()` goes back to the defaults; `store.stored("audio.volume")` tells whether a setting was ever saved. It ships as source, like the components, and is compiled by the game's Svelte plugin.
 
+### Servers
+
+A game lists its servers by mode and region (`Servers`), each with a `url` and a `countryCode`. `closestServer(listServers(servers), await getCountryCode(hostedOnCloudflare))` picks the nearest to the player, from the country Cloudflare reports. Joining a room by code with several servers, `findRoomServer(servers, code)` asks every server's `GET /rooms/:code` at once and answers with the first that has it, so no server ever has to list its rooms.
+
 ### Languages
 
 ```ts

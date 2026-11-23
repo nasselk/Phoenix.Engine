@@ -12,6 +12,7 @@ export { EditorView } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, RenderSystemState } from "./rendering/RenderSystem";
 export { Languages } from "./utils/languages";
 export { isMobileDevice } from "./utils/mobile";
+export { closestServer, findRoomServer, getCountryCode, listServers } from "./networking/servers";
 export { SettingsStorage } from "./utils/settings";
 export { setStorage, storage } from "./utils/storage";
 export { Entity } from "./world/entities/entity";

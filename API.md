@@ -31,6 +31,7 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 | Player text (names, chat)                                                                                 | `normalizeText`, `validateText`, `censorText`, `format`                                                                                          |
 | Saved settings                                                                                            | `createSettings` from `phoenix.engine/settings.svelte` (reactive, saves itself); `SettingsStorage`; `storage`                           |
 | Text in several languages                                                                                 | `Languages` (loaded when picked, falling back to the base language), `format`                                                          |
+| Which game server to connect to, which one has a room                                                     | `closestServer`, `getCountryCode`, `findRoomServer`, `listServers`                                                                     |
 | Phone or desktop                                                                                          | `engine.isMobile`, `isMobileDevice()`                                                                                                  |
 | Debug overlay (grid, FPS, ping, free camera, wireframe)                                                   | `new EditorView(engine)`                                                                                                               |
 
@@ -207,6 +208,13 @@ storage                                      localStorage, else sessionStorage, 
 SettingsStorage<T>(key, defaults)            settings in `storage` under `key`: load() → defaults with the stored ones merged over,
                                              save(values) (only what differs from the defaults, plus keys already written), reset(values),
                                              stored(path) → the stored value at "audio.volume", or undefined; defaults (a copy)
+Server { id, name, url, countryCode? }, Servers { [mode]: { [region]: Server[] } }, CountryCode (ISO 3166-1 alpha-2)
+listServers(servers) → Server[]              every mode and region in one list
+getCountryCode(cloudflareHosted = false)     → the player's CountryCode from Cloudflare's /cdn-cgi/trace (the page's own when
+                                             hosted on Cloudflare, cloudflare.com's otherwise), undefined when it cannot tell
+closestServer(servers, country?)             → the server whose country is nearest (great-circle), skipping servers with no
+                                             countryCode; the first when the country is unknown
+findRoomServer(servers, code)                → the server answering GET /rooms/:code, asking all at once; undefined when none has it
 Languages<T>(base, others, baseLocale = "en-US")  a game's text in several languages: others { [locale]: () => Promise<Translation<T>> }
                                              (import.meta.glob's loaders, keyed by locale); locales: Language[] { value, name },
                                              the base first, each named in itself; load(locale) → its text, else another of its

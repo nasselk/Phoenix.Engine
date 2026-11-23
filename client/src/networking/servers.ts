@@ -1,7 +1,8 @@
 import { get, type RoomOccupancy } from "../../../shared";
 import countries from "./countries.json";
 
-type CountryCode = keyof typeof countries;
+/** A country by its ISO 3166-1 alpha-2 code, as Cloudflare reports it. */
+export type CountryCode = keyof typeof countries;
 
 export type Server = {
 	id: string;
