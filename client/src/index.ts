@@ -15,6 +15,7 @@ export { Camera, type CameraOptions, type CameraTarget } from "./rendering/Camer
 export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, type RenderSystemOptions, RenderSystemState } from "./rendering/RenderSystem";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";
+export { SettingsStorage } from "./utils/settings";
 export { setStorage, storage } from "./utils/storage";
 // The client's own object model, exported over the shared one: an entity that can read itself and
 // a world that can apply a frame. `import { Entity } from "phoenix.engine/client"` is this one.

@@ -23,6 +23,11 @@
 			"import": "./dist/server/src/index.js"
 		},
 		"./native.css": "./client/src/UI/native.css",
+		"./settings.svelte": {
+			"types": "./dist/client/src/UI/settings/settings.svelte.d.ts",
+			"svelte": "./client/src/UI/settings/settings.svelte.ts",
+			"default": "./client/src/UI/settings/settings.svelte.ts"
+		},
 		"./ui/*.svelte": {
 			"types": "./client/src/UI/components/*/*.svelte.d.ts",
 			"svelte": "./client/src/UI/components/*/*.svelte",

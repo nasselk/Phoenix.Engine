@@ -29,7 +29,7 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 | Work on another thread (a worker)                                                                         | `new Thread(new Worker(...))` in the page or server, `Thread.parent()` in the worker; `request`/`onRequest`                            |
 | HTTP JSON with retries                                                                                    | `get`/`post`/`put`/`del`                                                                                                               |
 | Player text (names, chat)                                                                                 | `normalizeText`, `validateText`, `censorText`                                                                                          |
-| Saved settings                                                                                            | `storage` (falls back to `sessionStorage`, then memory)                                                                                |
+| Saved settings                                                                                            | `createSettings` from `phoenix.engine/settings.svelte` (reactive, saves itself); `SettingsStorage`; `storage`                           |
 | Phone or desktop                                                                                          | `engine.isMobile`, `isMobileDevice()`                                                                                                  |
 | Debug overlay (grid, FPS, ping, free camera, wireframe)                                                   | `new EditorView(engine)`                                                                                                               |
 
@@ -203,6 +203,9 @@ EditorView extends three.Group               new EditorView(engine, { plane?, gr
 ├─ plane, grid, stats, destroy()
 └─ axes: AxisLines                           colors { x, y, z } (red, green, blue; set with `axes: { xColor… }`), shared with the gizmo
 storage                                      localStorage, else sessionStorage, else memory, whichever is reachable; setStorage(replacement)
+SettingsStorage<T>(key, defaults)            settings in `storage` under `key`: load() → defaults with the stored ones merged over,
+                                             save(values) (only what differs from the defaults, plus keys already written), reset(values),
+                                             stored(path) → the stored value at "audio.volume", or undefined; defaults (a copy)
 isMobileDevice() → { mobile, tablet, any }   DeviceType; phones and tablets by user agent (iPadOS's "Macintosh" one included), else a touch screen with a coarse pointer, a tablet from 600 px on its smallest side
 ```
 
@@ -405,7 +408,7 @@ configureText({ defaultFontURL, unicodeFontsURL, sdfGlyphSize, useWorker })   be
 TextConfig, TextOptions, TextProperties
 ```
 
-## `phoenix.engine/ui/*.svelte` and `phoenix.engine/native.css`
+## `phoenix.engine/ui/*.svelte`, `phoenix.engine/settings.svelte` and `phoenix.engine/native.css`
 
 ```
 Joystick.svelte      props: top, left, right = "20dvmin", bottom = "20dvmin", size = "25dvmin", deadZone = 0.15, stickyZone?, fade = true, class,
@@ -437,6 +440,9 @@ EngineEditor.svelte  development editor: a vertical toolbar on the left (EditorT
                      Bottom right, a navigation gizmo like Blender's: click an axis to view from it
                      (view.viewFrom), drag it to orbit (view.orbit).
                      Load it in development only, module exports included (await import(...))
+settings.svelte      createSettings(key, defaults) → Settings { values, defaults, reset(), stored(path), stop() }: `values` is
+                     reactive ($state), loaded through SettingsStorage and saved on every change until stop().
+                     Call it once, at the top of a game module
 native.css           import first: no selection, no overscroll, no tap highlight
 ```
 
