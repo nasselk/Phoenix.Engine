@@ -4,42 +4,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { stdin as input, stdout as output } from "node:process";
 import { createInterface } from "node:readline/promises";
-import { add, commit, mirror, push, readGit, runGit, tag, tagExists } from "./utils/git";
-
-type Environment = Record<string, string | number>;
-type EnvironmentSource = string | Environment;
-
-type SSL = { key: string; cert: string };
-
-type Instance = {
-	name: string;
-	port?: number;
-	version?: string;
-	env?: EnvironmentSource;
-	ssl?: SSL;
-	cpuShares?: number;
-	memory?: string;
-};
-
-type Server = {
-	name?: string;
-	user: string;
-	host: string;
-	key?: string;
-	version?: string;
-	env?: EnvironmentSource;
-	ssl?: SSL;
-	instances: Instance[];
-};
-
-type Target = { env?: EnvironmentSource; servers: Server[] };
-
-type DeployConfig = {
-	key: string;
-	env?: EnvironmentSource;
-	ssl?: SSL;
-	targets?: Record<string, Target>;
-};
+import { DEFAULT_PORT, type DeployConfig, type Environment, type EnvironmentSource, type Instance, loadServers, SERVERS_PATH, type Server, SSH_OPTIONS, sshPath, type Target } from "./config";
+import { add, commit, mirror, push, readGit, runGit, tag, tagExists } from "./git";
 
 type Credentials = { ghUser: string; ghToken: string };
 
@@ -49,29 +15,18 @@ type DeployResult = { instance: string; server: string; status: "success" | "fai
 
 type WorkflowRun = { name: string; status: string; conclusion: string | null; html_url: string };
 
-/** The port the server listens on without a PORT, as in server/src/config.ts. */
-const DEFAULT_PORT = 443;
-
 const SHARED_CONFIG_PATH = "./shared/config.json";
 const PACKAGE_PATH = "./package.json";
 
-const JSON_PATH = path.join(import.meta.dirname, "./servers.json");
-const GH_CREDS_PATH = path.resolve(import.meta.dirname, "../.keys/github.json");
+const GH_CREDS_PATH = path.resolve(".keys/github.json");
 
-if (!fs.existsSync(JSON_PATH)) {
-	console.error(`Error: Configuration file not found at ${JSON_PATH}`);
-	process.exit(1);
-}
-
-const config: DeployConfig = JSON.parse(fs.readFileSync(JSON_PATH, "utf-8"));
-const CONFIG_DIR = path.dirname(JSON_PATH);
+let config: DeployConfig;
+let CONFIG_DIR: string;
 
 const WORKFLOW_NAME = "Push docker image";
 const BUILD_POLL_INTERVAL_MS = 10_000;
 const BUILD_DETECT_TIMEOUT_MS = 90_000;
 const BUILD_TOTAL_TIMEOUT_MS = 30 * 60 * 1000;
-
-const SSH_OPTIONS = ["-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10", "-o", "PasswordAuthentication=no", "-o", "BatchMode=yes", "-o", "ServerAliveInterval=5", "-o", "ServerAliveCountMax=3"];
 
 /** `v1.2.3` for production, `beta-v1.2.3` for any other deploy branch. */
 function tagName(branch: string, version: string): string {
@@ -192,7 +147,7 @@ async function waitForBuild(repo: string, branch: string, sha: string, token: st
 
 		if (!run) {
 			if (!detected && elapsed > BUILD_DETECT_TIMEOUT_MS) {
-				throw new Error(`No "${WORKFLOW_NAME}" run started for ${branch}. Add the branch to .github/workflows/deploy.yaml, or give it no servers in scripts/servers.json.`);
+				throw new Error(`No "${WORKFLOW_NAME}" run started for ${branch}. Add the branch to .github/workflows/deploy.yaml, or give it no servers in ${SERVERS_PATH}.`);
 			}
 			console.log("  → Waiting for workflow to start...");
 		} else {
@@ -287,10 +242,6 @@ function getEnvironment(envInput?: EnvironmentSource): Environment {
 	return envObj;
 }
 
-function convertPathForSSH(filePath: string): string {
-	return filePath.replace(/\\/g, "/");
-}
-
 async function syncSSL(instance: Instance, server: Server, sshKey: string): Promise<string> {
 	const ssl = instance.ssl || server.ssl || config.ssl;
 	if (!ssl?.key || !ssl?.cert) return "";
@@ -307,7 +258,7 @@ async function syncSSL(instance: Instance, server: Server, sshKey: string): Prom
 	}
 
 	const remoteTarget = `${server.user}@${server.host}`;
-	const sshOpts = ["-i", convertPathForSSH(sshKey), ...SSH_OPTIONS];
+	const sshOpts = ["-i", sshPath(sshKey), ...SSH_OPTIONS];
 
 	const mkdirResult = await runCommand("ssh", [...sshOpts, remoteTarget, `mkdir -p ${quote(remoteDir)}`]);
 	if (mkdirResult.status !== 0) {
@@ -383,7 +334,7 @@ function getDockerCommand(instance: Instance, fullImage: string, envObj: Environ
 }
 
 function runRemote(server: Server, sshKey: string, command: string, stdinText?: string): Promise<CommandResult> {
-	return runCommand("ssh", ["-i", convertPathForSSH(sshKey), ...SSH_OPTIONS, `${server.user}@${server.host}`, command], { input: stdinText });
+	return runCommand("ssh", ["-i", sshPath(sshKey), ...SSH_OPTIONS, `${server.user}@${server.host}`, command], { input: stdinText });
 }
 
 async function deployInstance(instance: Instance, server: Server, fullImage: string, finalEnv: Environment, { ghUser, ghToken }: Credentials, sshKey: string, source: string): Promise<DeployResult> {
@@ -461,7 +412,13 @@ async function readRepository(): Promise<string> {
 	return match[1];
 }
 
-async function main(): Promise<void> {
+/**
+ * Ship `main` as it is on GitHub: bump the version, tag it, move the deploy branch to it (Cloudflare builds the
+ * client from there, GitHub Actions the server image), then restart that branch's servers on the new image.
+ */
+export async function deploy(): Promise<void> {
+	({ config, dir: CONFIG_DIR } = loadServers());
+
 	const { version, branch, ...credentials } = await getInputs();
 	const target = config.targets?.[branch] ?? { servers: [] };
 	const repo = await readRepository();
@@ -502,7 +459,7 @@ async function main(): Promise<void> {
 	console.log(`\nVersion ${version} pushed to main, tagged ${release}, and ${branch} moved to it (${sha.slice(0, 7)}). Cloudflare builds the client from ${branch}.`);
 
 	if (target.servers.length === 0) {
-		console.log(`No servers for ${branch} in scripts/servers.json: nothing else to deploy.`);
+		console.log(`No servers for ${branch} in ${SERVERS_PATH}: nothing else to deploy.`);
 		return;
 	}
 
@@ -510,8 +467,3 @@ async function main(): Promise<void> {
 
 	await deployToServers(target, image, sha, credentials, `https://github.com/${repo}`);
 }
-
-main().catch((err: unknown) => {
-	console.error(err);
-	process.exit(1);
-});

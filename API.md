@@ -461,3 +461,12 @@ native.css           import first: no selection, no overscroll, no tap highlight
 ```
 
 Types from the components' modules: `GridPosition`, `GridDirection`, `GridLayoutProps`, `GridCellProps` (GridLayout.svelte, GridCell.svelte), `JoystickProps`, `JoystickMove` (Joystick.svelte), `AdSlotProps`, `BannerAds` (AdSlot.svelte), `EditorTool`, `EditorState`, `EngineEditorProps`, and the values `editor`, `bindEditor` (EngineEditor.svelte).
+
+## `phoenix` (command, run from the game's root)
+
+```
+phoenix deploy               version prompt, tag, deploy branch moved to main, servers restarted (README → Deploying)
+phoenix init-server <host>   prepare a host from scripts/servers.json (server_init.sh over SSH); no host: list them
+```
+
+Reads the game's scripts/servers.json, .keys/github.json, shared/config.json and package.json.

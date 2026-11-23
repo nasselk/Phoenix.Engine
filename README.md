@@ -26,6 +26,7 @@ The fastest way to start a game is the [Phoenix Engine Template](https://github.
   - [UI kit and native feel](#ui-kit-and-native-feel)
   - [Shared utilities](#shared-utilities)
 - [Common tasks](#common-tasks)
+- [Deploying](#deploying)
 - [Design principles](#design-principles)
 - [Development](#development)
   - [Commands](#commands)
@@ -60,6 +61,7 @@ One package, several subpath exports. Each side's entry point re-exports everyth
 | `phoenix.engine/native.css`       | browser | Default styles that make the page behave like an app (no selection, no overscroll, no tap highlight).                                                                                                                                                                                                                                                                                                                                 |
 | `phoenix.engine/ui/<Name>.svelte` | browser | Svelte 5 components: `Joystick`, `GridLayout` and `GridCell`, `AdSlot`, `EngineEditor`.                                                                                                                                                                                                                                                                                                                                                         |
 | `phoenix.engine/settings.svelte`  | browser | `createSettings`: a game's settings as one reactive object, saved to storage on every change (Svelte 5, compiled by the game).
+| `phoenix` (command)               | Bun     | `phoenix deploy` and `phoenix init-server`, run from the game's root (see Deploying). |
 
 The game imports Rapier, three.js and Svelte from their own packages; the engine re-exports none of them. `@nasselk/binaryschema` is the game's alone: the game installs it, writes its event schemas with it and generates their code, and the engine only calls the generated schemas it is handed, through its own `Schema` type. `@nasselk/binarypack` is the other way round: the engine creates and checks buffers itself, so it is the engine's own dependency, re-exported from `phoenix.engine`. A game never installs it and imports `BufferReader`/`BufferWriter` from `phoenix.engine`.
 
@@ -563,6 +565,15 @@ this.group.add(tag);
 **Static scenery in few draw calls**: build it under one group, then `engine.renderer.batcher.batch(group)`.
 
 **A smooth value** in a frame: `Interpolator.lerp(current, target, factor, deltaTime)`, `lerpAngle` for angles, `slerpQuaternion` for rotations. **A number on the wire in few bits**: `writer.writeUint8(BufferWriter.toPrecision(value, max, 8))` and `BufferReader.fromPrecision(reader.readUint8(), max, 8)`.
+
+## Deploying
+
+The engine ships a `phoenix` command, which a game runs from its own root folder, usually through its `package.json` scripts (`"deploy": "phoenix deploy"`). What it reads stays in the game: `scripts/servers.json` (the servers per deploy branch, with paths relative to it), `.keys/` (the SSH key, and `github.json` with a GitHub user and token), the env files and TLS certificates `servers.json` points to, `shared/config.json` (`gameVersion`) and `.github/workflows/deploy.yaml`, whose workflow must be named `Push docker image`.
+
+- **`phoenix deploy`** asks for the new version and the deploy branch (`production` by default), checks that `main` is clean and up to date, bumps `gameVersion` and `package.json`'s `version`, commits and pushes `main`, tags the commit (`v1.2.3` for `production`, `<branch>-v1.2.3` otherwise), and moves the deploy branch to it. Cloudflare builds the client from that branch; GitHub Actions builds the server image. When `servers.json` lists servers for the branch, it waits for the image, then restarts every instance on it over SSH.
+- **`phoenix init-server <host>`** prepares a fresh Ubuntu server listed in `servers.json`: it copies the engine's `server_init.sh` there and runs it with sudo (Docker, the deploy user in the `docker` group, file limits, kernel tuning, the firewall open on every port that host's instances use). Safe to run again. Without a host, it lists the hosts it knows.
+
+Since the command comes with the engine, a game gets deploy fixes by upgrading the engine.
 
 ## Design principles
 

@@ -34,6 +34,9 @@
 			"default": "./client/src/UI/components/*/*.svelte"
 		}
 	},
+	"bin": {
+		"phoenix": "./cli/index.ts"
+	},
 	"workspaces": [
 		"client",
 		"server"
@@ -56,9 +59,10 @@
 		"build:client": "rm -rf dist/client dist/client.tsconfig.tsbuildinfo && cd client && bun run build",
 		"build:server": "rm -rf dist/server dist/server.tsconfig.tsbuildinfo && cd server && bun run build",
 		"release": "bun ./scripts/release.ts",
-		"types:check": "bun run --sequential --no-exit-on-error types:client types:server",
+		"types:check": "bun run --sequential --no-exit-on-error types:client types:server types:cli",
 		"types:client": "cd client && bun run types:check",
 		"types:server": "cd server && bun run types:check",
+		"types:cli": "cd cli && bun check",
 		"biome:check": "biome check --write",
 		"prepare": "husky || true"
 	},
