@@ -14,6 +14,7 @@ export { CounterMap } from "./utils/CounterMap";
 export { extractRGBA, getRandomColor, hex, hexToRgba, isHexColor, isRGBA, rgbaToHex } from "./utils/color";
 export { EventEmitter } from "./utils/EventEmitter";
 export { del, get, post, put, type RequestSettings, type Response as HTTPResponse, type ResponseError } from "./utils/fetch";
+export { format } from "./utils/format";
 export { IDAllocator } from "./utils/IDAllocator";
 export { error, log, warn } from "./utils/logger";
 export type { Timings } from "./utils/perfStats";
@@ -21,7 +22,6 @@ export { Thread, type ThreadMessages, type ThreadRequestOptions } from "./utils/
 export { Interval, Timeout, Timer } from "./utils/timers/timer";
 export { wait } from "./utils/timers/wait";
 export type { DeepImmutable, JsonArray, JsonObject, JsonPrimitive, JsonValue } from "./utils/types";
-export { format } from "./utils/format";
 export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export { censorText, normalizeText, validateText } from "./utils/validation/text";
 export { defineEntities, Entity, type EntityClass, type EntityConstructor, type EntityDefinitions, type EntityOptions, EntityRegistry, HashGrid3D, type HashGridOptions, type HashGridResult, type HashGridTypes, MAX_ENTITY_KINDS, type Positioned, SpatialGrid, World, type WorldEvents, type WorldOptions, } from "./world/index";
