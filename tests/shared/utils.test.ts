@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { extractRGBA } from "../../shared/utils/color";
+import { format } from "../../shared/utils/format";
 import { IDAllocator } from "../../shared/utils/IDAllocator";
 import { Interval, Timeout, Timer } from "../../shared/utils/timers/timer";
-import { censorText } from "../../shared/utils/validation/text";
+import { censorText, normalizeText } from "../../shared/utils/validation/text";
 
 describe("Timer", () => {
 	let now = 0;
@@ -117,6 +118,22 @@ describe("censorText", () => {
 		expect(censorText("an ass_ass-ass1ass")).toBe("an ***_***-***1***");
 		expect(censorText("class")).toBe("class");
 		expect(censorText("fück!")).toBe("fück!");
+	});
+});
+
+describe("format", () => {
+	test("fills each placeholder with its value, and leaves one with no value as it is", () => {
+		expect(format("Room {code} has {count} players, {missing}", { code: "ABCD", count: 3 })).toBe("Room ABCD has 3 players, {missing}");
+	});
+});
+
+describe("normalizeText", () => {
+	test("removes invisible characters, collapses whitespace and trims", () => {
+		const [zeroWidth, rightToLeft, joiner, mark] = [0x200b, 0x202e, 0x2060, 0xfeff].map((code) => String.fromCharCode(code));
+
+		expect(normalizeText(`  Bo${zeroWidth}b${rightToLeft}   the ${joiner}builder${mark} `)).toBe("Bob the builder");
+		expect(normalizeText(`${zeroWidth}${zeroWidth}`)).toBe("");
+		expect(normalizeText("héllo 😀 世界")).toBe("héllo 😀 世界");
 	});
 });
 

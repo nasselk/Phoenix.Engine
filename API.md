@@ -28,8 +28,9 @@ Everything Phoenix Engine exposes to a game, nested under where a game reaches i
 | Events on your own class                                                                                  | `extends EventEmitter<{ name: [args] }>`                                                                                               |
 | Work on another thread (a worker)                                                                         | `new Thread(new Worker(...))` in the page or server, `Thread.parent()` in the worker; `request`/`onRequest`                            |
 | HTTP JSON with retries                                                                                    | `get`/`post`/`put`/`del`                                                                                                               |
-| Player text (names, chat)                                                                                 | `normalizeText`, `validateText`, `censorText`                                                                                          |
+| Player text (names, chat)                                                                                 | `normalizeText`, `validateText`, `censorText`, `format`                                                                                          |
 | Saved settings                                                                                            | `createSettings` from `phoenix.engine/settings.svelte` (reactive, saves itself); `SettingsStorage`; `storage`                           |
+| Text in several languages                                                                                 | `Languages` (loaded when picked, falling back to the base language), `format`                                                          |
 | Phone or desktop                                                                                          | `engine.isMobile`, `isMobileDevice()`                                                                                                  |
 | Debug overlay (grid, FPS, ping, free camera, wireframe)                                                   | `new EditorView(engine)`                                                                                                               |
 
@@ -206,6 +207,10 @@ storage                                      localStorage, else sessionStorage, 
 SettingsStorage<T>(key, defaults)            settings in `storage` under `key`: load() → defaults with the stored ones merged over,
                                              save(values) (only what differs from the defaults, plus keys already written), reset(values),
                                              stored(path) → the stored value at "audio.volume", or undefined; defaults (a copy)
+Languages<T>(base, others, baseLocale = "en-US")  a game's text in several languages: others { [locale]: () => Promise<Translation<T>> }
+                                             (import.meta.glob's loaders, keyed by locale); locales: Language[] { value, name },
+                                             the base first, each named in itself; load(locale) → its text, else another of its
+                                             language (fr-CA → fr-FR), else base, filled in from base; each loaded once
 isMobileDevice() → { mobile, tablet, any }   DeviceType; phones and tablets by user agent (iPadOS's "Macintosh" one included), else a touch screen with a coarse pointer, a tablet from 600 px on its smallest side
 ```
 
@@ -387,7 +392,8 @@ CounterMap<K>: increment, decrement, getCount, has, delete, outOfBounds, clear
 get(baseURL, route, settings?), post / put(baseURL, route, body, settings?), del(baseURL, route, body?, settings?)
                                              → HTTPResponse<T> { success, data, error? }
                                              RequestSettings { params, timeout, tries, retryDelay, fetchOptions }, ResponseError
-normalizeText, validateText(text, length | [min, max]), censorText
+normalizeText (invisible characters out, whitespace collapsed, trimmed), validateText(text, length | [min, max]), censorText
+format("Room {code}", { code }) → fills `{name}` placeholders; one with no value stays
 hex(0xff8800) → "#ff8800", hexToRgba, rgbaToHex, extractRGBA, isHexColor, isRGBA, getRandomColor
 deepMerge, deepCopy, removeFromArray
 log / warn / error(source, ...messages)

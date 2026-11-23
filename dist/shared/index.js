@@ -19,6 +19,7 @@ export { error, log, warn } from "./utils/logger";
 export { Thread } from "./utils/thread";
 export { Interval, Timeout, Timer } from "./utils/timers/timer";
 export { wait } from "./utils/timers/wait";
+export { format } from "./utils/format";
 export { deepCopy, deepMerge, removeFromArray } from "./utils/utils";
 export { censorText, normalizeText, validateText } from "./utils/validation/text";
 export { defineEntities, Entity, EntityRegistry, HashGrid3D, MAX_ENTITY_KINDS, SpatialGrid, World, } from "./world/index";

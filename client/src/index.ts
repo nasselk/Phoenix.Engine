@@ -14,6 +14,7 @@ export { type NetworkChannelStats, NetworkState, type NetworkStats, NetworkSyste
 export { Camera, type CameraOptions, type CameraTarget } from "./rendering/Camera";
 export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, type RenderSystemOptions, RenderSystemState } from "./rendering/RenderSystem";
+export { type Language, Languages, type Translation } from "./utils/languages";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";
 export { SettingsStorage } from "./utils/settings";
 export { setStorage, storage } from "./utils/storage";

@@ -35,6 +35,7 @@ export { CounterMap } from "./utils/CounterMap";
 export { extractRGBA, getRandomColor, hex, hexToRgba, isHexColor, isRGBA, rgbaToHex } from "./utils/color";
 export { EventEmitter } from "./utils/EventEmitter";
 export { del, get, post, put, type RequestSettings, type Response as HTTPResponse, type ResponseError } from "./utils/fetch";
+export { format } from "./utils/format";
 export { IDAllocator } from "./utils/IDAllocator";
 export { error, log, warn } from "./utils/logger";
 export type { Timings } from "./utils/perfStats";

@@ -450,6 +450,22 @@ export const defaults = store.defaults;
 
 `settings` is a `$state` object: bind to it (`bind:value={settings.audio.volume}`) and read it in effects. Every change is saved, as only what differs from the defaults, so a default changed in a later version reaches players who never touched it. `store.reset()` goes back to the defaults; `store.stored("audio.volume")` tells whether a setting was ever saved. It ships as source, like the components, and is compiled by the game's Svelte plugin.
 
+### Languages
+
+```ts
+import { Languages, type Translation } from "phoenix.engine/client";
+import en from "./text/en-US.json";
+
+type Text = typeof en;
+
+const files = import.meta.glob<Translation<Text>>(["./text/*.json", "!./text/en-US.json"], { import: "default" });
+const others = Object.fromEntries(Object.entries(files).map(([path, load]) => [path.slice("./text/".length, -".json".length), load]));
+
+export const languages = new Languages(en, others);
+```
+
+English is built in; every other language loads only when a player picks it, and shows English wherever it leaves something out. `languages.load("fr-CA")` gives that locale's text, else another of its language (`fr-FR`), else English. `languages.locales` lists them for a picker, each named in its own language. `format(text.menu.joined, { name })` fills placeholders.
+
 ### UI kit and native feel
 
 ```ts
@@ -470,7 +486,7 @@ The engine's `native` option (on by default) blocks the context menu, zooming (p
 
 ### Shared utilities
 
-`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`; `cross`/`delta`/`midpoint`/`project` write into an optional `out`; y-up spherical helpers where `azimuth` is the yaw facing the vector), `SpatialGrid` (what is within a radius of a point), `HashGrid3D` (items with a size in a bounded grid: what a box overlaps, early-exit `each`, every overlapping pair; with `types` it sorts items by class and `query` hands them back by type; `clear()` keeps its cells and records, so a grid rebuilt every tick allocates nothing once warm), `Quaternion` and `ObservableQuaternion` (`setFromEuler`, `setFromYaw`, `setFromAxisAngle`, `toEuler`, `yaw`, `multiply`, `invert`, `slerp`, `angleTo`, `pack`/`unpack`, `hasUpdated(angle)`; `q` and `-q` count as the same rotation), `Interpolator` (`lerp`, `lerpAngle`, `lerpVector`, `slerpQuaternion`, tweens with an `InterpolationCurve`), angles (`angleDistance`, `signedAngleDistance`, `normalizeAnglePI`/`normalizeAngle2PI`, `closestAngle`, degrees ↔ radians), animation curves over time (`wave`, `syncedWave`, `fadeInHoldAndFadeOut`), colours (`hex(0xff8800)` → `"#ff8800"`, `hexToRgba`, `rgbaToHex`, `extractRGBA`), `BufferWriter.toPrecision`/`BufferReader.fromPrecision` (a value in a range to and from a few bits), `get`/`post`/`put`/`del` (JSON over HTTP with a timeout and retries; they return an `HTTPResponse<T>` and take `RequestSettings`), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`/`weightedRandom` (each takes an optional random source, for seeded runs: every world has an `RNG`, seeded by its `seed` option or `createRoom({ seed })`, a `randomSeed()` by default), `EventEmitter` (`on` returns an unsubscribe function), `Thread` (typed messages and awaited requests to a worker, the same in Bun and browsers: `new Thread(worker)` on one side, `Thread.parent()` in the worker; `request` rejects on an error, a timeout or `terminate`), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText`/`validateText`/`censorText`, and `log`/`warn`/`error`.
+`Vector3` and `ObservableVector3` (mutate in place: `set`, `add`, `scale`, `normalize`, `dot`, `hasUpdated`; `cross`/`delta`/`midpoint`/`project` write into an optional `out`; y-up spherical helpers where `azimuth` is the yaw facing the vector), `SpatialGrid` (what is within a radius of a point), `HashGrid3D` (items with a size in a bounded grid: what a box overlaps, early-exit `each`, every overlapping pair; with `types` it sorts items by class and `query` hands them back by type; `clear()` keeps its cells and records, so a grid rebuilt every tick allocates nothing once warm), `Quaternion` and `ObservableQuaternion` (`setFromEuler`, `setFromYaw`, `setFromAxisAngle`, `toEuler`, `yaw`, `multiply`, `invert`, `slerp`, `angleTo`, `pack`/`unpack`, `hasUpdated(angle)`; `q` and `-q` count as the same rotation), `Interpolator` (`lerp`, `lerpAngle`, `lerpVector`, `slerpQuaternion`, tweens with an `InterpolationCurve`), angles (`angleDistance`, `signedAngleDistance`, `normalizeAnglePI`/`normalizeAngle2PI`, `closestAngle`, degrees ↔ radians), animation curves over time (`wave`, `syncedWave`, `fadeInHoldAndFadeOut`), colours (`hex(0xff8800)` → `"#ff8800"`, `hexToRgba`, `rgbaToHex`, `extractRGBA`), `BufferWriter.toPrecision`/`BufferReader.fromPrecision` (a value in a range to and from a few bits), `get`/`post`/`put`/`del` (JSON over HTTP with a timeout and retries; they return an `HTTPResponse<T>` and take `RequestSettings`), `clamp`, `wrap`, `randomInt`/`randomFloat`/`randomElement`/`weightedRandom` (each takes an optional random source, for seeded runs: every world has an `RNG`, seeded by its `seed` option or `createRoom({ seed })`, a `randomSeed()` by default), `EventEmitter` (`on` returns an unsubscribe function), `Thread` (typed messages and awaited requests to a worker, the same in Bun and browsers: `new Thread(worker)` on one side, `Thread.parent()` in the worker; `request` rejects on an error, a timeout or `terminate`), `Timer`/`Interval`/`Timeout`, `IDAllocator`, `CounterMap`, `deepMerge`/`deepCopy`, `normalizeText` (removes invisible characters, which could make one name look like another, collapses whitespace and trims)/`validateText`/`censorText`, `format` (fills `{name}` placeholders), and `log`/`warn`/`error`.
 
 ## Common tasks
 

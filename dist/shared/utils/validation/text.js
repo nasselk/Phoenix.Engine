@@ -28,8 +28,9 @@ function isEdge(text, index) {
 const validationPatterns = [
     /[\x00-\x1F\x7F]/,
 ];
+const INVISIBLE = /[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g;
 export function normalizeText(text) {
-    return text.replace(/\s+/g, " ").trim();
+    return text.replace(INVISIBLE, "").replace(/\s+/g, " ").trim();
 }
 export function validateText(text, length = Infinity) {
     let min = 0;

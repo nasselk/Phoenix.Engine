@@ -53,8 +53,12 @@ const validationPatterns = [
 	/[\x00-\x1F\x7F]/, // Control characters
 ];
 
+/** Zero-width, text-direction and word-joiner characters, and the byte order mark: invisible, and able to make one text look like another. */
+const INVISIBLE = /[\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g;
+
+/** Player text fit to show: invisible characters out, every run of whitespace one space, trimmed. */
 export function normalizeText(text: string): string {
-	return text.replace(/\s+/g, " ").trim();
+	return text.replace(INVISIBLE, "").replace(/\s+/g, " ").trim();
 }
 
 export function validateText(text: string, length: number | [number, number] = Infinity): boolean {

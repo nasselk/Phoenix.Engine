@@ -12,6 +12,7 @@ export { Camera, type CameraOptions, type CameraTarget } from "./rendering/Camer
 export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, type RenderSystemOptions, RenderSystemState } from "./rendering/RenderSystem";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";
+export { type Language, Languages, type Translation } from "./utils/languages";
 export { SettingsStorage } from "./utils/settings";
 export { setStorage, storage } from "./utils/storage";
 export { Entity } from "./world/entities/entity";
