@@ -8,12 +8,12 @@ export { type ActionCallback, InputSystem, type InputSystemOptions } from "./con
 export { Engine, type EngineOptions } from "./engine";
 export { GameLoop, type GameLoopParams, type LoopStats } from "./GameLoop";
 export { type NetworkChannelStats, NetworkState, type NetworkStats, NetworkSystem, type NetworkSystemOptions } from "./networking/NetworkSystem";
+export { type CountryCode, closestServer, findRoomServer, getCountryCode, listServers, type Server, type Servers } from "./networking/servers";
 export { Camera, type CameraOptions, type CameraTarget } from "./rendering/Camera";
 export { type EditorAxis, EditorView, type EditorViewOptions } from "./rendering/lib/editor/EditorView";
 export { RenderSystem, type RenderSystemOptions, RenderSystemState } from "./rendering/RenderSystem";
 export { type Language, Languages, type Translation } from "./utils/languages";
 export { type DeviceType, isMobileDevice } from "./utils/mobile";
-export { type CountryCode, closestServer, findRoomServer, getCountryCode, listServers, type Server, type Servers } from "./networking/servers";
 export { SettingsStorage } from "./utils/settings";
 export { setStorage, storage } from "./utils/storage";
 export { Entity } from "./world/entities/entity";
